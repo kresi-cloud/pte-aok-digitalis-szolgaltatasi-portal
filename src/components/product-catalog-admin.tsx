@@ -136,7 +136,9 @@ export function ProductCatalogAdmin({ readOnly = false }: { readOnly?: boolean }
                   }}
                   className={cn(
                     "flex-1 rounded-md px-3 py-2 text-left text-sm transition-colors",
-                    c.id === activeCat?.id ? "bg-accent text-accent-foreground" : "hover:bg-secondary",
+                    c.id === activeCat?.id
+                      ? "bg-accent text-accent-foreground"
+                      : "hover:bg-secondary",
                   )}
                 >
                   <span className="block font-medium">{c.name}</span>
@@ -149,7 +151,10 @@ export function ProductCatalogAdmin({ readOnly = false }: { readOnly?: boolean }
                   variant="ghost"
                   aria-label={`${c.name} termékkör törlése`}
                   onClick={() => {
-                    if (count > 0 && !window.confirm(`${c.name}: ${count} modell is törlődik. Folytatja?`))
+                    if (
+                      count > 0 &&
+                      !window.confirm(`${c.name}: ${count} modell is törlődik. Folytatja?`)
+                    )
                       return;
                     store.removeProductCategory(c.id);
                     toast.success("Termékkör törölve");
@@ -246,18 +251,38 @@ export function ProductCatalogAdmin({ readOnly = false }: { readOnly?: boolean }
                   <h4 className="font-display font-semibold">
                     {editingProduct ? "Modell módosítása" : "Új modell felvétele"}
                   </h4>
-                  <Button size="icon" variant="ghost" onClick={() => setShowForm(false)} aria-label="Bezárás">
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    onClick={() => setShowForm(false)}
+                    aria-label="Bezárás"
+                  >
                     <X className="size-4" aria-hidden="true" />
                   </Button>
                 </div>
                 <div className="grid gap-4 sm:grid-cols-2">
-                  <Field label="Megnevezés" value={draft.name} onChange={(v) => set({ name: v })} placeholder="Xiaomi Redmi Note 15 Pro 5G 256GB" />
-                  <Field label="Gyártó" value={draft.vendor} onChange={(v) => set({ vendor: v })} placeholder="Xiaomi" />
+                  <Field
+                    label="Megnevezés"
+                    value={draft.name}
+                    onChange={(v) => set({ name: v })}
+                    placeholder="Xiaomi Redmi Note 15 Pro 5G 256GB"
+                  />
+                  <Field
+                    label="Gyártó"
+                    value={draft.vendor}
+                    onChange={(v) => set({ vendor: v })}
+                    placeholder="Xiaomi"
+                  />
                   <div className="space-y-1.5">
                     <Label>Elérhetőség</Label>
                     {activeCat && categoryIsTiered(activeCat.id) ? (
-                      <Select value={draft.tier} onValueChange={(v) => set({ tier: v as EmployeeTier })}>
-                        <SelectTrigger><SelectValue /></SelectTrigger>
+                      <Select
+                        value={draft.tier}
+                        onValueChange={(v) => set({ tier: v as EmployeeTier })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
                         <SelectContent>
                           {TIERS.map((t) => (
                             <SelectItem key={t} value={t}>
@@ -272,16 +297,51 @@ export function ProductCatalogAdmin({ readOnly = false }: { readOnly?: boolean }
                       </p>
                     )}
                   </div>
-                  <Field label="Referenciaár (Ft)" value={draft.referencePrice} onChange={(v) => set({ referencePrice: v })} placeholder="149000" />
-                  <Field label="Operációs rendszer" value={draft.os} onChange={(v) => set({ os: v })} placeholder="Android (HyperOS)" />
-                  <Field label="OS verzió" value={draft.osVersion} onChange={(v) => set({ osVersion: v })} placeholder="Android 15" />
+                  <Field
+                    label="Referenciaár (Ft)"
+                    value={draft.referencePrice}
+                    onChange={(v) => set({ referencePrice: v })}
+                    placeholder="149000"
+                  />
+                  <Field
+                    label="Operációs rendszer"
+                    value={draft.os}
+                    onChange={(v) => set({ os: v })}
+                    placeholder="Android (HyperOS)"
+                  />
+                  <Field
+                    label="OS verzió"
+                    value={draft.osVersion}
+                    onChange={(v) => set({ osVersion: v })}
+                    placeholder="Android 15"
+                  />
                   <Field label="Processzor" value={draft.cpu} onChange={(v) => set({ cpu: v })} />
                   <Field label="Memória" value={draft.ram} onChange={(v) => set({ ram: v })} />
-                  <Field label="Tároló" value={draft.storage} onChange={(v) => set({ storage: v })} />
-                  <Field label="Kijelző" value={draft.display} onChange={(v) => set({ display: v })} />
-                  <Field label="Akkumulátor" value={draft.battery} onChange={(v) => set({ battery: v })} />
-                  <Field label="Csatlakozók" value={draft.ports} onChange={(v) => set({ ports: v })} />
-                  <Field label="Garancia" value={draft.warranty} onChange={(v) => set({ warranty: v })} />
+                  <Field
+                    label="Tároló"
+                    value={draft.storage}
+                    onChange={(v) => set({ storage: v })}
+                  />
+                  <Field
+                    label="Kijelző"
+                    value={draft.display}
+                    onChange={(v) => set({ display: v })}
+                  />
+                  <Field
+                    label="Akkumulátor"
+                    value={draft.battery}
+                    onChange={(v) => set({ battery: v })}
+                  />
+                  <Field
+                    label="Csatlakozók"
+                    value={draft.ports}
+                    onChange={(v) => set({ ports: v })}
+                  />
+                  <Field
+                    label="Garancia"
+                    value={draft.warranty}
+                    onChange={(v) => set({ warranty: v })}
+                  />
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="features">Speciális jellemzők (vesszővel elválasztva)</Label>
@@ -312,72 +372,74 @@ export function ProductCatalogAdmin({ readOnly = false }: { readOnly?: boolean }
                     handovers: store.handovers ?? [],
                   });
                   return (
-                  <li key={p.id} className={cn("card-surface p-4", !p.active && "opacity-60")}>
-                    <div className="flex flex-wrap items-start justify-between gap-3">
-                      <div>
-                        <span className="block font-medium">{p.name}</span>
-                        <span className="block text-xs text-muted-foreground">
-                          {p.vendor} · {p.referencePrice.toLocaleString("hu-HU")} Ft ·{" "}
-                          {p.spec.cpu} · {p.spec.ram} · {p.spec.storage}
-                        </span>
-                        {lock.locked && (
-                          <span className="mt-1 block text-xs text-amber-700">{lock.reason}</span>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-2">
-                        {!p.active && <Badge variant="outline">Nem igényelhető</Badge>}
-                        <div className="flex items-center gap-1.5">
-                          <Switch
-                            id={`active-${p.id}`}
-                            checked={p.active}
-                            onCheckedChange={(v) => {
-                              if (!v && lock.locked) {
-                                const ok = window.confirm(
-                                  "A termékhez aktív beszerzési folyamat tartozik; a kikapcsolás csak az új igényeket tiltja, a folyamatban lévőket nem érinti. Folytatja?",
-                                );
-                                if (!ok) return;
-                              }
-                              store.updateProduct(p.id, { active: v });
-                              toast.success(v ? "A termék ismét igényelhető" : "A termék már nem igényelhető");
-                            }}
-                          />
-                          <Label htmlFor={`active-${p.id}`} className="text-xs font-normal">
-                            Igényelhető
-                          </Label>
+                    <li key={p.id} className={cn("card-surface p-4", !p.active && "opacity-60")}>
+                      <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div>
+                          <span className="block font-medium">{p.name}</span>
+                          <span className="block text-xs text-muted-foreground">
+                            {p.vendor} · {p.referencePrice.toLocaleString("hu-HU")} Ft ·{" "}
+                            {p.spec.cpu} · {p.spec.ram} · {p.spec.storage}
+                          </span>
+                          {lock.locked && (
+                            <span className="mt-1 block text-xs text-amber-700">{lock.reason}</span>
+                          )}
                         </div>
-                        {categoryIsTiered(p.categoryId) && (
-                          <Badge variant="secondary">{TIER_LABELS[p.tier]} kategóriától</Badge>
-                        )}
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => {
-                            setDraft(toDraft(p));
-                            setEditingProduct(p.id);
-                            setShowForm(true);
-                          }}
-                        >
-                          <Pencil className="size-4" /> Szerkesztés
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          disabled={lock.locked}
-                          title={lock.locked ? lock.reason : undefined}
-                          onClick={() => {
-                            if (lock.locked) {
-                              toast.error(lock.reason ?? "A termék jelenleg nem távolítható el.");
-                              return;
-                            }
-                            store.removeProduct(p.id);
-                            toast.success("Termék törölve");
-                          }}
-                        >
-                          <Trash2 className="size-4" /> Törlés
-                        </Button>
+                        <div className="flex items-center gap-2">
+                          {!p.active && <Badge variant="outline">Nem igényelhető</Badge>}
+                          <div className="flex items-center gap-1.5">
+                            <Switch
+                              id={`active-${p.id}`}
+                              checked={p.active}
+                              onCheckedChange={(v) => {
+                                if (!v && lock.locked) {
+                                  const ok = window.confirm(
+                                    "A termékhez aktív beszerzési folyamat tartozik; a kikapcsolás csak az új igényeket tiltja, a folyamatban lévőket nem érinti. Folytatja?",
+                                  );
+                                  if (!ok) return;
+                                }
+                                store.updateProduct(p.id, { active: v });
+                                toast.success(
+                                  v ? "A termék ismét igényelhető" : "A termék már nem igényelhető",
+                                );
+                              }}
+                            />
+                            <Label htmlFor={`active-${p.id}`} className="text-xs font-normal">
+                              Igényelhető
+                            </Label>
+                          </div>
+                          {categoryIsTiered(p.categoryId) && (
+                            <Badge variant="secondary">{TIER_LABELS[p.tier]} kategóriától</Badge>
+                          )}
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              setDraft(toDraft(p));
+                              setEditingProduct(p.id);
+                              setShowForm(true);
+                            }}
+                          >
+                            <Pencil className="size-4" /> Szerkesztés
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            disabled={lock.locked}
+                            title={lock.locked ? lock.reason : undefined}
+                            onClick={() => {
+                              if (lock.locked) {
+                                toast.error(lock.reason ?? "A termék jelenleg nem távolítható el.");
+                                return;
+                              }
+                              store.removeProduct(p.id);
+                              toast.success("Termék törölve");
+                            }}
+                          >
+                            <Trash2 className="size-4" /> Törlés
+                          </Button>
+                        </div>
                       </div>
-                    </div>
-                  </li>
+                    </li>
                   );
                 })}
               </ul>
@@ -408,7 +470,12 @@ function Field({
   return (
     <div className="space-y-1.5">
       <Label htmlFor={id}>{label}</Label>
-      <Input id={id} value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} />
+      <Input
+        id={id}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+      />
     </div>
   );
 }

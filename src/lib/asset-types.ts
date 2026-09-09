@@ -280,7 +280,8 @@ export interface HardwareStandard {
 }
 
 /** ReferencePrices + PriceSources */
-export type PriceSourceKind = "intezmenyi_beszerzes" | "keretszerzodes" | "tervezoi_ar" | "piaci_becsles";
+export type PriceSourceKind =
+  "intezmenyi_beszerzes" | "keretszerzodes" | "tervezoi_ar" | "piaci_becsles";
 
 export const PRICE_SOURCE_LABELS: Record<PriceSourceKind, string> = {
   intezmenyi_beszerzes: "Tényleges intézményi beszerzési ár",
@@ -345,12 +346,7 @@ export const QUARTER_LABELS: Record<Quarter, string> = {
 };
 
 export type ProcurementStatus =
-  | "tervezett"
-  | "jovahagyasra_var"
-  | "jovahagyva"
-  | "beszerzes_alatt"
-  | "teljesult"
-  | "elhalasztva";
+  "tervezett" | "jovahagyasra_var" | "jovahagyva" | "beszerzes_alatt" | "teljesult" | "elhalasztva";
 
 export const PROCUREMENT_STATUS_LABELS: Record<ProcurementStatus, string> = {
   tervezett: "Tervezett",
@@ -470,7 +466,6 @@ export interface PlanApproval {
   history?: PlanApprovalEvent[] | undefined;
 }
 
-
 /** AssetInventoryChecks / AssetInventoryDiscrepancies */
 export type PersonalCheckAnswer =
   | "nalam_van_hasznalom"
@@ -490,11 +485,7 @@ export const PERSONAL_CHECK_LABELS: Record<PersonalCheckAnswer, string> = {
 };
 
 export type SharedCheckAnswer =
-  | "megtalalhato"
-  | "nem_talalhato"
-  | "mas_helyen"
-  | "nem_mukodik"
-  | "selejtezesre_javasolt";
+  "megtalalhato" | "nem_talalhato" | "mas_helyen" | "nem_mukodik" | "selejtezesre_javasolt";
 
 export const SHARED_CHECK_LABELS: Record<SharedCheckAnswer, string> = {
   megtalalhato: "Megtalálható",
@@ -517,11 +508,7 @@ export interface InventoryCheck {
 }
 
 export type DiscrepancyKind =
-  | "hibas_adat"
-  | "nincs_nalam"
-  | "uj_eszkoz"
-  | "szoftver_nem_hasznalt"
-  | "eszkoz_hiba";
+  "hibas_adat" | "nincs_nalam" | "uj_eszkoz" | "szoftver_nem_hasznalt" | "eszkoz_hiba";
 
 export const DISCREPANCY_LABELS: Record<DiscrepancyKind, string> = {
   hibas_adat: "Hibás adat jelzése",
@@ -573,10 +560,7 @@ export interface AssetAuditEvent {
 
 /** Éves selejtezési javaslat: IT eszközmenedzser készíti, gazdasági vezető hagyja jóvá. */
 export type ScrapProposalStatus =
-  | "tervezes"
-  | "gazdasagi_jovahagyasra_var"
-  | "jovahagyva"
-  | "visszakuldve";
+  "tervezes" | "gazdasagi_jovahagyasra_var" | "jovahagyva" | "visszakuldve";
 
 export const SCRAP_STATUS_LABELS: Record<ScrapProposalStatus, string> = {
   tervezes: "Összeállítás alatt",

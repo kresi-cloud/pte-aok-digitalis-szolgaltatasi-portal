@@ -4,7 +4,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { PageHeading } from "@/components/page-heading";
 import { lookup, useStore, ORG_UNITS } from "@/lib/store";
 import { LOCATION_KIND_LABELS } from "@/lib/asset-types";
@@ -46,7 +52,8 @@ export const Route = createFileRoute("/eszkozkataszter")({
       { property: "og:title", content: "Eszközkataszter – ÁOK Digitális Szolgáltatási Portál" },
       {
         property: "og:description",
-        content: "Kari hardverállomány, életciklus-státuszok, standardok és referenciaárak egy nézetben.",
+        content:
+          "Kari hardverállomány, életciklus-státuszok, standardok és referenciaárak egy nézetben.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
@@ -71,9 +78,10 @@ function CataloguePage() {
         if (usage !== "mind" && a.usage !== usage) return false;
         if (status !== "mind" && lifecycleStatus(a) !== status) return false;
         if (q.trim()) {
-          const hay = `${a.inventoryNo} ${a.deviceId} ${a.serial} ${assetLookup.modelLabel(a.modelKey)} ${
-            lookup.userName(a.assignedUserId ?? a.custodianUserId)
-          }`.toLowerCase();
+          const hay =
+            `${a.inventoryNo} ${a.deviceId} ${a.serial} ${assetLookup.modelLabel(a.modelKey)} ${lookup.userName(
+              a.assignedUserId ?? a.custodianUserId,
+            )}`.toLowerCase();
           if (!hay.includes(q.trim().toLowerCase())) return false;
         }
         return true;
@@ -102,11 +110,33 @@ function CataloguePage() {
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-        <StatTile label="Nyilvántartott eszköz" value={filtered.length} hint={`${assets.length} db a teljes kataszterben`} />
-        <StatTile label="Bruttó beszerzési érték" value={hufShort(totalValue)} hint="Szűrt állományra" />
-        <StatTile label="Cserére tervezendő" value={dueSoon.length} tone="warn" hint="Életciklus-vég közeledik vagy lejárt" />
-        <StatTile label="Garancián kívül" value={outOfWarranty.length} hint="Lejárt gyártói garancia" />
-        <StatTile label="Standardtól eltérő" value={nonStandard.length} tone={nonStandard.length > 0 ? "danger" : "default"} hint="Nem felel meg a minimumnak" />
+        <StatTile
+          label="Nyilvántartott eszköz"
+          value={filtered.length}
+          hint={`${assets.length} db a teljes kataszterben`}
+        />
+        <StatTile
+          label="Bruttó beszerzési érték"
+          value={hufShort(totalValue)}
+          hint="Szűrt állományra"
+        />
+        <StatTile
+          label="Cserére tervezendő"
+          value={dueSoon.length}
+          tone="warn"
+          hint="Életciklus-vég közeledik vagy lejárt"
+        />
+        <StatTile
+          label="Garancián kívül"
+          value={outOfWarranty.length}
+          hint="Lejárt gyártói garancia"
+        />
+        <StatTile
+          label="Standardtól eltérő"
+          value={nonStandard.length}
+          tone={nonStandard.length > 0 ? "danger" : "default"}
+          hint="Nem felel meg a minimumnak"
+        />
       </div>
 
       <Tabs defaultValue="allomany">
@@ -132,11 +162,31 @@ function CataloguePage() {
                 placeholder="Leltári szám, gyári szám, modell, használó"
               />
             </div>
-            <FilterSelect id="kat-unit" label="Szervezeti egység" value={unit} onChange={setUnit}
-              options={[["mind", "Mind"], ...ORG_UNITS.map((o) => [o.id, o.name] as [string, string])]} />
-            <FilterSelect id="kat-cat" label="Kategória" value={cat} onChange={setCat}
-              options={[["mind", "Mind"], ...ASSET_CATEGORIES.map((c) => [c.key, c.label] as [string, string])]} />
-            <FilterSelect id="kat-status" label="Életciklus-státusz" value={status} onChange={setStatus}
+            <FilterSelect
+              id="kat-unit"
+              label="Szervezeti egység"
+              value={unit}
+              onChange={setUnit}
+              options={[
+                ["mind", "Mind"],
+                ...ORG_UNITS.map((o) => [o.id, o.name] as [string, string]),
+              ]}
+            />
+            <FilterSelect
+              id="kat-cat"
+              label="Kategória"
+              value={cat}
+              onChange={setCat}
+              options={[
+                ["mind", "Mind"],
+                ...ASSET_CATEGORIES.map((c) => [c.key, c.label] as [string, string]),
+              ]}
+            />
+            <FilterSelect
+              id="kat-status"
+              label="Életciklus-státusz"
+              value={status}
+              onChange={setStatus}
               options={[
                 ["mind", "Mind"],
                 ["uj", "Új"],
@@ -146,9 +196,19 @@ function CataloguePage() {
                 ["cserere_erett", "Cserére érett"],
                 ["tamogatasbol_kifutott", "Támogatásból kifutott"],
                 ["selejtezesre_var", "Selejtezésre vár"],
-              ]} />
-            <FilterSelect id="kat-usage" label="Használat" value={usage} onChange={setUsage}
-              options={[["mind", "Mind"], ["szemelyi", "Személyi"], ["kozos", "Közös"]]} />
+              ]}
+            />
+            <FilterSelect
+              id="kat-usage"
+              label="Használat"
+              value={usage}
+              onChange={setUsage}
+              options={[
+                ["mind", "Mind"],
+                ["szemelyi", "Személyi"],
+                ["kozos", "Közös"],
+              ]}
+            />
           </section>
 
           <AssetTable assets={filtered.slice(0, 80)} />
@@ -171,7 +231,8 @@ function CataloguePage() {
               <section key={o.id} className="card-surface p-5">
                 <h2 className="font-display text-base font-semibold">{o.name}</h2>
                 <p className="text-sm text-muted-foreground">
-                  Leltárfelelős: {lookup.userName(list[0]!.inventoryResponsibleId)} · {list.length} közös eszköz
+                  Leltárfelelős: {lookup.userName(list[0]!.inventoryResponsibleId)} · {list.length}{" "}
+                  közös eszköz
                 </p>
                 <div className="mt-3">
                   <AssetTable assets={list} compact />
@@ -217,9 +278,12 @@ function CataloguePage() {
                   {ASSET_CATEGORIES.map((c) => {
                     const list = filtered.filter((a) => a.categoryKey === c.key);
                     if (!list.length) return null;
-                    const avg = list.reduce((s, a) => s + yearsSince(a.commissionDate), 0) / list.length;
+                    const avg =
+                      list.reduce((s, a) => s + yearsSince(a.commissionDate), 0) / list.length;
                     const due = list.filter((a) =>
-                      ["cserere_erett", "tamogatasbol_kifutott", "selejtezesre_var"].includes(lifecycleStatus(a)),
+                      ["cserere_erett", "tamogatasbol_kifutott", "selejtezesre_var"].includes(
+                        lifecycleStatus(a),
+                      ),
                     ).length;
                     return (
                       <tr key={c.key}>
@@ -227,7 +291,9 @@ function CataloguePage() {
                         <td className="py-2">{list.length}</td>
                         <td className="py-2">{avg.toFixed(1)} év</td>
                         <td className="py-2">{due}</td>
-                        <td className="py-2">{hufShort(list.reduce((s, a) => s + a.purchaseValue, 0))}</td>
+                        <td className="py-2">
+                          {hufShort(list.reduce((s, a) => s + a.purchaseValue, 0))}
+                        </td>
                       </tr>
                     );
                   })}
@@ -239,7 +305,8 @@ function CataloguePage() {
           <section className="card-surface p-5">
             <h2 className="font-display text-base font-semibold">Életciklus-politikák</h2>
             <p className="text-sm text-muted-foreground">
-              A politikák szervezeti szinten konfigurálhatók; eszközszinten felülírhatók indoklással.
+              A politikák szervezeti szinten konfigurálhatók; eszközszinten felülírhatók
+              indoklással.
             </p>
             <ul className="mt-3 grid gap-3 md:grid-cols-2">
               {LIFECYCLE_POLICIES.map((p) => (
@@ -258,7 +325,8 @@ function CataloguePage() {
         <TabsContent value="standardok" className="space-y-4">
           <p className="text-sm text-muted-foreground">
             A standard hardverprofilok határozzák meg, milyen konfiguráció szerezhető be az egyes
-            felhasználói profilokhoz. A tervezés ezekhez a profilokhoz rendelt referenciaárral számol.
+            felhasználói profilokhoz. A tervezés ezekhez a profilokhoz rendelt referenciaárral
+            számol.
           </p>
           <div className="grid gap-4 lg:grid-cols-2">
             {HARDWARE_STANDARDS.map((s) => {
@@ -269,7 +337,9 @@ function CataloguePage() {
                     <h2 className="font-display text-base font-semibold">{s.label}</h2>
                     <Badge variant="secondary">{assetLookup.categoryLabel(s.categoryKey)}</Badge>
                   </div>
-                  <p className="mt-1 text-sm text-muted-foreground">{s.userProfile} · {s.intendedUse}</p>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    {s.userProfile} · {s.intendedUse}
+                  </p>
                   <dl className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
                     <div>
                       <dt className="text-xs text-muted-foreground">Minimum</dt>
@@ -280,7 +350,8 @@ function CataloguePage() {
                     <div>
                       <dt className="text-xs text-muted-foreground">Javasolt</dt>
                       <dd>
-                        {s.preferredSpec.cpu} · {s.preferredSpec.ramGb} GB · {s.preferredSpec.storage}
+                        {s.preferredSpec.cpu} · {s.preferredSpec.ramGb} GB ·{" "}
+                        {s.preferredSpec.storage}
                       </dd>
                     </div>
                     <div>
@@ -293,7 +364,8 @@ function CataloguePage() {
                     </div>
                   </dl>
                   <p className="mt-2 text-xs text-muted-foreground">
-                    Jóváhagyott modellek: {s.approvedModels.map((m) => assetLookup.modelLabel(m)).join(", ")}
+                    Jóváhagyott modellek:{" "}
+                    {s.approvedModels.map((m) => assetLookup.modelLabel(m)).join(", ")}
                   </p>
                 </section>
               );
@@ -317,18 +389,26 @@ function CataloguePage() {
                 <tbody className="divide-y divide-border">
                   {ASSET_MODELS.map((m) => (
                     <tr key={m.key}>
-                      <td className="py-2 font-medium">{m.manufacturer} {m.model}</td>
+                      <td className="py-2 font-medium">
+                        {m.manufacturer} {m.model}
+                      </td>
                       <td className="py-2">{assetLookup.categoryLabel(m.categoryKey)}</td>
                       <td className="py-2">
-                        {m.spec.processor ? `${m.spec.processor.name} (${m.spec.processor.generation})` : "—"}
+                        {m.spec.processor
+                          ? `${m.spec.processor.name} (${m.spec.processor.generation})`
+                          : "—"}
                       </td>
                       <td className="py-2">
-                        {m.spec.memory ? `${m.spec.memory.capacityGb} GB ${m.spec.memory.type}` : "—"}
+                        {m.spec.memory
+                          ? `${m.spec.memory.capacityGb} GB ${m.spec.memory.type}`
+                          : "—"}
                       </td>
                       <td className="py-2">
                         {m.spec.storage ? `${m.spec.storage.capacity} ${m.spec.storage.type}` : "—"}
                       </td>
-                      <td className="py-2">{m.spec.os ? `${m.spec.os} ${m.spec.osVersion ?? ""}` : "—"}</td>
+                      <td className="py-2">
+                        {m.spec.os ? `${m.spec.os} ${m.spec.osVersion ?? ""}` : "—"}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -483,7 +563,13 @@ function FilterSelect({
   );
 }
 
-export function AssetTable({ assets, compact }: { assets: ReturnType<typeof useStore>["assets"]; compact?: boolean }) {
+export function AssetTable({
+  assets,
+  compact,
+}: {
+  assets: ReturnType<typeof useStore>["assets"];
+  compact?: boolean;
+}) {
   return (
     <div className="card-surface overflow-x-auto">
       <table className="w-full text-sm">
@@ -505,7 +591,11 @@ export function AssetTable({ assets, compact }: { assets: ReturnType<typeof useS
             return (
               <tr key={a.id} className="hover:bg-secondary/50">
                 <td className="px-4 py-3">
-                  <Link to="/eszkoz/$id" params={{ id: a.id }} className="font-medium text-primary hover:underline">
+                  <Link
+                    to="/eszkoz/$id"
+                    params={{ id: a.id }}
+                    className="font-medium text-primary hover:underline"
+                  >
                     {a.inventoryNo}
                   </Link>
                   <span className="block text-xs text-muted-foreground">{a.deviceId}</span>
@@ -513,12 +603,15 @@ export function AssetTable({ assets, compact }: { assets: ReturnType<typeof useS
                 <td className="px-4 py-3">
                   {assetLookup.modelLabel(a.modelKey)}
                   <span className="block text-xs text-muted-foreground">
-                    {assetLookup.categoryLabel(a.categoryKey)} · {a.usage === "kozos" ? "közös" : "személyi"}
+                    {assetLookup.categoryLabel(a.categoryKey)} ·{" "}
+                    {a.usage === "kozos" ? "közös" : "személyi"}
                     {os && Date.parse(os) < Date.parse(TODAY) ? " · OS támogatás lejárt" : ""}
                   </span>
                 </td>
                 {!compact && <td className="px-4 py-3">{lookup.unit(a.orgUnitId)}</td>}
-                <td className="px-4 py-3">{lookup.userName(a.assignedUserId ?? a.custodianUserId)}</td>
+                <td className="px-4 py-3">
+                  {lookup.userName(a.assignedUserId ?? a.custodianUserId)}
+                </td>
                 <td className="px-4 py-3">{a.commissionDate}</td>
                 <td className="px-4 py-3">{lifecycleEnd(a)}</td>
                 <td className="px-4 py-3">

@@ -22,7 +22,6 @@ import { HANDOVER_MODE_LABELS, REQUEST_REASON_LABELS } from "./types";
 import { INITIAL_PRODUCTS, INITIAL_PRODUCT_CATEGORIES } from "./product-catalog";
 import { ASSET_LOCATIONS } from "./asset-data";
 
-
 const ALL_DOMAINS: ServiceDomain[] = [
   {
     key: "szoftver",
@@ -158,7 +157,6 @@ export const ORG_UNITS: OrgUnit[] = [
     deputyApproverUserId: "u-molnar",
   },
 ];
-
 
 export const USERS: User[] = [
   {
@@ -445,7 +443,6 @@ export const USERS: User[] = [
   },
 ];
 
-
 // A portál kizárólag informatikai eszközbeszerzést kezel aktívan;
 // a többi terület inaktív csempeként, nem kattinthatóan jelenik meg.
 export const DOMAINS: ServiceDomain[] = ALL_DOMAINS.filter((d) => d.key === "hardver");
@@ -602,7 +599,8 @@ const ALL_CATALOG: CatalogItem[] = [
     id: "c-workflow",
     name: "Automatizált workflow",
     domain: "digitalizacio",
-    description: "Jóváhagyási vagy adminisztratív folyamat automatizálása, e-mail helyett rendszerben.",
+    description:
+      "Jóváhagyási vagy adminisztratív folyamat automatizálása, e-mail helyett rendszerben.",
     whoCanRequest: "Minden munkatárs",
     deliveryTime: "15–35 munkanap",
     approvals: ["Szervezeti jóváhagyó", "Szolgáltatásgazda"],
@@ -615,7 +613,8 @@ const ALL_CATALOG: CatalogItem[] = [
     id: "c-app",
     name: "Új belső alkalmazás",
     domain: "digitalizacio",
-    description: "Egyedi belső alkalmazás fejlesztése, ha meglévő rendszer nem támogatja a folyamatot.",
+    description:
+      "Egyedi belső alkalmazás fejlesztése, ha meglévő rendszer nem támogatja a folyamatot.",
     whoCanRequest: "Szervezeti egység vezetője",
     deliveryTime: "2–6 hónap",
     approvals: ["Szervezeti jóváhagyó", "Szolgáltatásgazda", "Dékáni Hivatal"],
@@ -707,7 +706,6 @@ interface Seed {
   workLocationId?: string;
   handoverMode?: HandoverMode;
 }
-
 
 const seeds: Seed[] = [
   {
@@ -1225,7 +1223,14 @@ function buildRequest(s: Seed): ServiceRequest {
       : unit.approverUserId) ?? "u-nagy";
 
   const approvals: Approval[] = [];
-  const closedish = ["elfogadva", "tervezes", "megvalositas", "teszteles", "atadasra_var", "lezarva"];
+  const closedish = [
+    "elfogadva",
+    "tervezes",
+    "megvalositas",
+    "teszteles",
+    "atadasra_var",
+    "lezarva",
+  ];
   if (s.status === "jovahagyasra_var") {
     approvals.push(appr(1, "Szervezeti jóváhagyó", approverId, "fuggoben"));
     approvals.push(appr(2, "Szolgáltatásgazda", "u-nemeth", "fuggoben"));
@@ -1240,13 +1245,18 @@ function buildRequest(s: Seed): ServiceRequest {
   } else if (s.status === "elutasitva") {
     approvals.push(
       appr(1, "Szervezeti jóváhagyó", approverId, "jovahagyva", s.createdAt),
-      appr(2, "IT szolgáltatásgazda", "u-molnar", "elutasitva", s.updatedAt, "Biztonsági kockázat."),
+      appr(
+        2,
+        "IT szolgáltatásgazda",
+        "u-molnar",
+        "elutasitva",
+        s.updatedAt,
+        "Biztonsági kockázat.",
+      ),
     );
   }
 
-  const messages: RequestMessage[] = [
-    msg(s.requesterId, s.createdAt, goalText),
-  ];
+  const messages: RequestMessage[] = [msg(s.requesterId, s.createdAt, goalText)];
   if (s.assigneeId) {
     messages.push(
       msg(
@@ -1270,7 +1280,9 @@ function buildRequest(s: Seed): ServiceRequest {
     audit(s.createdAt, "u-system", "Besorolás", `AI javaslat: ${s.domain} szolgáltatási terület`),
   ];
   if (s.assigneeId)
-    auditTrail.push(audit(s.updatedAt, "u-horvath", "Felelős kijelölése", `Felelős: ${s.assigneeId}`));
+    auditTrail.push(
+      audit(s.updatedAt, "u-horvath", "Felelős kijelölése", `Felelős: ${s.assigneeId}`),
+    );
   auditTrail.push(audit(s.updatedAt, s.assigneeId ?? "u-horvath", "Státuszváltás", s.status));
 
   return {
@@ -1356,8 +1368,9 @@ function buildRequest(s: Seed): ServiceRequest {
     },
     internal: {
       classification: `${DOMAINS.find((d) => d.key === s.domain)!.name} / ${s.priority}`,
-      dependencies:
-        s.projectId ? "Kapcsolódik egy futó fejlesztési kezdeményezéshez." : "Nincs ismert függőség.",
+      dependencies: s.projectId
+        ? "Kapcsolódik egy futó fejlesztési kezdeményezéshez."
+        : "Nincs ismert függőség.",
       procurement: (cost ?? 0) > 300000,
       security: s.domain === "szoftver" ? "IT biztonsági ellenőrzés szükséges" : "Nem érintett",
       dataProtection:
@@ -1600,8 +1613,6 @@ export const RESPONSIBILITIES: ResponsibilityRow[] = ALL_RESPONSIBILITIES.filter
   DEVICE_TEAMS.has(r.team),
 );
 
-
-
 const ALL_NOTIFICATIONS: AppNotification[] = [
   {
     id: "n-1",
@@ -1638,8 +1649,6 @@ const REQUEST_IDS = new Set(REQUESTS.map((r) => r.id));
 export const NOTIFICATIONS: AppNotification[] = ALL_NOTIFICATIONS.filter(
   (n) => !!n.requestId && REQUEST_IDS.has(n.requestId),
 );
-
-
 
 export const MONTHLY_VOLUME = [
   { month: "Márc", igenyek: 28, lezart: 24 },

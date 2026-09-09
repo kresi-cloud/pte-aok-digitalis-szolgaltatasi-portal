@@ -35,17 +35,17 @@ Vezérelv: az alkalmazás NEM ticketrendszer. A felhasználó azt írja le, **mi
 
 ## 4. SZEREPKÖRÖK (9)
 
-| kulcs | megnevezés | jogosultság |
-|---|---|---|
-| `igenylo` | Igénylő | igény benyújtása, saját ügyek, saját leltár |
-| `jovahagyo` | Szervezeti jóváhagyó | egységének igényei, jóváhagyás/elutasítás/pontosításkérés |
-| `ugyintezo` | Szolgáltatási ügyintéző | munkatér, besorolás, státusz, belső jegyzet, becslés |
-| `szolgaltatasgazda` | Szolgáltatásgazda | katalógus, csapatok, SLA, kapacitás, portfólió |
-| `vezeto` | Kari vezető | vezetői áttekintés, teljes rálátás eset szintig |
-| `dekan` | Dékán | minden vezetői nézet + negyedéves/éves beszerzési terv jóváhagyása |
-| `admin` | Rendszeradminisztrátor | adminisztráció, leltárjóváhagyás, katalógus, közlemények |
-| `beszerzo` | Beszerző | jóváhagyott eseti beszerzések, negyedéves/éves terv végrehajtása |
-| `superuser` | Superuser | **kizárólagos** jogosultság-kiosztás, teljes szerepkör-audit |
+| kulcs               | megnevezés              | jogosultság                                                        |
+| ------------------- | ----------------------- | ------------------------------------------------------------------ |
+| `igenylo`           | Igénylő                 | igény benyújtása, saját ügyek, saját leltár                        |
+| `jovahagyo`         | Szervezeti jóváhagyó    | egységének igényei, jóváhagyás/elutasítás/pontosításkérés          |
+| `ugyintezo`         | Szolgáltatási ügyintéző | munkatér, besorolás, státusz, belső jegyzet, becslés               |
+| `szolgaltatasgazda` | Szolgáltatásgazda       | katalógus, csapatok, SLA, kapacitás, portfólió                     |
+| `vezeto`            | Kari vezető             | vezetői áttekintés, teljes rálátás eset szintig                    |
+| `dekan`             | Dékán                   | minden vezetői nézet + negyedéves/éves beszerzési terv jóváhagyása |
+| `admin`             | Rendszeradminisztrátor  | adminisztráció, leltárjóváhagyás, katalógus, közlemények           |
+| `beszerzo`          | Beszerző                | jóváhagyott eseti beszerzések, negyedéves/éves terv végrehajtása   |
+| `superuser`         | Superuser               | **kizárólagos** jogosultság-kiosztás, teljes szerepkör-audit       |
 
 Belépés: szimulált intézményi SSO („Belépés PTE azonosítóval”), demo felhasználó-választóval; a rendszer ismeri a nevet, e-mailt, szervezeti egységet, beosztást, munkavállalói azonosítót és a felettest. Aktív szerepkör futásidőben váltható a profilmenüből.
 
@@ -60,6 +60,7 @@ Fejléc: wordmark → globális kereső („Keresés szolgáltatások, igények 
 ## 6. KEZDŐLAP
 
 Nincs üdvözlő hero-banner. Sorrend:
+
 1. **Hírek** blokk — csak akkor jelenik meg, ha van érvényes, mindenkinek szóló közlemény (rendszeradminisztrátor hozza létre, lejárati idővel, fontossági szinttel, elvethetően)
 2. Négy szolgáltatási domain kártya: **Szoftver, Hardver, Honlap és webes megjelenés, Szolgáltatásdigitalizáció és fejlesztés**
 3. „Folyamatban lévő igényeim” — azonosító, cím, státusz, felelős csapat, utolsó frissítés
@@ -69,15 +70,17 @@ Nincs üdvözlő hero-banner. Sorrend:
 ## 7. IGÉNYINDÍTÓ VARÁZSLÓ (`/uj-igeny`)
 
 Négy lépés, sosem egy nagy űrlap:
+
 1. **„Miben segíthetünk?”** — domain vagy katalóguselem választása (katalógusból indítva előtöltés)
 2. **Cél leírása** — „Írd le röviden, mit szeretnél elérni. Nem szükséges technikai megoldást megadnod.” + „Segíts pontosítani az igényt” gomb (szimulált AI strukturálás, kizárólag javaslatként, a felhasználó erősíti meg)
 3. **Kontextusfüggő kérdések** — csak a releváns kérdések (felhasználói kör, létszám, határidő, meglévő rendszer, személyes adat kezelése, integráció, egyszeri vagy tartós, költségkeret)
 4. **Összefoglaló** — Cél / Érintett szervezeti egység / Felhasználók / Kívánt eredmény / Határidő / Adatkezelési érintettség / Integráció / Becsült prioritás, szabadon szerkeszthető
-Akciók: „Igény beküldése” és „Mentés piszkozatként”.
+   Akciók: „Igény beküldése” és „Mentés piszkozatként”.
 
 ## 8. IGÉNYÉRTÉKELÉS (szimulált triage)
 
 Beküldés után a rendszer javaslatot állít elő: szolgáltatási kategória, altípus, felelős csapat, komplexitás, várható workflow, szükséges jóváhagyás, lehetséges duplikáció, projektjelleg.
+
 - Csak szolgáltatási és vezetői szerepköröknek látszik.
 - Fejléce mindig: **„Igényértékelés – manuális jóváhagyás szükséges”**; a javaslat sosem hoz automatikus, visszafordíthatatlan döntést.
 
@@ -109,6 +112,7 @@ Interaktív táblázat (Azonosító, Igény, Kategória, Szervezeti egység, Ig�
 ## 13. SZEMÉLYI LELTÁR (`/leltar`)
 
 Minden felhasználó maga rögzíti hardver- és szoftvertételeit; a rendszeradminisztrátor hagyja jóvá (Adminisztráció → Leltár jóváhagyás).
+
 - Modellválasztás után a technikai adatok **automatikusan** kitöltődnek: operációs rendszer és verzió, processzor, memória, tároló, speciális feature-ök (modellkatalógus: Dell, HP, Lenovo, Apple stb.)
 - Minden eszköznél kötelezően megjelenik a **szériaszám/gyári szám** és a **PTE leltárkód**
 - **Mobilitásfüggő helymeghatározás**: nem mobil eszköz (asztali gép, workstation, nyomtató, laboreszköz) esetén épület + helyiség kötelező; mobil eszköznél „Személyi használat”

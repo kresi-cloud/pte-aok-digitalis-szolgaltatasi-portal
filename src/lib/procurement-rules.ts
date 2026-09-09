@@ -64,10 +64,7 @@ export function handoverConfigured(handover: AssetHandover | undefined): boolean
 }
 
 /** 7. lépés – eszközátadás az igénylőnek, csak befejezett konfigurálás után. */
-export function canHandOverToUser(
-  handover: AssetHandover | undefined,
-  role: RoleKey,
-): RuleResult {
+export function canHandOverToUser(handover: AssetHandover | undefined, role: RoleKey): RuleResult {
   if (!handover) return no("Az átadási rekord nem található.");
   if (role !== "it_referens")
     return no("Az átadást a kari IT referens végzi – Ön betekintő jogosultsággal nézi az ügyet.");
@@ -94,7 +91,6 @@ export function canConfirmReceipt(
     return no("Az átvételt az eszköz címzettje igazolhatja vissza.");
   return ok;
 }
-
 
 /** Beszerzés indítása: csak jóváhagyott tervciklus alapján. */
 export function canStartProcurement(

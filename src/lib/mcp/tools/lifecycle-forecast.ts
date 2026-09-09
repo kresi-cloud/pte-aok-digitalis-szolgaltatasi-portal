@@ -9,7 +9,11 @@ export default defineTool({
   description:
     "Többéves eszközcsere-előrejelzés: évente hány eszköz életciklusa jár le, becsült költséggel és kategóriabontással, valamint az aktuális korfa.",
   inputSchema: {
-    fromYear: z.number().int().optional().describe(`Kezdő év (alapértelmezés: ${NEXT_FINANCIAL_YEAR}).`),
+    fromYear: z
+      .number()
+      .int()
+      .optional()
+      .describe(`Kezdő év (alapértelmezés: ${NEXT_FINANCIAL_YEAR}).`),
     years: z.number().int().optional().describe("Hány évre előre (1–10, alapértelmezés: 5)."),
   },
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },

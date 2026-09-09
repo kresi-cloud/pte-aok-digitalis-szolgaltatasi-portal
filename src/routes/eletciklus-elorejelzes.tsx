@@ -25,7 +25,10 @@ export const Route = createFileRoute("/eletciklus-elorejelzes")({
         content:
           "Többéves eszközcsere- és licencmegújítási előrejelzés: csúcsévek, becsült forrásigény, kategória- és egységszintű bontás.",
       },
-      { property: "og:title", content: "Életciklus-előrejelzés – ÁOK Digitális Szolgáltatási Portál" },
+      {
+        property: "og:title",
+        content: "Életciklus-előrejelzés – ÁOK Digitális Szolgáltatási Portál",
+      },
       {
         property: "og:description",
         content: "Több évre előre látható eszközcsere-igény és becsült költség.",
@@ -72,10 +75,19 @@ function ForecastPage() {
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <StatTile label="Vizsgált időtáv" value={`${span} év`} hint={`${NEXT_FINANCIAL_YEAR}–${NEXT_FINANCIAL_YEAR + span - 1}`} />
+        <StatTile
+          label="Vizsgált időtáv"
+          value={`${span} év`}
+          hint={`${NEXT_FINANCIAL_YEAR}–${NEXT_FINANCIAL_YEAR + span - 1}`}
+        />
         <StatTile label="Érintett eszköz" value={rows.reduce((s, r) => s + r.count, 0)} />
         <StatTile label="Becsült teljes forrásigény" value={hufShort(total)} />
-        <StatTile label="Csúcsév" value={`${peak.year}`} tone="warn" hint={`${peak.count} eszköz · ${hufShort(peak.estimatedCost)}`} />
+        <StatTile
+          label="Csúcsév"
+          value={`${peak.year}`}
+          tone="warn"
+          hint={`${peak.count} eszköz · ${hufShort(peak.estimatedCost)}`}
+        />
       </div>
 
       <div className="card-surface max-w-xs p-4">
@@ -112,7 +124,9 @@ function ForecastPage() {
                     />
                   </div>
                   <span className="w-28 text-right text-sm">{hufShort(r.estimatedCost)}</span>
-                  <span className="w-16 text-right text-xs text-muted-foreground">{r.count} db</span>
+                  <span className="w-16 text-right text-xs text-muted-foreground">
+                    {r.count} db
+                  </span>
                 </div>
               ))}
             </div>
@@ -151,7 +165,9 @@ function ForecastPage() {
 
         <TabsContent value="egyseg">
           <section className="card-surface overflow-x-auto p-5">
-            <h2 className="font-display text-base font-semibold">Szervezeti egységenkénti csereigény</h2>
+            <h2 className="font-display text-base font-semibold">
+              Szervezeti egységenkénti csereigény
+            </h2>
             <table className="mt-3 w-full text-sm">
               <thead className="text-left text-xs text-muted-foreground">
                 <tr>
@@ -169,7 +185,8 @@ function ForecastPage() {
                   const perYear = rows.map(
                     (r) =>
                       store.assets.filter(
-                        (a) => a.orgUnitId === o.id && Number(lifecycleEnd(a).slice(0, 4)) === r.year,
+                        (a) =>
+                          a.orgUnitId === o.id && Number(lifecycleEnd(a).slice(0, 4)) === r.year,
                       ).length,
                   );
                   const sum = perYear.reduce((s, n) => s + n, 0);
@@ -218,9 +235,16 @@ function ForecastPage() {
             <h2 className="font-display text-base font-semibold">Kockázatos licencek</h2>
             <ul className="mt-3 space-y-2 text-sm">
               {store.licences
-                .filter((l) => ["lejart", "lejarathoz_kozel", "megujitas_szukseges", "nem_hasznalt"].includes(licenceStatus(l)))
+                .filter((l) =>
+                  ["lejart", "lejarathoz_kozel", "megujitas_szukseges", "nem_hasznalt"].includes(
+                    licenceStatus(l),
+                  ),
+                )
                 .map((l) => (
-                  <li key={l.id} className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border p-3">
+                  <li
+                    key={l.id}
+                    className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border p-3"
+                  >
                     <div>
                       <p className="font-medium">
                         {assetLookup.productName(l.productKey)} {l.version}
@@ -237,7 +261,9 @@ function ForecastPage() {
           </section>
 
           <section className="card-surface overflow-x-auto p-5">
-            <h2 className="font-display text-base font-semibold">Gyártói támogatás vége verziónként</h2>
+            <h2 className="font-display text-base font-semibold">
+              Gyártói támogatás vége verziónként
+            </h2>
             <table className="mt-3 w-full text-sm">
               <thead className="text-left text-xs text-muted-foreground">
                 <tr>

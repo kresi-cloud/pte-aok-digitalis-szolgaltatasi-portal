@@ -306,7 +306,6 @@ function HandoverCard({ handover, canAct }: { handover: AssetHandover; canAct: b
                         {r.room} ({LOCATION_KIND_LABELS[r.kind]})
                       </SelectItem>
                     ))}
-
                   </SelectContent>
                 </Select>
               </div>
@@ -336,8 +335,9 @@ function HandoverCard({ handover, canAct }: { handover: AssetHandover; canAct: b
                   : "text-xs font-semibold text-amber-700"
               }
             >
-              Kötelező lépések: {HANDOVER_CHECKLIST.filter((c) => c.required).length - missingRequired.length}
-              /{HANDOVER_CHECKLIST.filter((c) => c.required).length}
+              Kötelező lépések:{" "}
+              {HANDOVER_CHECKLIST.filter((c) => c.required).length - missingRequired.length}/
+              {HANDOVER_CHECKLIST.filter((c) => c.required).length}
             </span>
           </div>
           <ul className="grid gap-2 sm:grid-cols-2">
@@ -380,7 +380,10 @@ function HandoverCard({ handover, canAct }: { handover: AssetHandover; canAct: b
         {attachments.length > 0 && (
           <ul className="grid gap-2 sm:grid-cols-2">
             {attachments.map((a) => (
-              <li key={a.id} className="flex items-center gap-3 rounded-md border border-border p-2">
+              <li
+                key={a.id}
+                className="flex items-center gap-3 rounded-md border border-border p-2"
+              >
                 {a.mimeType.startsWith("image/") ? (
                   <img
                     src={a.dataUrl}
@@ -550,8 +553,8 @@ function HandoverCard({ handover, canAct }: { handover: AssetHandover; canAct: b
           {(!serial || !inventoryNo || !productId || !requiredDone || !hasPhoto) && (
             <span className="self-center text-xs text-muted-foreground">
               Az átadáshoz kötelező: modell, gyári szám, leltárkód, minden kötelező checklist-lépés
-              {!requiredDone ? ` (hiányzik: ${missingRequired.length})` : ""} és legalább egy fénykép
-              csatolása.
+              {!requiredDone ? ` (hiányzik: ${missingRequired.length})` : ""} és legalább egy
+              fénykép csatolása.
             </span>
           )}
         </div>
@@ -564,9 +567,7 @@ function HandoverWorkspace() {
   const store = useStore();
   const viewOnly = useViewOnly("eszkozatadas");
   const role = store.activeRole;
-  const allowed = ["it_referens", "eszkozmenedzser", "beszerzo", "dekan"].includes(
-    role,
-  );
+  const allowed = ["it_referens", "eszkozmenedzser", "beszerzo", "dekan"].includes(role);
   const canAct = role === "it_referens";
 
   const handovers = store.handovers ?? [];
@@ -574,7 +575,10 @@ function HandoverWorkspace() {
     () =>
       canAct
         ? handovers.filter(
-            (h) => !h.referentId || h.referentId === store.currentUser.id || h.orgUnitId === store.currentUser.orgUnitId,
+            (h) =>
+              !h.referentId ||
+              h.referentId === store.currentUser.id ||
+              h.orgUnitId === store.currentUser.orgUnitId,
           )
         : handovers,
     [handovers, canAct, store.currentUser],

@@ -1,9 +1,5 @@
 import { NEXT_FINANCIAL_YEAR } from "./asset-data";
-import {
-  PLAN_APPROVAL_LEAD_DAYS,
-  type PlanApproval,
-  type Quarter,
-} from "./asset-types";
+import { PLAN_APPROVAL_LEAD_DAYS, type PlanApproval, type Quarter } from "./asset-types";
 
 const QUARTER_START_MONTH: Record<Quarter, number> = { Q1: 0, Q2: 3, Q3: 6, Q4: 9 };
 
@@ -50,7 +46,6 @@ export function buildPlanApprovals(year = NEXT_FINANCIAL_YEAR): PlanApproval[] {
   });
   return [immediate, annual, ...quarters];
 }
-
 
 /** Hátralévő napok a jóváhagyási határidőig (negatív, ha lejárt). */
 export function daysUntil(dateIso: string, from = new Date()): number {

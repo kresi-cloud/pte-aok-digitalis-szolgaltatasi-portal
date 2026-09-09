@@ -28,9 +28,7 @@ export function locationsForUser(userId?: string) {
   const user = USERS.find((u) => u.id === userId);
   if (!user) return ASSET_LOCATIONS;
   const own = ASSET_LOCATIONS.filter((l) => l.primaryUserIds?.includes(user.id));
-  const unit = ASSET_LOCATIONS.filter(
-    (l) => l.orgUnitId === user.orgUnitId && !own.includes(l),
-  );
+  const unit = ASSET_LOCATIONS.filter((l) => l.orgUnitId === user.orgUnitId && !own.includes(l));
   const rest = ASSET_LOCATIONS.filter((l) => !own.includes(l) && !unit.includes(l));
   return [...own, ...unit, ...rest];
 }
@@ -40,10 +38,13 @@ export function defaultLocationForUser(userId?: string) {
   return locationsForUser(userId)[0];
 }
 
-export function locationOptionLabel(l: { building: string; room: string; kind: keyof typeof LOCATION_KIND_LABELS }) {
+export function locationOptionLabel(l: {
+  building: string;
+  room: string;
+  kind: keyof typeof LOCATION_KIND_LABELS;
+}) {
   return `${l.building} · ${l.room} (${LOCATION_KIND_LABELS[l.kind]})`;
 }
-
 
 export const assetLookup = {
   model: (key: string): AssetModel | undefined => ASSET_MODELS.find((m) => m.key === key),
@@ -228,7 +229,12 @@ export const hufShort = (n: number) => {
 
 /** Több éves előrejelzés: melyik évben jár le az eszközök életciklusa */
 export function forecastByYear(assets: Asset[], fromYear: number, years: number) {
-  const rows: { year: number; count: number; estimatedCost: number; byCategory: Record<string, number> }[] = [];
+  const rows: {
+    year: number;
+    count: number;
+    estimatedCost: number;
+    byCategory: Record<string, number>;
+  }[] = [];
   for (let i = 0; i < years; i++) {
     const year = fromYear + i;
     const due = assets.filter((a) => Number(lifecycleEnd(a).slice(0, 4)) === year);
@@ -238,7 +244,9 @@ export function forecastByYear(assets: Asset[], fromYear: number, years: number)
       byCategory[a.categoryKey] = (byCategory[a.categoryKey] ?? 0) + 1;
       const model = assetLookup.model(a.modelKey);
       const std = assetLookup.standard(model?.standardKey);
-      const price = std ? assetLookup.price(std.referencePriceId)?.netPrice : model?.referenceNewPrice;
+      const price = std
+        ? assetLookup.price(std.referencePriceId)?.netPrice
+        : model?.referenceNewPrice;
       // évi 3% árváltozási feltételezés
       cost += (price ?? model?.referenceNewPrice ?? 0) * Math.pow(1.03, i);
     }
@@ -253,7 +261,16 @@ export function ageDistribution(assets: Asset[]) {
   const counts = new Map(buckets.map((b) => [b, 0]));
   for (const a of assets) {
     const age = yearsSince(a.commissionDate);
-    const b = age < 1 ? buckets[0]! : age < 3 ? buckets[1]! : age < 5 ? buckets[2]! : age < 7 ? buckets[3]! : buckets[4]!;
+    const b =
+      age < 1
+        ? buckets[0]!
+        : age < 3
+          ? buckets[1]!
+          : age < 5
+            ? buckets[2]!
+            : age < 7
+              ? buckets[3]!
+              : buckets[4]!;
     counts.set(b, (counts.get(b) ?? 0) + 1);
   }
   return buckets.map((b) => ({ bucket: b, count: counts.get(b) ?? 0 }));

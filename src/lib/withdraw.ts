@@ -9,13 +9,14 @@ export function planApprovalForItem(
   item: ProcurementPlanItem,
   approvals: PlanApproval[],
 ): PlanApproval | undefined {
-  return approvals.find((p) =>
-    p.planYear === item.planYear &&
-    (p.scope === "azonnali"
-      ? item.timing === "azonnali"
-      : p.scope === "negyedeves"
-        ? p.quarter === item.quarter && item.timing !== "azonnali"
-        : false),
+  return approvals.find(
+    (p) =>
+      p.planYear === item.planYear &&
+      (p.scope === "azonnali"
+        ? item.timing === "azonnali"
+        : p.scope === "negyedeves"
+          ? p.quarter === item.quarter && item.timing !== "azonnali"
+          : false),
   );
 }
 
@@ -29,10 +30,7 @@ export interface WithdrawContext {
  * Az igénylő a beszerzés gazdasági vezetői jóváhagyásáig vonhatja vissza az igényét.
  * A visszatérési érték `null`, ha visszavonható, egyébként a magyarázó indok.
  */
-export function withdrawBlockReason(
-  request: ServiceRequest,
-  ctx: WithdrawContext,
-): string | null {
+export function withdrawBlockReason(request: ServiceRequest, ctx: WithdrawContext): string | null {
   if (request.status === "visszavonva") return "Az igény már vissza lett vonva.";
   if (request.status === "lezarva") return "A lezárt igény már nem vonható vissza.";
   if (request.status === "elutasitva") return "Az elutasított igény már nem vonható vissza.";

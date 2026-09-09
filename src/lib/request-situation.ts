@@ -95,7 +95,9 @@ export function requestSituation(request: ServiceRequest, ctx: SituationContext)
           }`
         : "Az igénylő visszavonta az igényt.";
     derivedStatusLabel =
-      request.status === "elutasitva" ? "Elutasítva – a folyamat lezárult" : "Visszavonva az igénylő által";
+      request.status === "elutasitva"
+        ? "Elutasítva – a folyamat lezárult"
+        : "Visszavonva az igénylő által";
   } else if (pending.length > 0) {
     const next = pending[0]!;
     stageIndex = STEP.szervezeti_jovahagyas;
@@ -116,7 +118,6 @@ export function requestSituation(request: ServiceRequest, ctx: SituationContext)
     nextAction = "IT besorolás és beszerzési tervsor kezelése";
     nextActorId = planner?.id;
   } else {
-
     const stage = planItemStage(planItem, approval, handover, users);
     stageIndex = stage.stageIndex;
     owner = stage.waitingOn.split(" – ")[0] ?? stage.waitingOn;
@@ -126,7 +127,6 @@ export function requestSituation(request: ServiceRequest, ctx: SituationContext)
     derivedStatusLabel = stage.label;
     overdue = stage.overdue;
   }
-
 
   return {
     statusLabel: derivedStatusLabel ?? STATUS_LABELS[request.status],

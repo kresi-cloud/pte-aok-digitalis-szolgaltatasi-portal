@@ -7,7 +7,6 @@ import {
   useState,
   type ReactNode,
   type Context,
-
 } from "react";
 import { normalizeLegacyPlanStatus } from "./plan-stage";
 import {
@@ -205,27 +204,48 @@ interface StoreValue extends PersistedState {
   logout: () => void;
   setActiveRole: (role: RoleKey) => void;
   switchUser: (userId: string) => void;
-  createRequest: (input: Partial<ServiceRequest> & { title: string; domain: ServiceRequest["domain"] }) => string;
+  createRequest: (
+    input: Partial<ServiceRequest> & { title: string; domain: ServiceRequest["domain"] },
+  ) => string;
   updateRequest: (id: string, patch: Partial<ServiceRequest>, auditLabel?: string) => void;
   setStatus: (id: string, status: StatusKey) => void;
   withdrawRequest: (id: string, reason?: string) => void;
   addMessage: (id: string, body: string, internal: boolean) => void;
-  decideApproval: (id: string, approvalId: string, decision: "jovahagyva" | "elutasitva", comment?: string) => void;
+  decideApproval: (
+    id: string,
+    approvalId: string,
+    decision: "jovahagyva" | "elutasitva",
+    comment?: string,
+  ) => void;
   markNotificationsRead: () => void;
   rateRequest: (id: string, rating: number) => void;
-  addInventoryItem: (input: Omit<InventoryItem, "id" | "ownerId" | "status" | "createdAt" | "spec">) => string;
+  addInventoryItem: (
+    input: Omit<InventoryItem, "id" | "ownerId" | "status" | "createdAt" | "spec">,
+  ) => string;
   removeInventoryItem: (id: string) => void;
-  decideInventoryItem: (id: string, decision: "jovahagyva" | "elutasitva", comment?: string) => void;
+  decideInventoryItem: (
+    id: string,
+    decision: "jovahagyva" | "elutasitva",
+    comment?: string,
+  ) => void;
   assignments: typeof ASSET_ASSIGNMENTS;
   updateAsset: (id: string, patch: Partial<Asset>, label?: string) => void;
-  submitCheck: (assetId: string, answer: PersonalCheckAnswer | SharedCheckAnswer, comment?: string) => void;
+  submitCheck: (
+    assetId: string,
+    answer: PersonalCheckAnswer | SharedCheckAnswer,
+    comment?: string,
+  ) => void;
   reportDiscrepancy: (input: {
     kind: DiscrepancyKind;
     assetId?: string | undefined;
     licenceId?: string | undefined;
     description: string;
   }) => void;
-  resolveDiscrepancy: (id: string, status: InventoryDiscrepancy["status"], resolution?: string) => void;
+  resolveDiscrepancy: (
+    id: string,
+    status: InventoryDiscrepancy["status"],
+    resolution?: string,
+  ) => void;
   decideReplacement: (assetId: string, decision: ReplacementDecisionKey, comment?: string) => void;
   markLicenceUnused: (licenceId: string, unused: boolean) => void;
   addPlanItem: (item: Omit<ProcurementPlanItem, "id">) => string;
@@ -241,10 +261,19 @@ interface StoreValue extends PersistedState {
   removePlanItem: (id: string) => void;
   setPlanItemTiming: (id: string, timing: "azonnali" | "negyedeves") => void;
   handPlanItemToPlanner: (id: string) => void;
-  createScrapProposal: (input: { year: number; title: string; reason: string; assetIds: string[] }) => string;
+  createScrapProposal: (input: {
+    year: number;
+    title: string;
+    reason: string;
+    assetIds: string[];
+  }) => string;
   updateScrapProposal: (id: string, patch: Partial<ScrapProposal>) => void;
   submitScrapProposal: (id: string) => void;
-  decideScrapProposal: (id: string, decision: "jovahagyva" | "visszakuldve", comment?: string) => void;
+  decideScrapProposal: (
+    id: string,
+    decision: "jovahagyva" | "visszakuldve",
+    comment?: string,
+  ) => void;
   submitPlanForFinance: (id: string, comment?: string) => void;
   /** Gazdasági vezetői sürgetés: kéri az eszközmenedzsertől a terv beküldését. */
   nudgePlanSubmission: (id: string) => void;
@@ -297,7 +326,6 @@ const globalScope = globalThis as unknown as {
 const StoreContext =
   globalScope.__dszpStoreContext ??
   (globalScope.__dszpStoreContext = createContext<StoreValue | null>(null));
-
 
 const today = () => todayIso();
 
@@ -419,8 +447,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           }));
         }
 
-
-
         // Nem létező vagy önmagát jóváhagyó döntéshozók javítása a mentett állapotban.
         const known = [...USERS, ...(merged.extraUsers ?? [])];
         if (Array.isArray(merged.requests)) {
@@ -447,7 +473,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         }
 
         setState(merged);
-
       }
     } catch {
       /* ignore */
@@ -480,15 +505,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     [effectiveUsers, state.currentUserId],
   );
 
-  const patchRequest = useCallback(
-    (id: string, fn: (r: ServiceRequest) => ServiceRequest) => {
-      setState((s) => ({
-        ...s,
-        requests: s.requests.map((r) => (r.id === id ? fn(r) : r)),
-      }));
-    },
-    [],
-  );
+  const patchRequest = useCallback((id: string, fn: (r: ServiceRequest) => ServiceRequest) => {
+    setState((s) => ({
+      ...s,
+      requests: s.requests.map((r) => (r.id === id ? fn(r) : r)),
+    }));
+  }, []);
 
   const value: StoreValue = {
     ...state,
@@ -541,9 +563,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         requestedQuarter: input.requestedQuarter,
         urgencyReason: input.urgencyReason,
         effortDays: 5,
-        nextStep: draft
-          ? "Piszkozat – beküldésre vár."
-          : "Beérkezett igény első értékelésre vár.",
+        nextStep: draft ? "Piszkozat – beküldésre vár." : "Beérkezett igény első értékelésre vár.",
         users: input.users,
         userCount: input.userCount,
         personalData: input.personalData,
@@ -685,7 +705,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
                   updatedAt: today(),
                   approvals: r.approvals.map((a) =>
                     a.decision === "fuggoben"
-                      ? { ...a, decision: "elutasitva" as const, decidedAt: today(), comment: "Tárgytalan – az igénylő visszavonta az igényt." }
+                      ? {
+                          ...a,
+                          decision: "elutasitva" as const,
+                          decidedAt: today(),
+                          comment: "Tárgytalan – az igénylő visszavonta az igényt.",
+                        }
                       : a,
                   ),
                   audit: [
@@ -832,7 +857,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           ...s,
           inventory: s.inventory.map((i) =>
             i.id === id
-              ? { ...i, status: decision, decidedAt: today(), decidedBy: currentUser.id, decisionComment: comment }
+              ? {
+                  ...i,
+                  status: decision,
+                  decidedAt: today(),
+                  decidedBy: currentUser.id,
+                  decisionComment: comment,
+                }
               : i,
           ),
           assetAudit: [
@@ -994,7 +1025,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     markLicenceUnused: (licenceId, unused) =>
       setState((s) => ({
         ...s,
-        licences: s.licences.map((l) => (l.id === licenceId ? { ...l, reportedUnused: unused } : l)),
+        licences: s.licences.map((l) =>
+          l.id === licenceId ? { ...l, reportedUnused: unused } : l,
+        ),
         assetAudit: [
           {
             id: `aud-${Date.now()}`,
@@ -1136,9 +1169,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       setState((s) => ({
         ...s,
         planItems: s.planItems.map((p) =>
-          p.id === id
-            ? { ...p, handedToPlannerBy: currentUser.id, handedToPlannerAt: today() }
-            : p,
+          p.id === id ? { ...p, handedToPlannerBy: currentUser.id, handedToPlannerAt: today() } : p,
         ),
         notifications: [
           {
@@ -1265,7 +1296,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             actorId: currentUser.id,
             entity: "beszerzes",
             entityId: id,
-            action: decision === "jovahagyva" ? "Selejtezési javaslat jóváhagyása" : "Selejtezési javaslat visszaküldése",
+            action:
+              decision === "jovahagyva"
+                ? "Selejtezési javaslat jóváhagyása"
+                : "Selejtezési javaslat visszaküldése",
             detail: comment ?? "",
           },
           ...s.assetAudit,
@@ -1799,7 +1833,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           createdAt: today(),
           decidedAt: today(),
           decidedBy: h.referentId ?? currentUser.id,
-          decisionComment: "Intézményi beszerzés és átadás-átvétel alapján automatikusan jóváhagyva.",
+          decisionComment:
+            "Intézményi beszerzés és átadás-átvétel alapján automatikusan jóváhagyva.",
         };
         // Az átvett eszköz az intézményi eszközkataszterbe is bekerül,
         // különben a „Rám rendelt eszközök” nézetben nem jelenne meg.
@@ -2042,7 +2077,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     },
     setUserRoles: (userId, roles, reason) =>
       setState((s) => {
-        const base = USERS.find((u) => u.id === userId) ?? (s.extraUsers ?? []).find((u) => u.id === userId);
+        const base =
+          USERS.find((u) => u.id === userId) ?? (s.extraUsers ?? []).find((u) => u.id === userId);
         if (!base) return s;
         const prev = s.roleOverrides[userId] ?? base.roles;
         const added = roles.filter((r) => !prev.includes(r));
@@ -2194,20 +2230,20 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           return s;
         }
         return {
-        ...s,
-        products: (s.products ?? []).filter((p) => p.id !== id),
-        assetAudit: [
-          {
-            id: `aud-${Date.now()}`,
-            at: today(),
-            actorId: s.currentUserId,
-            entity: "termek",
-            entityId: id,
-            action: "Termék törlése a katalógusból",
-            detail: "A korábbi igényeken az adatok megmaradnak.",
-          },
-          ...s.assetAudit,
-        ],
+          ...s,
+          products: (s.products ?? []).filter((p) => p.id !== id),
+          assetAudit: [
+            {
+              id: `aud-${Date.now()}`,
+              at: today(),
+              actorId: s.currentUserId,
+              entity: "termek",
+              entityId: id,
+              action: "Termék törlése a katalógusból",
+              detail: "A korábbi igényeken az adatok megmaradnak.",
+            },
+            ...s.assetAudit,
+          ],
         };
       }),
   };

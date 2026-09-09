@@ -72,7 +72,12 @@ const WAITING_ON: Record<string, string> = {
 };
 
 /** Egy évre előre eső negyedéves tervblokkok (aktuális negyedévtől számítva). */
-function schedulingBlocks(): { value: string; label: string; planYear: number; quarter: Quarter }[] {
+function schedulingBlocks(): {
+  value: string;
+  label: string;
+  planYear: number;
+  quarter: Quarter;
+}[] {
   const now = new Date(TODAY);
   const year = now.getFullYear();
   const qIndex = Math.floor(now.getMonth() / 3);
@@ -96,7 +101,6 @@ const BLOCKS = schedulingBlocks();
 function standardLabel(key: string) {
   return HARDWARE_STANDARDS.find((s) => s.key === key)?.label ?? key;
 }
-
 
 function ItemRow({
   item,
@@ -191,7 +195,9 @@ function ItemRow({
               value={isImmediate ? "azonnali" : "negyedeves"}
               onValueChange={(v) => {
                 store.setPlanItemTiming(item.id, v as "azonnali" | "negyedeves");
-                toast.success(v === "azonnali" ? "Azonnali beszerzés" : "Negyedéves tervbe sorolva");
+                toast.success(
+                  v === "azonnali" ? "Azonnali beszerzés" : "Negyedéves tervbe sorolva",
+                );
               }}
             >
               <SelectTrigger className="w-[170px]">
@@ -271,11 +277,9 @@ function ItemRow({
           </div>
         </td>
       )}
-
     </tr>
   );
 }
-
 
 function ItemsTable({
   items,
@@ -352,8 +356,7 @@ function ApprovalCard({ approval }: { approval: PlanApproval }) {
     { key: "gazdasagi_ellenorzes", label: "Gazdasági ellenőrzés" },
     { key: "jovahagyva", label: "Beszerzés indítása" },
   ];
-  const activeIndex =
-    status === "vegrehajtas" ? 2 : STEPS.findIndex((s) => s.key === status);
+  const activeIndex = status === "vegrehajtas" ? 2 : STEPS.findIndex((s) => s.key === status);
 
   return (
     <article className="card-surface space-y-3 p-5">
@@ -407,14 +410,13 @@ function ApprovalCard({ approval }: { approval: PlanApproval }) {
       <p className="text-sm">
         {items.length} tétel · becsült keret: <strong>{huf(total)}</strong>
       </p>
-      {status === "gazdasagi_ellenorzes" &&
-        approval.scope !== "azonnali" && (
-          <p className="text-xs text-muted-foreground">
-            {left >= 0
-              ? `${left} nap van hátra a jóváhagyási határidőig.`
-              : `A jóváhagyási határidő ${Math.abs(left)} napja lejárt.`}
-          </p>
-        )}
+      {status === "gazdasagi_ellenorzes" && approval.scope !== "azonnali" && (
+        <p className="text-xs text-muted-foreground">
+          {left >= 0
+            ? `${left} nap van hátra a jóváhagyási határidőig.`
+            : `A jóváhagyási határidő ${Math.abs(left)} napja lejárt.`}
+        </p>
+      )}
       {(approval.history ?? []).length > 0 && (
         <ul className="space-y-1 border-t border-border pt-2 text-xs text-muted-foreground">
           {(approval.history ?? []).map((h, i) => (
@@ -499,7 +501,6 @@ function ApprovalCard({ approval }: { approval: PlanApproval }) {
             </>
           )}
 
-
           {isBuyer && status === "jovahagyva" && (
             <Button
               size="sm"
@@ -517,16 +518,12 @@ function ApprovalCard({ approval }: { approval: PlanApproval }) {
   );
 }
 
-
 function BuyerWorkspace() {
   const store = useStore();
   const viewOnly = useViewOnly("beszerzesek");
-  const allowed = [
-    "beszerzo",
-    "eszkozmenedzser",
-    "gazdasagi_vezeto",
-    "dekan",
-  ].includes(store.activeRole);
+  const allowed = ["beszerzo", "eszkozmenedzser", "gazdasagi_vezeto", "dekan"].includes(
+    store.activeRole,
+  );
   const canSchedule =
     store.activeRole === "gazdasagi_vezeto" || store.activeRole === "eszkozmenedzser";
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -536,10 +533,7 @@ function BuyerWorkspace() {
     () => store.planItems.filter((p) => p.planYear === NEXT_FINANCIAL_YEAR),
     [store.planItems],
   );
-  const adHoc = useMemo(
-    () => store.planItems.filter((p) => p.sourceRequestId),
-    [store.planItems],
-  );
+  const adHoc = useMemo(() => store.planItems.filter((p) => p.sourceRequestId), [store.planItems]);
   const approvals = store.planApprovals ?? [];
   const immediate = approvals.filter((a) => a.scope === "azonnali");
   const annual = approvals.filter((a) => a.scope === "eves");
@@ -550,7 +544,8 @@ function BuyerWorkspace() {
       <div className="card-surface mx-auto max-w-2xl space-y-3 p-6">
         <h1 className="font-display text-xl font-semibold">Beszerzői munkatér</h1>
         <p className="text-sm text-muted-foreground">
-          Ez a felület a beszerző, az IT eszközmenedzser, a gazdasági vezető és a dékán (betekintés) számára érhető el.
+          Ez a felület a beszerző, az IT eszközmenedzser, a gazdasági vezető és a dékán (betekintés)
+          számára érhető el.
         </p>
         <Button asChild variant="outline">
           <Link to="/igenyeim">Saját igényeim</Link>
@@ -629,9 +624,7 @@ function BuyerWorkspace() {
                 onClick={() => {
                   if (bulkBlock === "azonnali") {
                     selectedIds.forEach((id) => store.setPlanItemTiming(id, "azonnali"));
-                    toast.success(
-                      `${selectedIds.length} tétel azonnali beszerzésbe sorolva`,
-                    );
+                    toast.success(`${selectedIds.length} tétel azonnali beszerzésbe sorolva`);
                     setSelectedIds([]);
                     return;
                   }
@@ -647,7 +640,6 @@ function BuyerWorkspace() {
               >
                 Áthelyezés
               </Button>
-
             </div>
           )}
           <div className="grid gap-4">
@@ -704,10 +696,10 @@ function BuyerWorkspace() {
 
         <TabsContent value="katalogus" className="mt-4 space-y-4">
           <p className="text-sm text-muted-foreground">
-            Termékkörök és konkrét eszközmodellek kezelése. A modellekhez megadott technikai
-            adatlap jelenik meg az igénylőnek. A munkavállalói besorolás szerinti szűkés csak a
-            notebook, okostelefon, mobiltelefon és tablet körökben érvényesül; minden más
-            termékkört besorolástól függetlenül mindenki igényelhet.
+            Termékkörök és konkrét eszközmodellek kezelése. A modellekhez megadott technikai adatlap
+            jelenik meg az igénylőnek. A munkavállalói besorolás szerinti szűkés csak a notebook,
+            okostelefon, mobiltelefon és tablet körökben érvényesül; minden más termékkört
+            besorolástól függetlenül mindenki igényelhet.
           </p>
           <ProductCatalogAdmin readOnly={viewOnly} />
         </TabsContent>

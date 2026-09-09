@@ -44,7 +44,6 @@ export const ROLE_DESCRIPTIONS: Record<RoleKey, string> = {
     "A beérkezett eszközt telepíti, beállítja, rögzíti a gyári számot és a leltárkódot, majd átadja az igénylőnek.",
 };
 
-
 /** Jogosultság-kiosztási naplóbejegyzés (ki, kinek, mit, mikor, miért). */
 export interface RoleAuditEvent {
   id: string;
@@ -75,7 +74,6 @@ export interface OrgUnit {
   /** Helyettes jóváhagyó – akkor dönt, ha a jóváhagyó maga az igénylő. */
   deputyApproverUserId?: string | undefined;
 }
-
 
 export interface User {
   id: string;
@@ -204,7 +202,6 @@ export const STATUS_LABELS: Record<StatusKey, string> = {
   visszavonva: "Visszavonva",
 };
 
-
 export type Priority = "alacsony" | "kozepes" | "magas" | "kritikus";
 
 export interface RequestMessage {
@@ -292,13 +289,15 @@ export interface ServiceRequest {
   attachments: Attachment[];
   subtasks: SubTask[];
   ai?: AiTriage | undefined;
-  internal?: {
-    classification: string;
-    dependencies: string;
-    procurement: boolean;
-    security: string;
-    dataProtection: string;
-  } | undefined;
+  internal?:
+    | {
+        classification: string;
+        dependencies: string;
+        procurement: boolean;
+        security: string;
+        dataProtection: string;
+      }
+    | undefined;
   rating?: number | undefined;
   /** Termékkatalógusból választott termékkör azonosítója. */
   productCategoryId?: string | undefined;
@@ -328,7 +327,8 @@ export interface ServiceRequest {
  * Igényelt beszerzési ütemezés: évszámos negyedév (pl. "2027-Q1") vagy azonnali.
  * Visszafelé kompatibilisen a régi, csupasz "Q1".."Q4" értékek is elfogadottak.
  */
-export type RequestedTiming = `${number}-${"Q1" | "Q2" | "Q3" | "Q4"}` | "Q1" | "Q2" | "Q3" | "Q4" | "azonnali";
+export type RequestedTiming =
+  `${number}-${"Q1" | "Q2" | "Q3" | "Q4"}` | "Q1" | "Q2" | "Q3" | "Q4" | "azonnali";
 
 const ROMAN_QUARTER: Record<string, string> = { Q1: "I", Q2: "II", Q3: "III", Q4: "IV" };
 
@@ -343,13 +343,8 @@ export function requestedTimingLabel(value: string): string {
   return legacy ? `${legacy}. negyedév` : value;
 }
 
-
 export type RequestReason =
-  | "uj_belepo"
-  | "csere"
-  | "meghibasodas"
-  | "kiegeszito"
-  | "nincs_ilyen_eszkoz";
+  "uj_belepo" | "csere" | "meghibasodas" | "kiegeszito" | "nincs_ilyen_eszkoz";
 
 export const REQUEST_REASON_LABELS: Record<RequestReason, string> = {
   uj_belepo: "Új belépő / új munkakör",
@@ -502,11 +497,7 @@ export interface Announcement {
 
 /** Eszközátadás: a beszerzett eszköz útja a beérkezéstől az igénylői átvételig. */
 export type HandoverStatus =
-  | "beerkezett"
-  | "elokeszites_alatt"
-  | "atadasra_kesz"
-  | "atadva"
-  | "atvetel_igazolva";
+  "beerkezett" | "elokeszites_alatt" | "atadasra_kesz" | "atadva" | "atvetel_igazolva";
 
 export const HANDOVER_STATUS_LABELS: Record<HandoverStatus, string> = {
   beerkezett: "Beérkezett a beszerzésből",
@@ -656,4 +647,3 @@ export interface HandoverAttachment {
   uploadedBy: string;
   uploadedAt: string;
 }
-

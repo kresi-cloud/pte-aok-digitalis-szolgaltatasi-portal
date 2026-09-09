@@ -37,9 +37,12 @@ function Help() {
         <AccordionItem value="a">
           <AccordionTrigger>Hogyan indítok új igényt?</AccordionTrigger>
           <AccordionContent>
-            A <Link to="/" className="text-primary underline">kezdőlapon</Link> válassza az
-            „Informatikai eszköz” csempét, majd kövesse a termékkör- és modellválasztás lépéseit.
-            Technikai megoldást nem kell megadnia.
+            A{" "}
+            <Link to="/" className="text-primary underline">
+              kezdőlapon
+            </Link>{" "}
+            válassza az „Informatikai eszköz” csempét, majd kövesse a termékkör- és modellválasztás
+            lépéseit. Technikai megoldást nem kell megadnia.
           </AccordionContent>
         </AccordionItem>
         <AccordionItem value="b">
@@ -75,8 +78,8 @@ function Help() {
           <AccordionTrigger>Adatkezelés</AccordionTrigger>
           <AccordionContent>
             A portál szerepkör alapú hozzáférést alkalmaz: mindenki csak a feladatához szükséges
-            adatokat látja. A belső megjegyzések nem jelennek meg az igénylőnél, a listanézetek pedig
-            nem tartalmaznak szükségtelen személyes adatot.
+            adatokat látja. A belső megjegyzések nem jelennek meg az igénylőnél, a listanézetek
+            pedig nem tartalmaznak szükségtelen személyes adatot.
           </AccordionContent>
         </AccordionItem>
       </Accordion>

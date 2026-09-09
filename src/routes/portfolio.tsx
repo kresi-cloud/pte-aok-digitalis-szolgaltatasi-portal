@@ -10,9 +10,13 @@ export const Route = createFileRoute("/portfolio")({
       { title: "Fejlesztési portfólió – ÁOK Digitális Szolgáltatási Portál" },
       {
         name: "description",
-        content: "Digitalizációs kezdeményezések szakaszok szerint, stratégiai súllyal és kockázattal.",
+        content:
+          "Digitalizációs kezdeményezések szakaszok szerint, stratégiai súllyal és kockázattal.",
       },
-      { property: "og:title", content: "Fejlesztési portfólió – ÁOK Digitális Szolgáltatási Portál" },
+      {
+        property: "og:title",
+        content: "Fejlesztési portfólió – ÁOK Digitális Szolgáltatási Portál",
+      },
       { property: "og:description", content: "Kezdeményezések pipeline nézetben." },
     ],
   }),
@@ -51,7 +55,8 @@ function Portfolio() {
                       <div className="flex justify-between gap-2">
                         <dt className="text-muted-foreground">Ráfordítás</dt>
                         <dd>
-                          {p.effortDays} nap · {(p.estimatedCost / 1000).toLocaleString("hu-HU")} eFt
+                          {p.effortDays} nap · {(p.estimatedCost / 1000).toLocaleString("hu-HU")}{" "}
+                          eFt
                         </dd>
                       </div>
                       <div className="flex justify-between gap-2">
@@ -82,7 +87,11 @@ function Portfolio() {
                         {p.linkedRequestIds.map((id, i) => (
                           <span key={id}>
                             {i > 0 && ", "}
-                            <Link to="/igeny/$id" params={{ id }} className="text-primary hover:underline">
+                            <Link
+                              to="/igeny/$id"
+                              params={{ id }}
+                              className="text-primary hover:underline"
+                            >
                               {id}
                             </Link>
                           </span>

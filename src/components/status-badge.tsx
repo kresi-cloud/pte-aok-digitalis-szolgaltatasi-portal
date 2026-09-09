@@ -29,7 +29,10 @@ const STATUS_STYLE: Record<StatusKey, { cls: string; Icon: typeof Clock }> = {
   tervezes: { cls: "bg-secondary text-secondary-foreground border-border", Icon: CircleDashed },
   megvalositas: { cls: "bg-primary/10 text-primary border-primary/25", Icon: Hammer },
   teszteles: { cls: "bg-accent text-accent-foreground border-accent", Icon: TestTube },
-  atadasra_var: { cls: "bg-warning/15 text-warning-foreground border-warning/40", Icon: PackageCheck },
+  atadasra_var: {
+    cls: "bg-warning/15 text-warning-foreground border-warning/40",
+    Icon: PackageCheck,
+  },
   lezarva: { cls: "bg-success/12 text-success border-success/30", Icon: CheckCircle2 },
   elutasitva: { cls: "bg-destructive/10 text-destructive border-destructive/30", Icon: XCircle },
   visszavonva: { cls: "bg-muted text-muted-foreground border-border", Icon: Undo2 },
@@ -54,7 +57,11 @@ export function StatusBadge({ status, className }: { status: StatusKey; classNam
 const PRIORITY: Record<Priority, { label: string; cls: string; mark: string }> = {
   alacsony: { label: "Alacsony", cls: "text-muted-foreground border-border", mark: "○" },
   kozepes: { label: "Közepes", cls: "text-foreground border-border", mark: "◐" },
-  magas: { label: "Magas", cls: "text-warning-foreground border-warning/50 bg-warning/10", mark: "◕" },
+  magas: {
+    label: "Magas",
+    cls: "text-warning-foreground border-warning/50 bg-warning/10",
+    mark: "◕",
+  },
   kritikus: {
     label: "Kritikus",
     cls: "text-destructive border-destructive/40 bg-destructive/10",
@@ -80,9 +87,9 @@ export function PriorityBadge({ priority }: { priority: Priority }) {
 export function AiBadge({ children }: { children: React.ReactNode }) {
   return (
     <div className="rounded-lg border border-info/30 bg-info/5 p-4">
-    <p className="mb-3 flex items-center gap-2 text-xs font-semibold tracking-wide text-info uppercase">
-      <span aria-hidden="true">✦</span> Igényértékelés – manuális jóváhagyás szükséges
-    </p>
+      <p className="mb-3 flex items-center gap-2 text-xs font-semibold tracking-wide text-info uppercase">
+        <span aria-hidden="true">✦</span> Igényértékelés – manuális jóváhagyás szükséges
+      </p>
       {children}
     </div>
   );

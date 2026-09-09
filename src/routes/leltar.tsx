@@ -1,7 +1,16 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
-import { Cpu, HardDrive, Laptop, MemoryStick, MonitorCog, Package, Sparkles, Trash2 } from "lucide-react";
+import {
+  Cpu,
+  HardDrive,
+  Laptop,
+  MemoryStick,
+  MonitorCog,
+  Package,
+  Sparkles,
+  Trash2,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,7 +25,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useStore } from "@/lib/store";
-import { HARDWARE_MODELS, SOFTWARE_SUGGESTIONS, isMobileModel, specForModel } from "@/lib/inventory-data";
+import {
+  HARDWARE_MODELS,
+  SOFTWARE_SUGGESTIONS,
+  isMobileModel,
+  specForModel,
+} from "@/lib/inventory-data";
 import { needsLocationForCategory, productModelLabel } from "@/lib/handover-products";
 import { LOCATION_KIND_LABELS } from "@/lib/asset-types";
 import { locationsForUser } from "@/lib/asset-logic";
@@ -113,7 +127,9 @@ function Inventory() {
   const incomingHandovers = (store.handovers ?? []).filter(
     (h) =>
       h.recipientId === currentUser.id &&
-      (h.status === "beerkezett" || h.status === "elokeszites_alatt" || h.status === "atadasra_kesz"),
+      (h.status === "beerkezett" ||
+        h.status === "elokeszites_alatt" ||
+        h.status === "atadasra_kesz"),
   );
 
   const mine = inventory.filter((i) => i.ownerId === currentUser.id);
@@ -132,14 +148,18 @@ function Inventory() {
     room: ownLocation?.room ?? "",
     note: "",
   });
-  const [sw, setSw] = useState({ name: "", version: "", licenseType: "", licenseKey: "", installedOn: "" });
+  const [sw, setSw] = useState({
+    name: "",
+    version: "",
+    licenseType: "",
+    licenseKey: "",
+    installedOn: "",
+  });
 
   const preview = hw.modelKey ? specForModel(hw.modelKey) : null;
   const needsLocation = Boolean(hw.modelKey) && !isMobileModel(hw.modelKey);
   const buildings = [...new Set(userLocations.map((l) => l.building))];
   const rooms = userLocations.filter((l) => l.building === hw.building);
-
-
 
   return (
     <div className="space-y-6">
@@ -154,8 +174,8 @@ function Inventory() {
         <section className="card-surface space-y-3 border-l-4 border-l-primary p-5">
           <h2 className="font-display text-base font-semibold">Átvételre váró eszközök</h2>
           <p className="text-sm text-muted-foreground">
-            A kari IT referens telepítette és átadta az alábbi eszközt, amely már „Átvételre
-            vár” státusszal szerepel a leltárában. Kérjük, igazolja vissza az átvételt – ezzel
+            A kari IT referens telepítette és átadta az alábbi eszközt, amely már „Átvételre vár”
+            státusszal szerepel a leltárában. Kérjük, igazolja vissza az átvételt – ezzel
             véglegesedik a leltártétel.
           </p>
           {pendingHandovers.map((h) => (
@@ -204,13 +224,15 @@ function Inventory() {
         </section>
       )}
 
-
-
       <div className="grid gap-3 sm:grid-cols-3">
         {[
           ["Hardvereszköz", hardware.length, Laptop],
           ["Szoftver", software.length, Package],
-          ["Jóváhagyásra vár", mine.filter((i) => i.status === "jovahagyasra_var").length, Sparkles],
+          [
+            "Jóváhagyásra vár",
+            mine.filter((i) => i.status === "jovahagyasra_var").length,
+            Sparkles,
+          ],
         ].map(([label, value, Icon]) => {
           const I = Icon as typeof Laptop;
           return (
@@ -330,13 +352,12 @@ function Inventory() {
                             {r.room} ({LOCATION_KIND_LABELS[r.kind]})
                           </SelectItem>
                         ))}
-
                       </SelectContent>
                     </Select>
                   </div>
                   <p className="text-xs text-muted-foreground md:col-span-2">
-                    A nem mobil eszközöket (asztali gép, munkaállomás, laboreszköz, nyomtató) épülethez
-                    és helyiséghez kell rendelni.
+                    A nem mobil eszközöket (asztali gép, munkaállomás, laboreszköz, nyomtató)
+                    épülethez és helyiséghez kell rendelni.
                   </p>
                 </>
               )}
@@ -367,7 +388,9 @@ function Inventory() {
 
             <Button
               className="mt-4"
-              disabled={!hw.name.trim() || !hw.modelKey || (needsLocation && (!hw.building || !hw.room))}
+              disabled={
+                !hw.name.trim() || !hw.modelKey || (needsLocation && (!hw.building || !hw.room))
+              }
               onClick={() => {
                 addInventoryItem({
                   kind: "hardver",
@@ -380,7 +403,15 @@ function Inventory() {
                   location: needsLocation ? `${hw.building} · ${hw.room}` : undefined,
                   note: hw.note || undefined,
                 });
-                setHw({ name: "", modelKey: "", serial: "", inventoryNo: "", building: "", room: "", note: "" });
+                setHw({
+                  name: "",
+                  modelKey: "",
+                  serial: "",
+                  inventoryNo: "",
+                  building: "",
+                  room: "",
+                  note: "",
+                });
                 toast.success("Az eszköz rögzítve, rendszergazdai jóváhagyásra vár.");
               }}
             >
@@ -404,46 +435,48 @@ function Inventory() {
                 ? !needsLocationForCategory(category)
                 : isMobileModel(i.modelKey);
               return (
-              <article key={i.id} className="card-surface p-5">
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div>
-                    <h3 className="font-display text-base font-semibold">{i.name}</h3>
-                    <p className="text-sm text-muted-foreground">
-                      {modelLabel} ·{" "}
-                      {personalUse
-                        ? "Személyi használat"
-                        : (i.location ??
-                          ([i.building, i.room].filter(Boolean).join(" · ") ||
-                            "Elhelyezés megadása szükséges"))}
-                    </p>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      Gyári szám: {i.serial || "—"} · PTE leltárkód: {i.inventoryNo || "—"}
-                    </p>
+                <article key={i.id} className="card-surface p-5">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <h3 className="font-display text-base font-semibold">{i.name}</h3>
+                      <p className="text-sm text-muted-foreground">
+                        {modelLabel} ·{" "}
+                        {personalUse
+                          ? "Személyi használat"
+                          : (i.location ??
+                            ([i.building, i.room].filter(Boolean).join(" · ") ||
+                              "Elhelyezés megadása szükséges"))}
+                      </p>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        Gyári szám: {i.serial || "—"} · PTE leltárkód: {i.inventoryNo || "—"}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={`rounded-full px-2.5 py-1 text-xs font-medium ${statusTone(i.status)}`}
+                      >
+                        {INVENTORY_STATUS_LABELS[i.status]}
+                      </span>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        aria-label="Tétel törlése"
+                        onClick={() => {
+                          removeInventoryItem(i.id);
+                          toast.success("Tétel törölve a leltárból.");
+                        }}
+                      >
+                        <Trash2 className="size-4" />
+                      </Button>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${statusTone(i.status)}`}>
-                      {INVENTORY_STATUS_LABELS[i.status]}
-                    </span>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      aria-label="Tétel törlése"
-                      onClick={() => {
-                        removeInventoryItem(i.id);
-                        toast.success("Tétel törölve a leltárból.");
-                      }}
-                    >
-                      <Trash2 className="size-4" />
-                    </Button>
-                  </div>
-                </div>
-                {i.decisionComment && (
-                  <p className="mt-2 text-sm text-muted-foreground">
-                    Adminisztrátori megjegyzés: {i.decisionComment}
-                  </p>
-                )}
-                <SpecGrid item={i} />
-              </article>
+                  {i.decisionComment && (
+                    <p className="mt-2 text-sm text-muted-foreground">
+                      Adminisztrátori megjegyzés: {i.decisionComment}
+                    </p>
+                  )}
+                  <SpecGrid item={i} />
+                </article>
               );
             })
           )}
@@ -496,7 +529,10 @@ function Inventory() {
               </div>
               <div className="space-y-1.5 md:col-span-2">
                 <Label htmlFor="sw-host">Telepítve az alábbi eszközre</Label>
-                <Select value={sw.installedOn} onValueChange={(v) => setSw({ ...sw, installedOn: v })}>
+                <Select
+                  value={sw.installedOn}
+                  onValueChange={(v) => setSw({ ...sw, installedOn: v })}
+                >
                   <SelectTrigger id="sw-host">
                     <SelectValue placeholder="Válasszon a saját hardverleltárból" />
                   </SelectTrigger>
@@ -534,11 +570,18 @@ function Inventory() {
             <p className="text-sm text-muted-foreground">Még nincs rögzített szoftver.</p>
           ) : (
             software.map((i) => (
-              <article key={i.id} className="card-surface flex flex-wrap items-start justify-between gap-3 p-5">
+              <article
+                key={i.id}
+                className="card-surface flex flex-wrap items-start justify-between gap-3 p-5"
+              >
                 <div>
                   <h3 className="font-display text-base font-semibold">{i.name}</h3>
                   <p className="text-sm text-muted-foreground">
-                    {[i.version && `verzió ${i.version}`, i.licenseType, i.installedOn && `eszköz: ${i.installedOn}`]
+                    {[
+                      i.version && `verzió ${i.version}`,
+                      i.licenseType,
+                      i.installedOn && `eszköz: ${i.installedOn}`,
+                    ]
                       .filter(Boolean)
                       .join(" · ") || "Nincs további adat"}
                   </p>
@@ -549,7 +592,9 @@ function Inventory() {
                   )}
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${statusTone(i.status)}`}>
+                  <span
+                    className={`rounded-full px-2.5 py-1 text-xs font-medium ${statusTone(i.status)}`}
+                  >
                     {INVENTORY_STATUS_LABELS[i.status]}
                   </span>
                   <Button

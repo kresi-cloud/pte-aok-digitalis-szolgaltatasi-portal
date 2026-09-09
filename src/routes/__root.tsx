@@ -23,7 +23,9 @@ function NotFoundComponent() {
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="max-w-md text-center">
         <h1 className="text-7xl font-bold text-foreground">404</h1>
-        <h2 className="mt-4 text-xl font-semibold text-foreground">A keresett oldal nem található</h2>
+        <h2 className="mt-4 text-xl font-semibold text-foreground">
+          A keresett oldal nem található
+        </h2>
         <p className="mt-2 text-sm text-muted-foreground">
           A megnyitni kívánt oldal nem létezik, vagy időközben áthelyezték.
         </p>
@@ -54,7 +56,8 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
           Az oldal betöltése nem sikerült
         </h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Váratlan hiba történt. Próbálja meg újratölteni az oldalt, vagy térjen vissza a kezdőlapra.
+          Váratlan hiba történt. Próbálja meg újratölteni az oldalt, vagy térjen vissza a
+          kezdőlapra.
         </p>
         <div className="mt-6 flex flex-wrap justify-center gap-2">
           <button
@@ -139,14 +142,14 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <LanguageProvider>
         <DemoModeProvider>
-        <StoreProvider>
-          <AppShell>
-            {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-            <Outlet />
-          </AppShell>
-          <Toaster />
-          <DomTranslator />
-        </StoreProvider>
+          <StoreProvider>
+            <AppShell>
+              {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
+              <Outlet />
+            </AppShell>
+            <Toaster />
+            <DomTranslator />
+          </StoreProvider>
         </DemoModeProvider>
       </LanguageProvider>
     </QueryClientProvider>

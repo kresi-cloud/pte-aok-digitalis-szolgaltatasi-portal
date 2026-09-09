@@ -22,12 +22,7 @@ function exists(users: User[], id: string | undefined): User | undefined {
 
 /** Utolsó mentsvár: dékán, majd bármely vezető, végül az első felhasználó. */
 function ultimateFallback(users: User[]): string {
-  return (
-    byRole(users, "dekan")?.id ??
-    byRole(users, "vezeto")?.id ??
-    users[0]?.id ??
-    USERS[0]!.id
-  );
+  return byRole(users, "dekan")?.id ?? byRole(users, "vezeto")?.id ?? users[0]?.id ?? USERS[0]!.id;
 }
 
 /** Szervezeti (1. lépés) jóváhagyó, önjóváhagyás elkerülésével. */

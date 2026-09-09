@@ -1,7 +1,20 @@
 import { defineTool, ToolError } from "@lovable.dev/mcp-js";
 import { z } from "zod";
-import { ASSETS, ASSET_CATEGORIES, ASSET_LOCATIONS, ASSET_MODELS, FUNDING_SOURCES } from "@/lib/asset-data";
-import { lifecycleEnd, lifecycleStatus, meetsStandard, osSupportEnd, policyFor, replacementPriority } from "@/lib/asset-logic";
+import {
+  ASSETS,
+  ASSET_CATEGORIES,
+  ASSET_LOCATIONS,
+  ASSET_MODELS,
+  FUNDING_SOURCES,
+} from "@/lib/asset-data";
+import {
+  lifecycleEnd,
+  lifecycleStatus,
+  meetsStandard,
+  osSupportEnd,
+  policyFor,
+  replacementPriority,
+} from "@/lib/asset-logic";
 import { ORG_UNITS } from "@/lib/seed";
 
 export default defineTool({
@@ -31,13 +44,17 @@ export default defineTool({
       model: model ? `${model.manufacturer} ${model.model}` : a.modelKey,
       spec: model?.spec,
       orgUnit: ORG_UNITS.find((u) => u.id === a.orgUnitId)?.name ?? a.orgUnitId,
-      location: (() => { const l = ASSET_LOCATIONS.find((x) => x.id === a.locationId); return l ? `${l.building} ${l.room}` : a.locationId; })(),
+      location: (() => {
+        const l = ASSET_LOCATIONS.find((x) => x.id === a.locationId);
+        return l ? `${l.building} ${l.room}` : a.locationId;
+      })(),
       usage: a.usage,
       purpose: a.purpose,
       purchaseDate: a.purchaseDate,
       commissionDate: a.commissionDate,
       purchaseValue: a.purchaseValue,
-      fundingSource: FUNDING_SOURCES.find((f) => f.id === a.fundingSourceId)?.name ?? a.fundingSourceId,
+      fundingSource:
+        FUNDING_SOURCES.find((f) => f.id === a.fundingSourceId)?.name ?? a.fundingSourceId,
       warrantyEnd: a.warrantyEnd,
       condition: a.condition,
       repairCount: a.repairCount,

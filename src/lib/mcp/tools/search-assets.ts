@@ -10,10 +10,19 @@ export default defineTool({
   description:
     "Keresés az intézményi eszközkataszterben leltári szám, eszközazonosító, modell vagy szervezeti egység alapján, életciklus-státusz és csereprioritás szűréssel.",
   inputSchema: {
-    query: z.string().optional().describe("Leltári szám, hostname, sorozatszám vagy modellnév töredéke."),
-    categoryKey: z.string().optional().describe("Eszközkategória kulcsa, pl. notebook, monitor, munkaallomas."),
+    query: z
+      .string()
+      .optional()
+      .describe("Leltári szám, hostname, sorozatszám vagy modellnév töredéke."),
+    categoryKey: z
+      .string()
+      .optional()
+      .describe("Eszközkategória kulcsa, pl. notebook, monitor, munkaallomas."),
     orgUnitId: z.string().optional().describe("Szervezeti egység azonosítója."),
-    lifecycle: z.string().optional().describe("Életciklus-státusz kulcs, pl. cserere_erett, tervezendo."),
+    lifecycle: z
+      .string()
+      .optional()
+      .describe("Életciklus-státusz kulcs, pl. cserere_erett, tervezendo."),
     limit: z.number().int().optional().describe("Maximális találatszám (alapértelmezés: 25)."),
   },
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },

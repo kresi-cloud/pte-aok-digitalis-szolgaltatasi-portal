@@ -64,7 +64,10 @@ function Home() {
                   params={{ id: r.id }}
                   className="flex items-center gap-3 rounded-lg border border-warning/40 bg-warning/10 px-4 py-3 transition-colors hover:bg-warning/15"
                 >
-                  <CircleAlert className="size-5 shrink-0 text-warning-foreground" aria-hidden="true" />
+                  <CircleAlert
+                    className="size-5 shrink-0 text-warning-foreground"
+                    aria-hidden="true"
+                  />
                   <span className="text-sm">
                     <span className="font-medium">{r.id}</span> – további információ szükséges az
                     ügyintéző részéről.
@@ -116,9 +119,7 @@ function Home() {
               <span className="mt-1 block text-sm text-muted-foreground">
                 {PRIMARY_DOMAIN.description}
               </span>
-              <span className="mt-3 block text-xs text-muted-foreground">
-                {"\n"}
-              </span>
+              <span className="mt-3 block text-xs text-muted-foreground">{"\n"}</span>
             </span>
             <span className="inline-flex shrink-0 items-center gap-2 rounded-md bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground">
               Igénylés indítása <ArrowRight className="size-4" aria-hidden="true" />
@@ -139,9 +140,7 @@ function Home() {
                 </span>
                 <span className="min-w-0">
                   <span className="block font-display text-sm font-semibold">{d.name}</span>
-                  <span className="mt-1 block text-xs text-muted-foreground">
-                    {d.description}
-                  </span>
+                  <span className="mt-1 block text-xs text-muted-foreground">{d.description}</span>
                   <span className="mt-2 inline-block rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
                     Hamarosan elérhető
                   </span>
@@ -151,8 +150,6 @@ function Home() {
           })}
         </div>
       </section>
-
-
 
       <section aria-labelledby="folyamatban">
         <div className="mb-3 flex items-end justify-between">

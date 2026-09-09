@@ -1,4 +1,10 @@
-import type { AssetHandover, HardwareSpec, Product, ProductCategory, ServiceRequest } from "./types";
+import type {
+  AssetHandover,
+  HardwareSpec,
+  Product,
+  ProductCategory,
+  ServiceRequest,
+} from "./types";
 import { specForModel } from "./inventory-data";
 
 export interface HandoverCatalogContext {
@@ -25,9 +31,7 @@ export function productForHandover(
   }
   // Tartalék: az eszköznév alapján keresünk illeszkedő katalógustételt.
   const name = (handover.deviceName ?? "").toLowerCase();
-  return name
-    ? ctx.products.find((p) => name.includes(p.name.toLowerCase()))
-    : undefined;
+  return name ? ctx.products.find((p) => name.includes(p.name.toLowerCase())) : undefined;
 }
 
 /** Az átadási tétel termékköre (igény → termék → termékkör sorrendben). */

@@ -11,7 +11,8 @@ import {
   type ReplacementPriority,
 } from "@/lib/asset-types";
 
-const pill = "inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium whitespace-nowrap";
+const pill =
+  "inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium whitespace-nowrap";
 
 const LIFECYCLE_TONE: Record<LifecycleStatus, string> = {
   uj: "bg-primary/10 text-primary",

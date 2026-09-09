@@ -28,7 +28,13 @@ export default defineTool({
       estimatedCost: r.estimatedCost,
       effortDays: r.effortDays,
       nextStep: r.nextStep,
-      approvals: r.approvals.map((a) => ({ step: a.step, role: a.role, decision: a.decision, decidedAt: a.decidedAt, comment: a.comment })),
+      approvals: r.approvals.map((a) => ({
+        step: a.step,
+        role: a.role,
+        decision: a.decision,
+        decidedAt: a.decidedAt,
+        comment: a.comment,
+      })),
       subtasks: r.subtasks.map((s) => ({ title: s.title, done: s.done })),
       audit: r.audit.map((a) => ({ at: a.at, action: a.action, detail: a.detail })),
     };

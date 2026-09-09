@@ -6,12 +6,23 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { PageHeading } from "@/components/page-heading";
 import { canPlanProcurement, canReviewProcurement, useViewOnly } from "@/lib/access";
 import { ViewOnlyNotice } from "@/components/view-only-notice";
 import { lookup, ORG_UNITS, useStore } from "@/lib/store";
-import { FUNDING_SOURCES, HARDWARE_STANDARDS, NEXT_FINANCIAL_YEAR, REFERENCE_PRICES } from "@/lib/asset-data";
+import {
+  FUNDING_SOURCES,
+  HARDWARE_STANDARDS,
+  NEXT_FINANCIAL_YEAR,
+  REFERENCE_PRICES,
+} from "@/lib/asset-data";
 import {
   assetLookup,
   huf,
@@ -32,7 +43,6 @@ import { ProcurementBadge, PriorityBadge, StatTile } from "@/components/asset-bi
 import { planItemStage } from "@/lib/plan-stage";
 import { planApprovalForItem } from "@/lib/withdraw";
 
-
 export const Route = createFileRoute("/beszerzesi-terv")({
   head: () => ({
     meta: [
@@ -42,7 +52,10 @@ export const Route = createFileRoute("/beszerzesi-terv")({
         content:
           "A következő gazdasági év eszközbeszerzési terve: cserejelöltek, negyedéves ütemezés, referenciaárak, tartalékkeret és forrásbontás.",
       },
-      { property: "og:title", content: "Beszerzési terv 2027 – ÁOK Digitális Szolgáltatási Portál" },
+      {
+        property: "og:title",
+        content: "Beszerzési terv 2027 – ÁOK Digitális Szolgáltatási Portál",
+      },
       {
         property: "og:description",
         content: "Eszközcsere-tervezés negyedéves ütemezéssel és költségbecsléssel.",
@@ -68,9 +81,12 @@ function ProcurementPage() {
     () =>
       store.assets
         .filter((a) =>
-          ["cserere_erett", "cserere_tervezendo", "tamogatasbol_kifutott", "selejtezesre_var"].includes(
-            lifecycleStatus(a),
-          ),
+          [
+            "cserere_erett",
+            "cserere_tervezendo",
+            "tamogatasbol_kifutott",
+            "selejtezesre_var",
+          ].includes(lifecycleStatus(a)),
         )
         .sort((a, b) => lifecycleEnd(a).localeCompare(lifecycleEnd(b))),
     [store.assets],
@@ -93,8 +109,8 @@ function ProcurementPage() {
       <div className="card-surface mx-auto max-w-2xl space-y-3 p-6">
         <h1 className="font-display text-xl font-semibold">Beszerzési terv</h1>
         <p className="text-sm text-muted-foreground">
-          A beszerzési terv az IT eszközmenedzser, a beszerző, a gazdasági vezető és a kari
-          vezetés felülete. Saját igényei állapotát az „Igényeim” oldalon követheti.
+          A beszerzési terv az IT eszközmenedzser, a beszerző, a gazdasági vezető és a kari vezetés
+          felülete. Saját igényei állapotát az „Igényeim” oldalon követheti.
         </p>
         <Button asChild variant="outline">
           <Link to="/igenyeim">Saját igényeim</Link>
@@ -126,149 +142,164 @@ function ProcurementPage() {
       </div>
 
       <fieldset disabled={viewOnly} className="contents">
-      <Tabs defaultValue="terv">
-        <TabsList className="flex-wrap">
-          <TabsTrigger value="terv">Negyedéves terv</TabsTrigger>
-          <TabsTrigger value="jeloltek">Cserejelöltek</TabsTrigger>
-          {canPlan && <TabsTrigger value="uj">Új tétel</TabsTrigger>}
-          <TabsTrigger value="forras">Forrás és egység szerint</TabsTrigger>
-        </TabsList>
+        <Tabs defaultValue="terv">
+          <TabsList className="flex-wrap">
+            <TabsTrigger value="terv">Negyedéves terv</TabsTrigger>
+            <TabsTrigger value="jeloltek">Cserejelöltek</TabsTrigger>
+            {canPlan && <TabsTrigger value="uj">Új tétel</TabsTrigger>}
+            <TabsTrigger value="forras">Forrás és egység szerint</TabsTrigger>
+          </TabsList>
 
-        <TabsContent value="terv" className="space-y-5">
-          {QUARTERS.map((q) => {
-            const list = items.filter((i) => i.quarter === q);
-            const qTotal = list.reduce((s, i) => s + itemCost(i).grossTotal, 0);
-            return (
-              <section key={q} className="card-surface p-5">
-                <div className="flex flex-wrap items-baseline justify-between gap-2">
-                  <h2 className="font-display text-base font-semibold">
-                    {NEXT_FINANCIAL_YEAR} · {QUARTER_LABELS[q]}
-                  </h2>
-                  <p className="text-sm text-muted-foreground">
-                    {list.length} tétel · bruttó {huf(qTotal)}
-                  </p>
-                </div>
-                {list.length === 0 ? (
-                  <p className="mt-3 text-sm text-muted-foreground">Erre a negyedévre még nincs tervezett tétel.</p>
-                ) : (
-                  <ul className="mt-4 space-y-4">
-                    {list.map((item) => (
-                      <PlanItemCard key={item.id} item={item} />
-                    ))}
-                  </ul>
-                )}
-              </section>
-            );
-          })}
-        </TabsContent>
-
-        <TabsContent value="jeloltek" className="space-y-4">
-          <p className="text-sm text-muted-foreground">
-            {candidates.length} eszköz életciklusa jár le {NEXT_FINANCIAL_YEAR} végéig vagy már lejárt.
-            A lista a tervezés kiindulópontja – a döntés emberi felülvizsgálat után születik.
-          </p>
-          <div className="card-surface overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="border-b border-border text-left text-xs text-muted-foreground">
-                <tr>
-                  <th className="px-4 py-3">Leltári szám</th>
-                  <th className="px-4 py-3">Eszköz</th>
-                  <th className="px-4 py-3">Egység</th>
-                  <th className="px-4 py-3">Életciklus vége</th>
-                  <th className="px-4 py-3">Prioritás</th>
-                  <th className="px-4 py-3">Javasolt standard</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {candidates.slice(0, 60).map((a) => {
-                  const std = assetLookup.standard(assetLookup.model(a.modelKey)?.standardKey);
-                  return (
-                    <tr key={a.id} className="hover:bg-secondary/50">
-                      <td className="px-4 py-3">
-                        <Link to="/eszkoz/$id" params={{ id: a.id }} className="text-primary hover:underline">
-                          {a.inventoryNo}
-                        </Link>
-                      </td>
-                      <td className="px-4 py-3">{assetLookup.modelLabel(a.modelKey)}</td>
-                      <td className="px-4 py-3">{lookup.unit(a.orgUnitId)}</td>
-                      <td className="px-4 py-3">{lifecycleEnd(a)}</td>
-                      <td className="px-4 py-3">
-                        <PriorityBadge priority={replacementPriority(a)} />
-                      </td>
-                      <td className="px-4 py-3">{std?.label ?? "—"}</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </TabsContent>
-
-        {canPlan && (
-          <TabsContent value="uj">
-            <NewPlanItemForm />
+          <TabsContent value="terv" className="space-y-5">
+            {QUARTERS.map((q) => {
+              const list = items.filter((i) => i.quarter === q);
+              const qTotal = list.reduce((s, i) => s + itemCost(i).grossTotal, 0);
+              return (
+                <section key={q} className="card-surface p-5">
+                  <div className="flex flex-wrap items-baseline justify-between gap-2">
+                    <h2 className="font-display text-base font-semibold">
+                      {NEXT_FINANCIAL_YEAR} · {QUARTER_LABELS[q]}
+                    </h2>
+                    <p className="text-sm text-muted-foreground">
+                      {list.length} tétel · bruttó {huf(qTotal)}
+                    </p>
+                  </div>
+                  {list.length === 0 ? (
+                    <p className="mt-3 text-sm text-muted-foreground">
+                      Erre a negyedévre még nincs tervezett tétel.
+                    </p>
+                  ) : (
+                    <ul className="mt-4 space-y-4">
+                      {list.map((item) => (
+                        <PlanItemCard key={item.id} item={item} />
+                      ))}
+                    </ul>
+                  )}
+                </section>
+              );
+            })}
           </TabsContent>
-        )}
 
-        <TabsContent value="forras" className="space-y-4">
-          <section className="card-surface overflow-x-auto p-5">
-            <h2 className="font-display text-base font-semibold">Forrás szerinti bontás</h2>
-            <table className="mt-3 w-full text-sm">
-              <thead className="text-left text-xs text-muted-foreground">
-                <tr>
-                  <th className="py-2">Forrás</th>
-                  <th className="py-2">Tételek</th>
-                  <th className="py-2">Darab</th>
-                  <th className="py-2">Bruttó</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {FUNDING_SOURCES.map((f) => {
-                  const list = items.filter((i) => i.fundingSourceId === f.id);
-                  return (
-                    <tr key={f.id}>
-                      <td className="py-2 font-medium">{f.name}</td>
-                      <td className="py-2">{list.length}</td>
-                      <td className="py-2">{list.reduce((s, i) => s + i.quantity, 0)}</td>
-                      <td className="py-2">{huf(list.reduce((s, i) => s + itemCost(i).grossTotal, 0))}</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </section>
+          <TabsContent value="jeloltek" className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              {candidates.length} eszköz életciklusa jár le {NEXT_FINANCIAL_YEAR} végéig vagy már
+              lejárt. A lista a tervezés kiindulópontja – a döntés emberi felülvizsgálat után
+              születik.
+            </p>
+            <div className="card-surface overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="border-b border-border text-left text-xs text-muted-foreground">
+                  <tr>
+                    <th className="px-4 py-3">Leltári szám</th>
+                    <th className="px-4 py-3">Eszköz</th>
+                    <th className="px-4 py-3">Egység</th>
+                    <th className="px-4 py-3">Életciklus vége</th>
+                    <th className="px-4 py-3">Prioritás</th>
+                    <th className="px-4 py-3">Javasolt standard</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {candidates.slice(0, 60).map((a) => {
+                    const std = assetLookup.standard(assetLookup.model(a.modelKey)?.standardKey);
+                    return (
+                      <tr key={a.id} className="hover:bg-secondary/50">
+                        <td className="px-4 py-3">
+                          <Link
+                            to="/eszkoz/$id"
+                            params={{ id: a.id }}
+                            className="text-primary hover:underline"
+                          >
+                            {a.inventoryNo}
+                          </Link>
+                        </td>
+                        <td className="px-4 py-3">{assetLookup.modelLabel(a.modelKey)}</td>
+                        <td className="px-4 py-3">{lookup.unit(a.orgUnitId)}</td>
+                        <td className="px-4 py-3">{lifecycleEnd(a)}</td>
+                        <td className="px-4 py-3">
+                          <PriorityBadge priority={replacementPriority(a)} />
+                        </td>
+                        <td className="px-4 py-3">{std?.label ?? "—"}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </TabsContent>
 
-          <section className="card-surface overflow-x-auto p-5">
-            <h2 className="font-display text-base font-semibold">Szervezeti egység szerinti bontás</h2>
-            <table className="mt-3 w-full text-sm">
-              <thead className="text-left text-xs text-muted-foreground">
-                <tr>
-                  <th className="py-2">Egység</th>
-                  <th className="py-2">Darab</th>
-                  <th className="py-2">Bruttó</th>
-                  <th className="py-2">Státuszok</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {ORG_UNITS.map((o) => {
-                  const list = items.filter((i) => i.orgUnitId === o.id);
-                  if (!list.length) return null;
-                  return (
-                    <tr key={o.id}>
-                      <td className="py-2 font-medium">{o.name}</td>
-                      <td className="py-2">{list.reduce((s, i) => s + i.quantity, 0)}</td>
-                      <td className="py-2">{huf(list.reduce((s, i) => s + itemCost(i).grossTotal, 0))}</td>
-                      <td className="py-2">
-                        {[...new Set(list.map((i) => PROCUREMENT_STATUS_LABELS[i.status]))].join(", ")}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </section>
-        </TabsContent>
-      </Tabs>
+          {canPlan && (
+            <TabsContent value="uj">
+              <NewPlanItemForm />
+            </TabsContent>
+          )}
+
+          <TabsContent value="forras" className="space-y-4">
+            <section className="card-surface overflow-x-auto p-5">
+              <h2 className="font-display text-base font-semibold">Forrás szerinti bontás</h2>
+              <table className="mt-3 w-full text-sm">
+                <thead className="text-left text-xs text-muted-foreground">
+                  <tr>
+                    <th className="py-2">Forrás</th>
+                    <th className="py-2">Tételek</th>
+                    <th className="py-2">Darab</th>
+                    <th className="py-2">Bruttó</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {FUNDING_SOURCES.map((f) => {
+                    const list = items.filter((i) => i.fundingSourceId === f.id);
+                    return (
+                      <tr key={f.id}>
+                        <td className="py-2 font-medium">{f.name}</td>
+                        <td className="py-2">{list.length}</td>
+                        <td className="py-2">{list.reduce((s, i) => s + i.quantity, 0)}</td>
+                        <td className="py-2">
+                          {huf(list.reduce((s, i) => s + itemCost(i).grossTotal, 0))}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </section>
+
+            <section className="card-surface overflow-x-auto p-5">
+              <h2 className="font-display text-base font-semibold">
+                Szervezeti egység szerinti bontás
+              </h2>
+              <table className="mt-3 w-full text-sm">
+                <thead className="text-left text-xs text-muted-foreground">
+                  <tr>
+                    <th className="py-2">Egység</th>
+                    <th className="py-2">Darab</th>
+                    <th className="py-2">Bruttó</th>
+                    <th className="py-2">Státuszok</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {ORG_UNITS.map((o) => {
+                    const list = items.filter((i) => i.orgUnitId === o.id);
+                    if (!list.length) return null;
+                    return (
+                      <tr key={o.id}>
+                        <td className="py-2 font-medium">{o.name}</td>
+                        <td className="py-2">{list.reduce((s, i) => s + i.quantity, 0)}</td>
+                        <td className="py-2">
+                          {huf(list.reduce((s, i) => s + itemCost(i).grossTotal, 0))}
+                        </td>
+                        <td className="py-2">
+                          {[...new Set(list.map((i) => PROCUREMENT_STATUS_LABELS[i.status]))].join(
+                            ", ",
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </section>
+          </TabsContent>
+        </Tabs>
       </fieldset>
     </div>
   );
@@ -287,14 +318,14 @@ function PlanItemCard({ item }: { item: ProcurementPlanItem }) {
     store.users,
   );
 
-
   return (
     <li className="rounded-md border border-border p-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="font-display text-sm font-semibold">
-            {assetLookup.standard(item.standardKey)?.label ?? assetLookup.categoryLabel(item.categoryKey)} ·{" "}
-            {item.quantity} db
+            {assetLookup.standard(item.standardKey)?.label ??
+              assetLookup.categoryLabel(item.categoryKey)}{" "}
+            · {item.quantity} db
           </p>
           <p className="text-sm text-muted-foreground">
             {lookup.unit(item.orgUnitId)} · {item.reason}
@@ -330,7 +361,6 @@ function PlanItemCard({ item }: { item: ProcurementPlanItem }) {
         </div>
       </div>
 
-
       <dl className="mt-3 grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
         <div>
           <dt className="text-xs text-muted-foreground">Nettó összesen</dt>
@@ -341,7 +371,9 @@ function PlanItemCard({ item }: { item: ProcurementPlanItem }) {
           <dd className="font-medium">{huf(cost.grossTotal)}</dd>
         </div>
         <div>
-          <dt className="text-xs text-muted-foreground">Tartalékkerettel ({item.contingencyPct}%)</dt>
+          <dt className="text-xs text-muted-foreground">
+            Tartalékkerettel ({item.contingencyPct}%)
+          </dt>
           <dd className="font-medium">{huf(cost.withContingency)}</dd>
         </div>
         <div>
@@ -405,11 +437,16 @@ function PlanItemCard({ item }: { item: ProcurementPlanItem }) {
             id={`up-${item.id}`}
             label="Egyedi nettó egységár"
             value={item.unitPriceOverride ?? 0}
-            onChange={(v) => store.updatePlanItem(item.id, { unitPriceOverride: v > 0 ? v : undefined })}
+            onChange={(v) =>
+              store.updatePlanItem(item.id, { unitPriceOverride: v > 0 ? v : undefined })
+            }
           />
           <div className="space-y-1.5">
             <Label htmlFor={`qt-${item.id}`}>Negyedév</Label>
-            <Select value={item.quarter} onValueChange={(v) => store.updatePlanItem(item.id, { quarter: v as Quarter })}>
+            <Select
+              value={item.quarter}
+              onValueChange={(v) => store.updatePlanItem(item.id, { quarter: v as Quarter })}
+            >
               <SelectTrigger id={`qt-${item.id}`}>
                 <SelectValue />
               </SelectTrigger>
@@ -426,7 +463,9 @@ function PlanItemCard({ item }: { item: ProcurementPlanItem }) {
             <Label htmlFor={`st-${item.id}`}>Státusz</Label>
             <Select
               value={item.status}
-              onValueChange={(v) => store.updatePlanItem(item.id, { status: v as ProcurementStatus })}
+              onValueChange={(v) =>
+                store.updatePlanItem(item.id, { status: v as ProcurementStatus })
+              }
             >
               <SelectTrigger id={`st-${item.id}`}>
                 <SelectValue />
@@ -500,8 +539,8 @@ function NewPlanItemForm() {
     <section className="card-surface p-5">
       <h2 className="font-display text-base font-semibold">Új beszerzési tételtervezet</h2>
       <p className="mt-1 text-sm text-muted-foreground">
-        Csere vagy új kapacitásigény rögzítése a {NEXT_FINANCIAL_YEAR}. évi tervbe. A tétel a gazdasági
-        jóváhagyás előtt bármikor módosítható.
+        Csere vagy új kapacitásigény rögzítése a {NEXT_FINANCIAL_YEAR}. évi tervbe. A tétel a
+        gazdasági jóváhagyás előtt bármikor módosítható.
       </p>
       <div className="mt-4 grid gap-4 md:grid-cols-3">
         <div className="space-y-1.5">
@@ -521,7 +560,10 @@ function NewPlanItemForm() {
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="np-std">Hardverstandard</Label>
-          <Select value={form.standardKey} onValueChange={(v) => setForm({ ...form, standardKey: v })}>
+          <Select
+            value={form.standardKey}
+            onValueChange={(v) => setForm({ ...form, standardKey: v })}
+          >
             <SelectTrigger id="np-std">
               <SelectValue />
             </SelectTrigger>
@@ -536,7 +578,10 @@ function NewPlanItemForm() {
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="np-q">Negyedév</Label>
-          <Select value={form.quarter} onValueChange={(v) => setForm({ ...form, quarter: v as Quarter })}>
+          <Select
+            value={form.quarter}
+            onValueChange={(v) => setForm({ ...form, quarter: v as Quarter })}
+          >
             <SelectTrigger id="np-q">
               <SelectValue />
             </SelectTrigger>
@@ -557,7 +602,10 @@ function NewPlanItemForm() {
         />
         <div className="space-y-1.5">
           <Label htmlFor="np-fs">Finanszírozási forrás</Label>
-          <Select value={form.fundingSourceId} onValueChange={(v) => setForm({ ...form, fundingSourceId: v })}>
+          <Select
+            value={form.fundingSourceId}
+            onValueChange={(v) => setForm({ ...form, fundingSourceId: v })}
+          >
             <SelectTrigger id="np-fs">
               <SelectValue />
             </SelectTrigger>

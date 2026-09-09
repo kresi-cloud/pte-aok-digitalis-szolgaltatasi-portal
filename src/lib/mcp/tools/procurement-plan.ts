@@ -10,7 +10,11 @@ export default defineTool({
   description:
     "A következő pénzügyi év beszerzési tervének tételei negyedéves bontásban, becsült nettó/bruttó költséggel és összesítéssel. Szűrhető évre, negyedévre és szervezeti egységre.",
   inputSchema: {
-    planYear: z.number().int().optional().describe(`Tervezési év (alapértelmezés: ${NEXT_FINANCIAL_YEAR}).`),
+    planYear: z
+      .number()
+      .int()
+      .optional()
+      .describe(`Tervezési év (alapértelmezés: ${NEXT_FINANCIAL_YEAR}).`),
     quarter: z.enum(["Q1", "Q2", "Q3", "Q4"]).optional(),
     orgUnitId: z.string().optional(),
   },
@@ -42,7 +46,13 @@ export default defineTool({
     });
     const totalGross = rows.reduce((s, r) => s + r.cost.grossTotal, 0);
     const totalWithContingency = rows.reduce((s, r) => s + r.cost.withContingency, 0);
-    const result = { planYear: year, items: rows, totalItems: rows.length, totalGross, totalWithContingency };
+    const result = {
+      planYear: year,
+      items: rows,
+      totalItems: rows.length,
+      totalGross,
+      totalWithContingency,
+    };
     return {
       content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
       structuredContent: result,

@@ -16,7 +16,10 @@ export const Route = createFileRoute("/szolgaltatasok")({
         content:
           "Igényelhető digitális és informatikai szolgáltatások leírással, átfutási idővel és jóváhagyási úttal.",
       },
-      { property: "og:title", content: "Szolgáltatáskatalógus – ÁOK Digitális Szolgáltatási Portál" },
+      {
+        property: "og:title",
+        content: "Szolgáltatáskatalógus – ÁOK Digitális Szolgáltatási Portál",
+      },
       {
         property: "og:description",
         content: "Böngéssze a kar digitális szolgáltatásait és indítson igényt egy kattintással.",
@@ -30,10 +33,13 @@ function Catalog() {
   const [q, setQ] = useState("");
   const [domain, setDomain] = useState<string>("mind");
 
-  const items = CATALOG.filter((c) => (domain === "mind" ? true : c.domain === domain)).filter((c) =>
-    q
-      ? `${c.name} ${c.description} ${c.keywords.join(" ")}`.toLowerCase().includes(q.toLowerCase())
-      : true,
+  const items = CATALOG.filter((c) => (domain === "mind" ? true : c.domain === domain)).filter(
+    (c) =>
+      q
+        ? `${c.name} ${c.description} ${c.keywords.join(" ")}`
+            .toLowerCase()
+            .includes(q.toLowerCase())
+        : true,
   );
 
   return (
@@ -47,7 +53,10 @@ function Catalog() {
 
       <div className="flex flex-wrap items-center gap-3">
         <div className="relative max-w-sm flex-1">
-          <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+          <Search
+            className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
+            aria-hidden="true"
+          />
           <Input
             className="pl-9"
             placeholder="Keresés a szolgáltatások között…"
@@ -57,21 +66,22 @@ function Catalog() {
           />
         </div>
         <div className="flex flex-wrap gap-1 rounded-md border border-border bg-card p-1">
-          {[{ key: "mind", name: "Mind" }, ...DOMAINS.map((d) => ({ key: d.key, name: d.name }))].map(
-            (d) => (
-              <button
-                key={d.key}
-                onClick={() => setDomain(d.key)}
-                aria-pressed={domain === d.key}
-                className={cn(
-                  "rounded px-3 py-1.5 text-sm",
-                  domain === d.key ? "bg-primary text-primary-foreground" : "hover:bg-secondary",
-                )}
-              >
-                {d.name}
-              </button>
-            ),
-          )}
+          {[
+            { key: "mind", name: "Mind" },
+            ...DOMAINS.map((d) => ({ key: d.key, name: d.name })),
+          ].map((d) => (
+            <button
+              key={d.key}
+              onClick={() => setDomain(d.key)}
+              aria-pressed={domain === d.key}
+              className={cn(
+                "rounded px-3 py-1.5 text-sm",
+                domain === d.key ? "bg-primary text-primary-foreground" : "hover:bg-secondary",
+              )}
+            >
+              {d.name}
+            </button>
+          ))}
         </div>
       </div>
 
@@ -89,7 +99,10 @@ function Catalog() {
               <div>
                 <dt className="text-xs text-muted-foreground">Ki igényelheti</dt>
                 <dd className="flex items-start gap-1.5">
-                  <Users className="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+                  <Users
+                    className="mt-0.5 size-4 shrink-0 text-muted-foreground"
+                    aria-hidden="true"
+                  />
                   {c.whoCanRequest}
                 </dd>
               </div>

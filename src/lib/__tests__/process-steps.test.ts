@@ -1,11 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { PROCESS_STEPS, PROCESS_STEP_COUNT } from "../process-steps";
 import { planItemStage } from "../plan-stage";
-import {
-  canConfirmReceipt,
-  canHandOverToUser,
-  handoverConfigured,
-} from "../procurement-rules";
+import { canConfirmReceipt, canHandOverToUser, handoverConfigured } from "../procurement-rules";
 import { HANDOVER_CHECKLIST } from "../types";
 import type { ProcurementPlanItem } from "../asset-types";
 import type { AssetHandover, User } from "../types";
@@ -85,12 +81,7 @@ describe("nyolclépcsős folyamat", () => {
     expect(planItemStage(item, undefined, handover({ status: "atadva" }), users).stepLabel).toBe(
       "Átvétel és lezárás",
     );
-    const closed = planItemStage(
-      item,
-      undefined,
-      handover({ status: "atvetel_igazolva" }),
-      users,
-    );
+    const closed = planItemStage(item, undefined, handover({ status: "atvetel_igazolva" }), users);
     expect(closed.done).toBe(true);
   });
 });

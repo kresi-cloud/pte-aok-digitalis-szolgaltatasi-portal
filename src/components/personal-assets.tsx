@@ -5,7 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { lookup, useStore } from "@/lib/store";
 import { TODAY } from "@/lib/asset-data";
 import {
@@ -20,7 +26,13 @@ import {
   yearsSince,
 } from "@/lib/asset-logic";
 import { productModelLabel } from "@/lib/handover-products";
-import { Field, LicenceBadge, LifecycleBadge, PriorityBadge, StatTile } from "@/components/asset-bits";
+import {
+  Field,
+  LicenceBadge,
+  LifecycleBadge,
+  PriorityBadge,
+  StatTile,
+} from "@/components/asset-bits";
 import {
   PERSONAL_CHECK_LABELS,
   SHARED_CHECK_LABELS,
@@ -46,7 +58,13 @@ export function MyAssets() {
         />
         <StatTile
           label="Cserére érett"
-          value={mine.filter((a) => ["cserere_erett", "tamogatasbol_kifutott", "selejtezesre_var"].includes(lifecycleStatus(a))).length}
+          value={
+            mine.filter((a) =>
+              ["cserere_erett", "tamogatasbol_kifutott", "selejtezesre_var"].includes(
+                lifecycleStatus(a),
+              ),
+            ).length
+          }
           tone="warn"
         />
         <StatTile
@@ -71,7 +89,10 @@ export function MyAssets() {
 export function SharedAssets() {
   const store = useStore();
   const mine = store.assets.filter(
-    (a) => a.usage === "kozos" && (a.custodianUserId === store.currentUser.id || a.inventoryResponsibleId === store.currentUser.id),
+    (a) =>
+      a.usage === "kozos" &&
+      (a.custodianUserId === store.currentUser.id ||
+        a.inventoryResponsibleId === store.currentUser.id),
   );
   const unitShared = store.assets.filter(
     (a) => a.usage === "kozos" && a.orgUnitId === store.currentUser.orgUnitId && !mine.includes(a),
@@ -80,8 +101,8 @@ export function SharedAssets() {
   return (
     <div className="space-y-4">
       <p className="text-sm text-muted-foreground">
-        A közös használatú eszközöket nem személyre, hanem szervezeti egységre tartjuk nyilván, kijelölt
-        eszközfelelőssel. A leltári visszaigazolást a felelős végzi.
+        A közös használatú eszközöket nem személyre, hanem szervezeti egységre tartjuk nyilván,
+        kijelölt eszközfelelőssel. A leltári visszaigazolást a felelős végzi.
       </p>
       <h3 className="font-display text-sm font-semibold">Saját felelősségi körömben</h3>
       {mine.length === 0 ? (
@@ -95,9 +116,16 @@ export function SharedAssets() {
       ) : (
         <ul className="grid gap-2 md:grid-cols-2">
           {unitShared.map((a) => (
-            <li key={a.id} className="card-surface flex items-center justify-between gap-3 p-3 text-sm">
+            <li
+              key={a.id}
+              className="card-surface flex items-center justify-between gap-3 p-3 text-sm"
+            >
               <div>
-                <Link to="/eszkoz/$id" params={{ id: a.id }} className="font-medium text-primary hover:underline">
+                <Link
+                  to="/eszkoz/$id"
+                  params={{ id: a.id }}
+                  className="font-medium text-primary hover:underline"
+                >
                   {assetLookup.modelLabel(a.modelKey)}
                 </Link>
                 <p className="text-xs text-muted-foreground">
@@ -129,7 +157,9 @@ function AssetCard({ assetId, shared }: { assetId: string; shared: boolean }) {
       ? assetLookup.modelLabel(asset.modelKey)
       : assetLookup.modelLabel(asset.modelKey);
 
-  const check = store.checks.find((c) => c.assetId === asset.id && c.userId === store.currentUser.id);
+  const check = store.checks.find(
+    (c) => c.assetId === asset.id && c.userId === store.currentUser.id,
+  );
   const [answer, setAnswer] = useState<string>(shared ? "megtalalhato" : "nalam_van_hasznalom");
   const [comment, setComment] = useState("");
   const osEnd = osSupportEnd(asset);
@@ -164,7 +194,6 @@ function AssetCard({ assetId, shared }: { assetId: string; shared: boolean }) {
           <LifecycleBadge status={lifecycleStatus(asset)} />
           <PriorityBadge priority={replacementPriority(asset)} />
         </div>
-
       </div>
 
       <dl className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -177,7 +206,9 @@ function AssetCard({ assetId, shared }: { assetId: string; shared: boolean }) {
             : (product?.spec.cpu ?? "—")}
         </Field>
         <Field label="Memória">
-          {spec?.memory ? `${spec.memory.capacityGb} GB ${spec.memory.type}` : (product?.spec.ram ?? "—")}
+          {spec?.memory
+            ? `${spec.memory.capacityGb} GB ${spec.memory.type}`
+            : (product?.spec.ram ?? "—")}
         </Field>
         <Field label="Tároló">
           {spec?.storage
@@ -209,8 +240,9 @@ function AssetCard({ assetId, shared }: { assetId: string; shared: boolean }) {
         <p className="text-sm font-medium">Leltári visszaigazolás – 2026. évi ciklus</p>
         {check ? (
           <p className="mt-1 text-sm text-muted-foreground">
-            Visszaigazolva: {answers[check.answer as keyof typeof answers] ?? check.answer} · {check.at} ·
-            állapot: {check.stage === "lezarva" ? "lezárva" : "leltárfelelős ellenőrzésére vár"}
+            Visszaigazolva: {answers[check.answer as keyof typeof answers] ?? check.answer} ·{" "}
+            {check.at} · állapot:{" "}
+            {check.stage === "lezarva" ? "lezárva" : "leltárfelelős ellenőrzésére vár"}
           </p>
         ) : (
           <div className="mt-3 grid gap-3 md:grid-cols-3">
@@ -257,7 +289,6 @@ function AssetCard({ assetId, shared }: { assetId: string; shared: boolean }) {
           </div>
         )}
       </div>
-
     </article>
   );
 }
@@ -278,7 +309,9 @@ export function MyLicences() {
           tone="warn"
         />
       </div>
-      {mine.length === 0 && <p className="text-sm text-muted-foreground">Nincs Önhöz rendelt licenc.</p>}
+      {mine.length === 0 && (
+        <p className="text-sm text-muted-foreground">Nincs Önhöz rendelt licenc.</p>
+      )}
       {mine.map((l) => {
         const product = assetLookup.product(l.productKey);
         const support = product?.supportEnd[l.version];
@@ -304,7 +337,11 @@ export function MyLicences() {
               <Field label="Gyártói támogatás vége">{support ?? "—"}</Field>
               <Field label="Érintett eszköz">
                 {l.assetId ? (
-                  <Link to="/eszkoz/$id" params={{ id: l.assetId }} className="text-primary hover:underline">
+                  <Link
+                    to="/eszkoz/$id"
+                    params={{ id: l.assetId }}
+                    className="text-primary hover:underline"
+                  >
                     {store.assets.find((a) => a.id === l.assetId)?.inventoryNo ?? l.assetId}
                   </Link>
                 ) : (
@@ -323,7 +360,9 @@ export function MyLicences() {
                 onClick={() => {
                   store.markLicenceUnused(l.id, !l.reportedUnused);
                   toast.success(
-                    l.reportedUnused ? "A licenc újra használtként jelölve." : "Jelezve: a licenc nincs használatban.",
+                    l.reportedUnused
+                      ? "A licenc újra használtként jelölve."
+                      : "Jelezve: a licenc nincs használatban.",
                   );
                 }}
               >

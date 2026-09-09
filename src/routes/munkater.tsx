@@ -37,7 +37,10 @@ export const Route = createFileRoute("/munkater")({
         content:
           "Beérkező igények kezelése, besorolás, kiosztás és SLA-figyelés a szolgáltatási csapatok számára.",
       },
-      { property: "og:title", content: "Szolgáltatási munkatér – ÁOK Digitális Szolgáltatási Portál" },
+      {
+        property: "og:title",
+        content: "Szolgáltatási munkatér – ÁOK Digitális Szolgáltatási Portál",
+      },
       {
         property: "og:description",
         content: "Munkasor, besorolás, kiosztás és SLA-kockázatok egy felületen.",
@@ -72,9 +75,17 @@ function Workbench() {
     const open = all.filter((r) => OPEN.includes(r.status));
     return [
       { label: "Nyitott igény", value: open.length, Icon: Inbox },
-      { label: "Kiosztásra vár", value: all.filter((r) => !r.assigneeId && OPEN.includes(r.status)).length, Icon: Timer },
+      {
+        label: "Kiosztásra vár",
+        value: all.filter((r) => !r.assigneeId && OPEN.includes(r.status)).length,
+        Icon: Timer,
+      },
       { label: "SLA-kockázat", value: all.filter((r) => r.slaRisk).length, Icon: AlertTriangle },
-      { label: "Lezárva (30 nap)", value: all.filter((r) => r.status === "lezarva").length, Icon: TrendingUp },
+      {
+        label: "Lezárva (30 nap)",
+        value: all.filter((r) => r.status === "lezarva").length,
+        Icon: TrendingUp,
+      },
     ];
   }, [all]);
 
@@ -82,14 +93,14 @@ function Workbench() {
     .filter((r) => (domain === "mind" ? true : r.domain === domain))
     .filter((r) => (status === "mind" ? OPEN.includes(r.status) : r.status === status))
     .filter((r) =>
-      assignee === "mind"
-        ? true
-        : assignee === "nincs"
-          ? !r.assigneeId
-          : r.assigneeId === assignee,
+      assignee === "mind" ? true : assignee === "nincs" ? !r.assigneeId : r.assigneeId === assignee,
     )
     .filter((r) =>
-      q ? `${r.id} ${r.title} ${lookup.userName(r.requesterId)}`.toLowerCase().includes(q.toLowerCase()) : true,
+      q
+        ? `${r.id} ${r.title} ${lookup.userName(r.requesterId)}`
+            .toLowerCase()
+            .includes(q.toLowerCase())
+        : true,
     );
 
   const triage = all.filter((r) => r.status === "bekuldve" || r.status === "elso_ertekeles");
@@ -201,7 +212,11 @@ function Workbench() {
                 {filtered.map((r) => (
                   <TableRow key={r.id} className={cn(r.slaRisk && "bg-destructive/5")}>
                     <TableCell className="font-mono text-xs">
-                      <Link to="/igeny/$id" params={{ id: r.id }} className="text-primary hover:underline">
+                      <Link
+                        to="/igeny/$id"
+                        params={{ id: r.id }}
+                        className="text-primary hover:underline"
+                      >
                         {r.id}
                       </Link>
                     </TableCell>
@@ -247,7 +262,9 @@ function Workbench() {
                     <TableCell className="text-sm whitespace-nowrap">
                       {r.dueDate ?? "—"}
                       {r.slaRisk && (
-                        <span className="block text-xs font-medium text-destructive">SLA-kockázat</span>
+                        <span className="block text-xs font-medium text-destructive">
+                          SLA-kockázat
+                        </span>
                       )}
                     </TableCell>
                   </TableRow>
@@ -339,11 +356,14 @@ function Workbench() {
                 <section key={t.id} className="card-surface p-5">
                   <h2 className="font-display text-base font-semibold">{t.name}</h2>
                   <p className="mt-1 text-sm text-muted-foreground">
-                    {teamRequests.length} nyitott igény · szolgáltatásgazda: {lookup.userName(t.ownerUserId)}
+                    {teamRequests.length} nyitott igény · szolgáltatásgazda:{" "}
+                    {lookup.userName(t.ownerUserId)}
                   </p>
                   <ul className="mt-4 space-y-3">
                     {t.members.map((m) => {
-                      const load = all.filter((r) => r.assigneeId === m && OPEN.includes(r.status)).length;
+                      const load = all.filter(
+                        (r) => r.assigneeId === m && OPEN.includes(r.status),
+                      ).length;
                       const pct = Math.min(100, load * 25);
                       return (
                         <li key={m} className="text-sm">
@@ -360,7 +380,10 @@ function Workbench() {
                             aria-label={`${lookup.userName(m)} leterheltsége`}
                           >
                             <div
-                              className={cn("h-full rounded-full", pct > 75 ? "bg-destructive" : "bg-primary")}
+                              className={cn(
+                                "h-full rounded-full",
+                                pct > 75 ? "bg-destructive" : "bg-primary",
+                              )}
                               style={{ width: `${pct}%` }}
                             />
                           </div>

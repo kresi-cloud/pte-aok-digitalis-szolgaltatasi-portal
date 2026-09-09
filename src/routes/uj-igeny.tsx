@@ -3,7 +3,16 @@ import { useMemo, useState } from "react";
 import { useDemoMode } from "@/lib/demo-mode";
 import { z } from "zod";
 import { zodValidator, fallback } from "@tanstack/zod-adapter";
-import { ArrowLeft, ArrowRight, Boxes, Check, Globe, Laptop, Sparkles, Workflow } from "lucide-react";
+import {
+  ArrowLeft,
+  ArrowRight,
+  Boxes,
+  Check,
+  Globe,
+  Laptop,
+  Sparkles,
+  Workflow,
+} from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -113,17 +122,16 @@ function Wizard() {
   const search = Route.useSearch();
   const navigate = useNavigate();
   const { createRequest, currentUser, productCategories, products, assets } = useStore();
-  const preset = CATALOG.find((c) => c.id === search['service']);
-  const skipDomain = !!search['domain'];
+  const preset = CATALOG.find((c) => c.id === search["service"]);
+  const skipDomain = !!search["domain"];
   const [step, setStep] = useState(0);
   const [form, setForm] = useState<FormState>({
     ...empty,
-    domain: (search['domain'] as DomainKey) || (preset?.domain ?? ""),
+    domain: (search["domain"] as DomainKey) || (preset?.domain ?? ""),
     catalogItemId: preset?.id ?? "",
     title: preset?.name ?? "",
     workLocationId: defaultLocationForUser(currentUser.id)?.id ?? "",
   });
-
 
   const set = (patch: Partial<FormState>) => setForm((f) => ({ ...f, ...patch }));
   const domain = form.domain ? lookup.domain(form.domain) : undefined;
@@ -147,8 +155,7 @@ function Wizard() {
     [productCategories, products, tier],
   );
   const catProducts = useMemo(
-    () =>
-      visibleProducts(products, tier).filter((p) => p.categoryId === form.productCategoryId),
+    () => visibleProducts(products, tier).filter((p) => p.categoryId === form.productCategoryId),
     [products, tier, form.productCategoryId],
   );
   const selectedProduct = products.find((p) => p.id === form.productId);
@@ -286,7 +293,13 @@ function Wizard() {
         subtype: preset?.name ?? "Automatikus besorolás",
         team: lookup.team(
           CATALOG.find((c) => c.id === form.catalogItemId)?.teamId ??
-            (form.domain === "web" ? "t-web" : form.domain === "hardver" ? "t-hw" : form.domain === "digitalizacio" ? "t-dig" : "t-it"),
+            (form.domain === "web"
+              ? "t-web"
+              : form.domain === "hardver"
+                ? "t-hw"
+                : form.domain === "digitalizacio"
+                  ? "t-dig"
+                  : "t-it"),
         ),
         complexity: form.domain === "digitalizacio" ? "összetett" : "közepes",
         workflow: "Igénylő → szervezeti jóváhagyó → szolgáltatási csapat",
@@ -305,12 +318,9 @@ function Wizard() {
   /** Demómód: a fiktív notebook-csere igény űrlapjának kitöltése (beküldés nélkül). */
   const fillDemoRequest = () => {
     const catList = visibleCategories(productCategories, products, tier);
-    const notebookCat =
-      catList.find((c) => /notebook/i.test(c.name)) ?? catList[0];
+    const notebookCat = catList.find((c) => /notebook/i.test(c.name)) ?? catList[0];
     const prodList = notebookCat
-      ? visibleProducts(products, tier).filter(
-          (p) => p.categoryId === notebookCat.id && p.active,
-        )
+      ? visibleProducts(products, tier).filter((p) => p.categoryId === notebookCat.id && p.active)
       : [];
     const product = prodList[0];
     const replaceable = similarAssetsFor(
@@ -326,8 +336,7 @@ function Wizard() {
       quantity: "1",
       title: product ? `Notebook csere – ${product.name}` : "Notebook csere",
       requestReason: "meghibasodas",
-      requestReasonNote:
-        "A jelenlegi munkagép meghibásodott, javítása nem gazdaságos.",
+      requestReasonNote: "A jelenlegi munkagép meghibásodott, javítása nem gazdaságos.",
       replacedAssetId: replaceable?.id ?? "",
       requestedQuarter: "azonnali",
       urgencyReason:
@@ -339,7 +348,10 @@ function Wizard() {
 
   return (
     <div className="mx-auto max-w-3xl">
-      <Link to="/" className="mb-6 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
+      <Link
+        to="/"
+        className="mb-6 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
+      >
         <ArrowLeft className="size-4" aria-hidden="true" /> Vissza a kezdőlapra
       </Link>
 
@@ -368,7 +380,11 @@ function Wizard() {
               {i < step ? <Check className="size-3.5" aria-hidden="true" /> : i + 1}
             </span>
             <span className={cn(i === step ? "font-semibold" : "text-muted-foreground")}>{s}</span>
-            {i < stepLabels.length - 1 && <span className="text-border" aria-hidden="true">—</span>}
+            {i < stepLabels.length - 1 && (
+              <span className="text-border" aria-hidden="true">
+                —
+              </span>
+            )}
           </li>
         ))}
       </ol>
@@ -382,7 +398,9 @@ function Wizard() {
       {key === "domain" && (
         <section>
           <h1 className="font-display text-2xl font-semibold">Miben segíthetünk?</h1>
-          <p className="mt-2 text-muted-foreground">Válassza ki, melyik területhez kapcsolódik az igény.</p>
+          <p className="mt-2 text-muted-foreground">
+            Válassza ki, melyik területhez kapcsolódik az igény.
+          </p>
           <div className="mt-6 grid gap-3 sm:grid-cols-2">
             {DOMAINS.map((d) => {
               const Icon = ICONS[d.key];
@@ -403,7 +421,9 @@ function Wizard() {
                   </span>
                   <span>
                     <span className="block font-display font-semibold">{d.name}</span>
-                    <span className="mt-1 block text-sm text-muted-foreground">{d.description}</span>
+                    <span className="mt-1 block text-sm text-muted-foreground">
+                      {d.description}
+                    </span>
                   </span>
                 </button>
               );
@@ -421,7 +441,8 @@ function Wizard() {
           </p>
           {cats.length === 0 ? (
             <p className="card-surface mt-6 p-6 text-sm text-muted-foreground">
-              Jelenleg nincs igényelhető eszköztípus. Kérjük, vegye fel a kapcsolatot a beszerzéssel.
+              Jelenleg nincs igényelhető eszköztípus. Kérjük, vegye fel a kapcsolatot a
+              beszerzéssel.
             </p>
           ) : (
             <div className="mt-6 grid gap-3 sm:grid-cols-2">
@@ -445,7 +466,9 @@ function Wizard() {
                     )}
                   >
                     <span className="block font-display font-semibold">{c.name}</span>
-                    <span className="mt-1 block text-sm text-muted-foreground">{c.description}</span>
+                    <span className="mt-1 block text-sm text-muted-foreground">
+                      {c.description}
+                    </span>
                     <span className="mt-2 block text-xs text-muted-foreground">
                       {count} választható modell
                     </span>
@@ -481,7 +504,9 @@ function Wizard() {
                       onClick={() => set({ productId: p.id })}
                       className={cn(
                         "card-surface w-full p-5 text-left transition-colors",
-                        selected ? "border-primary ring-2 ring-primary/25" : "hover:bg-secondary/60",
+                        selected
+                          ? "border-primary ring-2 ring-primary/25"
+                          : "hover:bg-secondary/60",
                       )}
                     >
                       <span className="block font-display font-semibold">{p.name}</span>
@@ -573,7 +598,9 @@ function Wizard() {
               disabled={form.goal.trim().length < 20}
               onClick={() => {
                 set({ goal: refine(form.goal), refined: true });
-                toast.info("Az AI javaslatot készített – kérjük, ellenőrizze és szükség esetén módosítsa.");
+                toast.info(
+                  "Az AI javaslatot készített – kérjük, ellenőrizze és szükség esetén módosítsa.",
+                );
               }}
             >
               <Sparkles className="size-4" /> Segíts pontosítani az igényt
@@ -781,8 +808,6 @@ function Wizard() {
             </div>
           )}
 
-
-
           {questions.includes("users") && !isPersonalUse && (
             <div className="space-y-2">
               <Label htmlFor="users">Kik fogják használni?</Label>
@@ -851,15 +876,21 @@ function Wizard() {
               >
                 <div className="flex items-center gap-2">
                   <RadioGroupItem value="igen" id="pd-igen" />
-                  <Label htmlFor="pd-igen" className="font-normal">Igen</Label>
+                  <Label htmlFor="pd-igen" className="font-normal">
+                    Igen
+                  </Label>
                 </div>
                 <div className="flex items-center gap-2">
                   <RadioGroupItem value="nem" id="pd-nem" />
-                  <Label htmlFor="pd-nem" className="font-normal">Nem</Label>
+                  <Label htmlFor="pd-nem" className="font-normal">
+                    Nem
+                  </Label>
                 </div>
                 <div className="flex items-center gap-2">
                   <RadioGroupItem value="bizonytalan" id="pd-b" />
-                  <Label htmlFor="pd-b" className="font-normal">Nem tudom</Label>
+                  <Label htmlFor="pd-b" className="font-normal">
+                    Nem tudom
+                  </Label>
                 </div>
               </RadioGroup>
             </fieldset>
@@ -914,9 +945,10 @@ function Wizard() {
                     ["Munkavégzés helye", locationLabel(form.workLocationId)],
                     ["Kért átvételi hely", handoverLabel],
                   ] as [string, string][])
-                : ([
-                    ["Cél", isHw ? form.goal || "Nincs megadva" : form.goal],
-                  ] as [string, string][])),
+                : ([["Cél", isHw ? form.goal || "Nincs megadva" : form.goal]] as [
+                    string,
+                    string,
+                  ][])),
               ...(isHw
                 ? ([
                     ["Igényelt beszerzési ütemezés", timingLabel],
@@ -940,7 +972,14 @@ function Wizard() {
                     ],
                   ] as [string, string][])),
               ["Kívánt eredmény", isHw ? hwTitle : form.title],
-              ["Adatkezelési érintettség", form.personalData === "igen" ? "Igen – adatvédelmi vizsgálat szükséges" : form.personalData === "bizonytalan" ? "Bizonytalan – a szolgáltatási csapat megvizsgálja" : "Nem"],
+              [
+                "Adatkezelési érintettség",
+                form.personalData === "igen"
+                  ? "Igen – adatvédelmi vizsgálat szükséges"
+                  : form.personalData === "bizonytalan"
+                    ? "Bizonytalan – a szolgáltatási csapat megvizsgálja"
+                    : "Nem",
+              ],
               ["Integráció", form.integration || "Nem szükséges"],
             ].map(([k, v]) => (
               <div key={k as string} className="grid gap-1 px-5 py-3 sm:grid-cols-[220px_1fr]">
@@ -950,10 +989,19 @@ function Wizard() {
             ))}
           </dl>
           <div className="flex flex-wrap gap-3">
-            <Button size="lg" onClick={() => submit(false)} disabled={isHw ? !selectedProduct : !form.title || !form.goal}>
+            <Button
+              size="lg"
+              onClick={() => submit(false)}
+              disabled={isHw ? !selectedProduct : !form.title || !form.goal}
+            >
               Igény beküldése
             </Button>
-            <Button size="lg" variant="outline" onClick={() => submit(true)} disabled={isHw ? !selectedProduct : !form.title}>
+            <Button
+              size="lg"
+              variant="outline"
+              onClick={() => submit(true)}
+              disabled={isHw ? !selectedProduct : !form.title}
+            >
               Mentés piszkozatként
             </Button>
           </div>

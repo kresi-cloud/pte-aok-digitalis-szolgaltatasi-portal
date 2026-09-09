@@ -25,7 +25,14 @@ export const HARDWARE_MODELS: HardwareModel[] = [
       cpuCores: 10,
       ram: "32 GB DDR5-4800",
       storage: "1 TB NVMe SSD",
-      features: ["TPM 2.0", "BitLocker titkosítás", "Ujjlenyomat-olvasó", "Thunderbolt 4", "Wi-Fi 6E", "Docking támogatás"],
+      features: [
+        "TPM 2.0",
+        "BitLocker titkosítás",
+        "Ujjlenyomat-olvasó",
+        "Thunderbolt 4",
+        "Wi-Fi 6E",
+        "Docking támogatás",
+      ],
     },
   },
   {
@@ -39,12 +46,18 @@ export const HARDWARE_MODELS: HardwareModel[] = [
       cpuCores: 8,
       ram: "16 GB LPDDR5-6400",
       storage: "512 GB NVMe SSD",
-      features: ["TPM 2.0", "BitLocker titkosítás", "IR-kamera (Windows Hello)", "LTE modul", "Wi-Fi 6E"],
+      features: [
+        "TPM 2.0",
+        "BitLocker titkosítás",
+        "IR-kamera (Windows Hello)",
+        "LTE modul",
+        "Wi-Fi 6E",
+      ],
     },
   },
   {
     key: "macbook-pro-14-m3",
-    label: "Apple MacBook Pro 14\" (M3, 2023)",
+    label: 'Apple MacBook Pro 14" (M3, 2023)',
     category: "notebook",
     spec: {
       os: "macOS Sonoma",
@@ -53,7 +66,13 @@ export const HARDWARE_MODELS: HardwareModel[] = [
       cpuCores: 8,
       ram: "18 GB egyesített memória",
       storage: "512 GB SSD",
-      features: ["Secure Enclave", "FileVault titkosítás", "Touch ID", "Neural Engine", "Thunderbolt 4"],
+      features: [
+        "Secure Enclave",
+        "FileVault titkosítás",
+        "Touch ID",
+        "Neural Engine",
+        "Thunderbolt 4",
+      ],
     },
   },
   {
@@ -67,7 +86,12 @@ export const HARDWARE_MODELS: HardwareModel[] = [
       cpuCores: 14,
       ram: "16 GB DDR5-4800",
       storage: "512 GB NVMe SSD",
-      features: ["TPM 2.0", "vPro távmenedzsment", "BitLocker titkosítás", "Kettős monitor kimenet"],
+      features: [
+        "TPM 2.0",
+        "vPro távmenedzsment",
+        "BitLocker titkosítás",
+        "Kettős monitor kimenet",
+      ],
     },
   },
   {
@@ -81,7 +105,13 @@ export const HARDWARE_MODELS: HardwareModel[] = [
       cpuCores: 12,
       ram: "128 GB ECC DDR5",
       storage: "2 TB NVMe SSD + 4 TB HDD",
-      features: ["NVIDIA RTX A4000 GPU", "ECC memória", "TPM 2.0", "GPU-gyorsított képfeldolgozás", "10 GbE hálózat"],
+      features: [
+        "NVIDIA RTX A4000 GPU",
+        "ECC memória",
+        "TPM 2.0",
+        "GPU-gyorsított képfeldolgozás",
+        "10 GbE hálózat",
+      ],
     },
   },
   {
@@ -95,12 +125,17 @@ export const HARDWARE_MODELS: HardwareModel[] = [
       cpuCores: 24,
       ram: "64 GB DDR5-5600",
       storage: "2 TB NVMe SSD",
-      features: ["NVIDIA RTX 4070 GPU", "CUDA 12.4", "LUKS lemeztitkosítás", "Konténeres futtatókörnyezet"],
+      features: [
+        "NVIDIA RTX 4070 GPU",
+        "CUDA 12.4",
+        "LUKS lemeztitkosítás",
+        "Konténeres futtatókörnyezet",
+      ],
     },
   },
   {
     key: "ipad-pro-11-m2",
-    label: "Apple iPad Pro 11\" (M2)",
+    label: 'Apple iPad Pro 11" (M2)',
     category: "tablet",
     spec: {
       os: "iPadOS",
@@ -123,7 +158,12 @@ export const HARDWARE_MODELS: HardwareModel[] = [
       cpuCores: 1,
       ram: "512 MB",
       storage: "8 GB eMMC",
-      features: ["Hálózati nyomtatás", "Biztonságos PIN-es nyomtatás", "Duplex", "Szkennelés e-mailbe"],
+      features: [
+        "Hálózati nyomtatás",
+        "Biztonságos PIN-es nyomtatás",
+        "Duplex",
+        "Szkennelés e-mailbe",
+      ],
     },
   },
 ];

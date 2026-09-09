@@ -57,7 +57,8 @@ export const Route = createFileRoute("/igeny/$id")({
       { title: `${params.id} – igény adatlapja | ÁOK Digitális Szolgáltatási Portál` },
       {
         name: "description",
-        content: "Az igény állapota, folyamata, kommunikációja, döntései és előzményei egy oldalon.",
+        content:
+          "Az igény állapota, folyamata, kommunikációja, döntései és előzményei egy oldalon.",
       },
       { property: "og:title", content: `${params.id} – igény adatlapja` },
       {
@@ -88,9 +89,9 @@ function RequestDetail() {
   const request = store.requests.find((r) => r.id === id);
   const [message, setMessage] = useState("");
   const [internalNote, setInternalNote] = useState("");
-  const [budget, setBudget] = useState(String(
-    store.requests.find((r) => r.id === id)?.estimatedCost || "",
-  ));
+  const [budget, setBudget] = useState(
+    String(store.requests.find((r) => r.id === id)?.estimatedCost || ""),
+  );
 
   if (!request) {
     return (
@@ -116,8 +117,7 @@ function RequestDetail() {
     (a) => a.decision === "fuggoben" && a.approverId === store.currentUser.id,
   );
   /** Az igény elsődleges (szervezeti) jóváhagyója rögzíti a költségkeretet. */
-  const isPrimaryApprover =
-    !!pendingApproval && request.approvals[0]?.id === pendingApproval.id;
+  const isPrimaryApprover = !!pendingApproval && request.approvals[0]?.id === pendingApproval.id;
   /** Az igénylő leltárában lévő, a kért termékkörhöz illeszkedő eszközök. */
   const requestCategory = store.productCategories.find((c) => c.id === request.productCategoryId);
   const similarAssets = similarAssetsFor(
@@ -148,60 +148,64 @@ function RequestDetail() {
     .filter((a) => a.decision === "fuggoben")
     .map((a) => `${a.step}. ${a.role} – ${lookup.userName(a.approverId)}`);
   const buyerUser = store.users.find((u) => u.roles.includes("beszerzo"));
-  const procurementTrack: { label: string; done: boolean; detail: string; sensitive?: boolean }[] = [
-    {
-      label: "Jóváhagyási lánc lezárva",
-      done: request.approvals.length > 0 && pendingApprovers.length === 0,
-      detail: pendingApprovers.length
-        ? `Döntésre vár: ${pendingApprovers.join(" · ")}`
-        : request.approvals.length > 0
-          ? "Minden jóváhagyó döntött."
-          : "Még nincs jóváhagyási döntés.",
-      sensitive: pendingApprovers.length > 0,
-    },
-    {
-      label: "Beszerzési tervsor létrehozva",
-      done: !!planItem,
-      detail: planItem ? `${planItem.planYear} ${planItem.quarter} · ${planItem.quantity} db` : "",
-    },
-    {
-      label: "Beszerzési terv jóváhagyva (gazdasági vezető)",
-      done: planApproved || !!planItem?.status.match(/beszerzes_alatt|teljesult/),
-      detail: planApproval ? PLAN_APPROVAL_STATUS_LABELS[planApproval.status] : "",
-    },
-    {
-      label: "Beszerzés folyamatban",
-      done: planItem ? ["beszerzes_alatt", "teljesult"].includes(planItem.status) : false,
-      detail: planItem && ["beszerzes_alatt"].includes(planItem.status) && buyerUser
-        ? `Felelős: ${buyerUser.name} – ${ROLE_LABELS.beszerzo}`
-        : "",
-      sensitive: true,
-    },
-    {
-      label: "Eszköz beérkezett, telepítés és átadás",
-      done: !!handover,
-      detail: handover
-        ? [
-            handover.deviceName,
-            handover.referentId
-              ? `Felelős: ${lookup.userName(handover.referentId)} – ${ROLE_LABELS.it_referens}`
-              : "",
-          ]
-            .filter(Boolean)
-            .join(" · ")
-        : "",
-      sensitive: !!handover?.referentId,
-    },
-    {
-      label: "Átvétel visszaigazolva, leltárba került",
-      done: handover?.status === "atvetel_igazolva",
-      detail:
-        handover?.status === "atadva"
-          ? `Visszaigazolásra vár: ${lookup.userName(handover.recipientId)}`
+  const procurementTrack: { label: string; done: boolean; detail: string; sensitive?: boolean }[] =
+    [
+      {
+        label: "Jóváhagyási lánc lezárva",
+        done: request.approvals.length > 0 && pendingApprovers.length === 0,
+        detail: pendingApprovers.length
+          ? `Döntésre vár: ${pendingApprovers.join(" · ")}`
+          : request.approvals.length > 0
+            ? "Minden jóváhagyó döntött."
+            : "Még nincs jóváhagyási döntés.",
+        sensitive: pendingApprovers.length > 0,
+      },
+      {
+        label: "Beszerzési tervsor létrehozva",
+        done: !!planItem,
+        detail: planItem
+          ? `${planItem.planYear} ${planItem.quarter} · ${planItem.quantity} db`
           : "",
-      sensitive: true,
-    },
-  ];
+      },
+      {
+        label: "Beszerzési terv jóváhagyva (gazdasági vezető)",
+        done: planApproved || !!planItem?.status.match(/beszerzes_alatt|teljesult/),
+        detail: planApproval ? PLAN_APPROVAL_STATUS_LABELS[planApproval.status] : "",
+      },
+      {
+        label: "Beszerzés folyamatban",
+        done: planItem ? ["beszerzes_alatt", "teljesult"].includes(planItem.status) : false,
+        detail:
+          planItem && ["beszerzes_alatt"].includes(planItem.status) && buyerUser
+            ? `Felelős: ${buyerUser.name} – ${ROLE_LABELS.beszerzo}`
+            : "",
+        sensitive: true,
+      },
+      {
+        label: "Eszköz beérkezett, telepítés és átadás",
+        done: !!handover,
+        detail: handover
+          ? [
+              handover.deviceName,
+              handover.referentId
+                ? `Felelős: ${lookup.userName(handover.referentId)} – ${ROLE_LABELS.it_referens}`
+                : "",
+            ]
+              .filter(Boolean)
+              .join(" · ")
+          : "",
+        sensitive: !!handover?.referentId,
+      },
+      {
+        label: "Átvétel visszaigazolva, leltárba került",
+        done: handover?.status === "atvetel_igazolva",
+        detail:
+          handover?.status === "atadva"
+            ? `Visszaigazolásra vár: ${lookup.userName(handover.recipientId)}`
+            : "",
+        sensitive: true,
+      },
+    ];
   const canCreatePlanItem =
     ["ugyintezo", "szolgaltatasgazda", "admin", "beszerzo", "eszkozmenedzser"].includes(
       store.activeRole,
@@ -210,9 +214,7 @@ function RequestDetail() {
   /** Az aktuális felelőst csak az ügy kezelésében érintett szerepkörök és vezetők láthatják. */
   const canSeeOwner =
     fullView ||
-    ["beszerzo", "eszkozmenedzser", "gazdasagi_vezeto", "it_referens"].includes(
-      store.activeRole,
-    ) ||
+    ["beszerzo", "eszkozmenedzser", "gazdasagi_vezeto", "it_referens"].includes(store.activeRole) ||
     request.approvals.some((a) => a.approverId === store.currentUser.id);
 
   /** Az ügy aktuális gazdája a folyamat szakaszától függően. */
@@ -237,7 +239,8 @@ function RequestDetail() {
       };
     }
     if (!planItem) {
-      if (request.status === "piszkozat") return { kind: "message", text: "Az igény még nincs beküldve." };
+      if (request.status === "piszkozat")
+        return { kind: "message", text: "Az igény még nincs beküldve." };
       return {
         kind: "message",
         text: "Szolgáltatási ügyintéző / beszerző – beszerzési tervsor létrehozására vár.",
@@ -247,32 +250,59 @@ function RequestDetail() {
       if (!planApproval) {
         const planner = roleUser("eszkozmenedzser");
         return planner
-          ? { kind: "people", people: [{ name: planner.name, role: ROLE_LABELS.eszkozmenedzser, note: "Ütemezésre vár" }] }
+          ? {
+              kind: "people",
+              people: [
+                { name: planner.name, role: ROLE_LABELS.eszkozmenedzser, note: "Ütemezésre vár" },
+              ],
+            }
           : { kind: "message", text: "IT eszközmenedzser – ütemezésre vár." };
       }
       const st = planApproval.status;
       if (st === "gazdasagi_ellenorzes") {
         const u = roleUser("gazdasagi_vezeto");
         return u
-          ? { kind: "people", people: [{ name: u.name, role: ROLE_LABELS.gazdasagi_vezeto, note: "Ellenőrzésre vár" }] }
+          ? {
+              kind: "people",
+              people: [
+                { name: u.name, role: ROLE_LABELS.gazdasagi_vezeto, note: "Ellenőrzésre vár" },
+              ],
+            }
           : { kind: "message", text: "Gazdasági vezetői ellenőrzésre vár." };
       }
       if (st === "dekani_jovahagyas" || st === "jovahagyasra_var") {
         const u = roleUser("gazdasagi_vezeto");
         const days = daysUntil(planApproval.dueAt);
-        const note = days >= 0 ? `Jóváhagyási határidő: ${planApproval.dueAt} (még ${days} nap)` : `Jóváhagyási határidő lejárt: ${planApproval.dueAt}`;
+        const note =
+          days >= 0
+            ? `Jóváhagyási határidő: ${planApproval.dueAt} (még ${days} nap)`
+            : `Jóváhagyási határidő lejárt: ${planApproval.dueAt}`;
         return u
           ? { kind: "people", people: [{ name: u.name, role: ROLE_LABELS.gazdasagi_vezeto, note }] }
           : { kind: "message", text: `Gazdasági vezetői jóváhagyásra vár. ${note}` };
       }
       // tervezes / visszakuldve: beszerzőnél van
       return buyerUser
-        ? { kind: "people", people: [{ name: buyerUser.name, role: ROLE_LABELS.beszerzo, note: PLAN_APPROVAL_STATUS_LABELS[st] }] }
+        ? {
+            kind: "people",
+            people: [
+              {
+                name: buyerUser.name,
+                role: ROLE_LABELS.beszerzo,
+                note: PLAN_APPROVAL_STATUS_LABELS[st],
+              },
+            ],
+          }
         : { kind: "message", text: PLAN_APPROVAL_STATUS_LABELS[st] };
     }
     if (planItem.status === "beszerzes_alatt" && !handover) {
       return buyerUser
-        ? { kind: "people", people: [{ name: buyerUser.name, role: ROLE_LABELS.beszerzo, note: "Beszerzés folyamatban" }] }
+        ? {
+            kind: "people",
+            people: [
+              { name: buyerUser.name, role: ROLE_LABELS.beszerzo, note: "Beszerzés folyamatban" },
+            ],
+          }
         : { kind: "message", text: "Beszerzés folyamatban a beszerzőnél." };
     }
     if (handover && handover.status !== "atvetel_igazolva") {
@@ -371,7 +401,10 @@ function RequestDetail() {
         <dl className="mt-6 grid gap-4 border-t border-border pt-5 text-sm sm:grid-cols-3 lg:grid-cols-4">
           {[
             ["Felelős csapat", lookup.team(request.teamId)],
-            ["Felelős munkatárs", request.assigneeId ? lookup.userName(request.assigneeId) : "Kijelölés alatt"],
+            [
+              "Felelős munkatárs",
+              request.assigneeId ? lookup.userName(request.assigneeId) : "Kijelölés alatt",
+            ],
             ["Igénylő", lookup.userName(request.requesterId)],
             ["Szervezeti egység", lookup.unit(request.orgUnitId)],
             ["Beküldés", request.createdAt],
@@ -436,7 +469,6 @@ function RequestDetail() {
           </div>
         )}
 
-
         {planItem && (
           <p className="mt-4 rounded-md border border-accent/30 bg-accent/10 px-4 py-3 text-sm">
             <span className="font-medium">Beszerzési besorolás: </span>
@@ -463,7 +495,6 @@ function RequestDetail() {
                   : "figyelmeztetes"
               }
             />
-
           </div>
         )}
 
@@ -505,9 +536,7 @@ function RequestDetail() {
 
         {pendingApproval && (
           <div className="mt-4 flex flex-wrap items-center gap-3 rounded-md border border-info/30 bg-info/5 p-4">
-            <p className="text-sm">
-              Az igény az Ön jóváhagyására vár ({pendingApproval.role}).
-            </p>
+            <p className="text-sm">Az igény az Ön jóváhagyására vár ({pendingApproval.role}).</p>
             <div className="ml-auto flex gap-2">
               <Button
                 size="sm"
@@ -522,7 +551,12 @@ function RequestDetail() {
                 size="sm"
                 variant="outline"
                 onClick={() => {
-                  store.decideApproval(request.id, pendingApproval.id, "elutasitva", "Jelenleg nem támogatott.");
+                  store.decideApproval(
+                    request.id,
+                    pendingApproval.id,
+                    "elutasitva",
+                    "Jelenleg nem támogatott.",
+                  );
                   toast.error("Az igényt elutasította.");
                 }}
               >
@@ -566,7 +600,12 @@ function RequestDetail() {
                   ? [
                       ["Igénylés indoka", REQUEST_REASON_LABELS[request.requestReason]],
                       ...(request.replacedAssetId
-                        ? [["Érintett meglévő eszköz", assetLabelOf(store.assets, request.replacedAssetId)]]
+                        ? [
+                            [
+                              "Érintett meglévő eszköz",
+                              assetLabelOf(store.assets, request.replacedAssetId),
+                            ],
+                          ]
                         : []),
                       ...(request.requestReasonNote
                         ? [["Kiegészítés az indokhoz", request.requestReasonNote]]
@@ -600,10 +639,7 @@ function RequestDetail() {
                   : []),
                 ["Adatkezelési érintettség", request.personalData ? "Igen" : "Nem"],
                 ["Integráció", request.integration ?? "Nem szükséges"],
-                [
-                  "Költségkeret (jóváhagyó által rögzítve)",
-                  request.budget ?? "Nincs megadva",
-                ],
+                ["Költségkeret (jóváhagyó által rögzítve)", request.budget ?? "Nincs megadva"],
               ].map(([k, v]) => (
                 <div key={k}>
                   <dt className="text-xs text-muted-foreground">{k}</dt>
@@ -642,20 +678,20 @@ function RequestDetail() {
                 ))}
               </dl>
               {staff && (
-              <div className="mt-4 flex gap-2">
-                <Button
-                  size="sm"
-                  onClick={() => {
-                    store.updateRequest(request.id, {}, "AI-besorolás megerősítése");
-                    toast.success("Besorolás megerősítve.");
-                  }}
-                >
-                  Javaslat elfogadása
-                </Button>
-                <Button size="sm" variant="outline">
-                  Módosítás kézzel
-                </Button>
-              </div>
+                <div className="mt-4 flex gap-2">
+                  <Button
+                    size="sm"
+                    onClick={() => {
+                      store.updateRequest(request.id, {}, "AI-besorolás megerősítése");
+                      toast.success("Besorolás megerősítve.");
+                    }}
+                  >
+                    Javaslat elfogadása
+                  </Button>
+                  <Button size="sm" variant="outline">
+                    Módosítás kézzel
+                  </Button>
+                </div>
               )}
             </AiBadge>
           )}
@@ -752,9 +788,7 @@ function RequestDetail() {
                     ))}
                   </ul>
                 )}
-                {ownerInfo.kind === "message" && (
-                  <p className="mt-2 text-sm">{ownerInfo.text}</p>
-                )}
+                {ownerInfo.kind === "message" && <p className="mt-2 text-sm">{ownerInfo.text}</p>}
                 {ownerInfo.kind === "closed" && (
                   <p className="mt-2 text-sm text-muted-foreground">
                     Nincs aktív felelőse, a folyamat befejeződött.
@@ -790,9 +824,16 @@ function RequestDetail() {
                       )}
                     </div>
                     <div className="pb-6">
-                      <p className={cn("text-sm", active ? "font-semibold" : done ? "" : "text-muted-foreground")}>
+                      <p
+                        className={cn(
+                          "text-sm",
+                          active ? "font-semibold" : done ? "" : "text-muted-foreground",
+                        )}
+                      >
                         {STATUS_LABELS[s]}
-                        {active && <span className="ml-2 text-xs text-primary">– jelenlegi állapot</span>}
+                        {active && (
+                          <span className="ml-2 text-xs text-primary">– jelenlegi állapot</span>
+                        )}
                       </p>
                     </div>
                   </li>
@@ -828,7 +869,9 @@ function RequestDetail() {
                     )}
                   </span>
                   <span>
-                    <span className={s.done ? "font-medium" : "text-muted-foreground"}>{s.label}</span>
+                    <span className={s.done ? "font-medium" : "text-muted-foreground"}>
+                      {s.label}
+                    </span>
                     {s.detail && (!s.sensitive || canSeeOwner) && (
                       <span className="block text-xs text-muted-foreground">{s.detail}</span>
                     )}
@@ -848,7 +891,6 @@ function RequestDetail() {
           </section>
         </TabsContent>
 
-
         <TabsContent value="kommunikacio">
           <section className="card-surface p-6">
             <h2 className="font-display text-base font-semibold">Kommunikáció</h2>
@@ -862,7 +904,9 @@ function RequestDetail() {
                   )}
                 >
                   <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                    <span className="font-medium text-foreground">{lookup.userName(m.authorId)}</span>
+                    <span className="font-medium text-foreground">
+                      {lookup.userName(m.authorId)}
+                    </span>
                     <span>{m.createdAt}</span>
                     {m.internal && (
                       <span className="inline-flex items-center gap-1 rounded border border-warning/50 px-1.5 py-0.5 font-medium text-warning-foreground">
@@ -943,7 +987,11 @@ function RequestDetail() {
                 ))}
               </ul>
             )}
-            <Button variant="outline" className="mt-5" onClick={() => toast.info("A prototípusban a feltöltés szimulált.")}>
+            <Button
+              variant="outline"
+              className="mt-5"
+              onClick={() => toast.info("A prototípusban a feltöltés szimulált.")}
+            >
               Dokumentum feltöltése
             </Button>
           </section>
@@ -961,13 +1009,17 @@ function RequestDetail() {
                     <span
                       className={cn(
                         "grid size-5 place-items-center rounded-full border",
-                        t.done ? "border-success bg-success text-success-foreground" : "border-border",
+                        t.done
+                          ? "border-success bg-success text-success-foreground"
+                          : "border-border",
                       )}
                       aria-hidden="true"
                     >
                       {t.done && <Check className="size-3" />}
                     </span>
-                    <span className={cn(t.done && "text-muted-foreground line-through")}>{t.title}</span>
+                    <span className={cn(t.done && "text-muted-foreground line-through")}>
+                      {t.title}
+                    </span>
                     <span className="ml-auto text-xs text-muted-foreground">
                       {t.assigneeId ? lookup.userName(t.assigneeId) : "Nincs felelős"}
                       <span className="sr-only">{t.done ? " – kész" : " – folyamatban"}</span>
@@ -978,8 +1030,8 @@ function RequestDetail() {
             )}
             {request.projectId && (
               <p className="mt-5 rounded-md bg-secondary p-3 text-sm">
-                Ez az igény a(z) <strong>{lookup.project(request.projectId)?.name}</strong> fejlesztési
-                kezdeményezés része.{" "}
+                Ez az igény a(z) <strong>{lookup.project(request.projectId)?.name}</strong>{" "}
+                fejlesztési kezdeményezés része.{" "}
                 <Link to="/portfolio" className="text-primary underline">
                   Megnyitás a portfólióban
                 </Link>
@@ -1027,7 +1079,9 @@ function RequestDetail() {
                           ? "Elutasítva"
                           : "Döntésre vár"}
                     </span>
-                    {a.comment && <p className="w-full text-xs text-muted-foreground">„{a.comment}”</p>}
+                    {a.comment && (
+                      <p className="w-full text-xs text-muted-foreground">„{a.comment}”</p>
+                    )}
                   </li>
                 ))}
               </ol>
@@ -1062,7 +1116,16 @@ function locationLabelOf(id?: string | undefined) {
 }
 
 /** Cserére jelölt eszköz olvasható megnevezése. */
-function assetLabelOf(assets: { id: string; modelKey: string; deviceId: string; inventoryNo: string; serial?: string | undefined }[], id: string) {
+function assetLabelOf(
+  assets: {
+    id: string;
+    modelKey: string;
+    deviceId: string;
+    inventoryNo: string;
+    serial?: string | undefined;
+  }[],
+  id: string,
+) {
   const a = assets.find((x) => x.id === id);
   if (!a) return "Nincs megadva";
   const m = ASSET_MODELS.find((x) => x.key === a.modelKey);

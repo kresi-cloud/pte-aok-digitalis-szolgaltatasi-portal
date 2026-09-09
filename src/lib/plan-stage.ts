@@ -111,9 +111,9 @@ export function planItemStage(
     }
     const started = Boolean(
       handover.serial ||
-        handover.inventoryNo ||
-        (handover.attachments ?? []).length > 0 ||
-        Object.values(handover.checklist ?? {}).some(Boolean),
+      handover.inventoryNo ||
+      (handover.attachments ?? []).length > 0 ||
+      Object.values(handover.checklist ?? {}).some(Boolean),
     );
     return {
       ...step(STEP.konfiguralas),

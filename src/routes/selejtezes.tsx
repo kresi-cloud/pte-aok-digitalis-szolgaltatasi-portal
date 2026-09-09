@@ -12,7 +12,12 @@ import { StatTile } from "@/components/asset-bits";
 import { useStore, lookup } from "@/lib/store";
 import { assetLookup, huf, lifecycleStatus, yearsSince } from "@/lib/asset-logic";
 import { NEXT_FINANCIAL_YEAR } from "@/lib/asset-data";
-import { LIFECYCLE_LABELS, SCRAP_STATUS_LABELS, type Asset, type ScrapProposal } from "@/lib/asset-types";
+import {
+  LIFECYCLE_LABELS,
+  SCRAP_STATUS_LABELS,
+  type Asset,
+  type ScrapProposal,
+} from "@/lib/asset-types";
 import { buildScrapList, isPersonalUse, type ScrapListSummary } from "@/lib/scrap-list";
 import { FileSpreadsheet } from "lucide-react";
 
@@ -42,7 +47,9 @@ export const Route = createFileRoute("/selejtezes")({
 
 function holderLabel(a: Asset) {
   const personal = isPersonalUse(a);
-  const id = personal ? a.assignedUserId : (a.custodianUserId ?? a.inventoryResponsibleId ?? a.assignedUserId);
+  const id = personal
+    ? a.assignedUserId
+    : (a.custodianUserId ?? a.inventoryResponsibleId ?? a.assignedUserId);
   const name = id ? lookup.user(id)?.name : undefined;
   if (!name) return "—";
   return personal ? name : `${name} (leltárfelelős)`;
@@ -74,7 +81,7 @@ async function exportXlsx(summary: ScrapListSummary, approverName?: string) {
     "Kivonás dátuma": r.disposalDate,
     "Beszerzéskori bruttó érték (Ft)": r.grossPurchaseValue,
     "Bruttó könyv szerinti érték (Ft)": r.bookValue,
-    "Értékvesztés": r.note,
+    Értékvesztés: r.note,
   }));
 
   const totals = [
@@ -135,7 +142,11 @@ async function exportXlsx(summary: ScrapListSummary, approverName?: string) {
   const lastRow = headerRange.e.r;
   for (let c = 0; c <= headerRange.e.c; c++) {
     const cell = XLSX.utils.encode_cell({ r: 6, c });
-    if (ws[cell]) ws[cell].s = { font: { bold: true }, fill: { patternType: "solid", fgColor: { rgb: "E2E8F0" } } };
+    if (ws[cell])
+      ws[cell].s = {
+        font: { bold: true },
+        fill: { patternType: "solid", fgColor: { rgb: "E2E8F0" } },
+      };
   }
   const totalCellA = XLSX.utils.encode_cell({ r: lastRow, c: 0 });
   if (ws[totalCellA]) ws[totalCellA].s = { font: { bold: true } };
@@ -145,7 +156,15 @@ async function exportXlsx(summary: ScrapListSummary, approverName?: string) {
   XLSX.writeFile(wb, fileName);
 }
 
-function ScrapListTable({ summary, isFinance, viewOnly }: { summary: ScrapListSummary; isFinance: boolean; viewOnly: boolean }) {
+function ScrapListTable({
+  summary,
+  isFinance,
+  viewOnly,
+}: {
+  summary: ScrapListSummary;
+  isFinance: boolean;
+  viewOnly: boolean;
+}) {
   return (
     <div className="space-y-3">
       <div className="max-h-96 overflow-auto rounded-sm border border-border">
@@ -171,7 +190,9 @@ function ScrapListTable({ summary, isFinance, viewOnly }: { summary: ScrapListSu
                 <td className="px-3 py-2">{r.activationDate}</td>
                 <td className="px-3 py-2">{r.disposalDate}</td>
                 <td className="px-3 py-2 text-right">{huf(r.grossPurchaseValue)}</td>
-                <td className="px-3 py-2 text-right">{r.fullyDepreciated ? "0 Ft" : huf(r.bookValue)}</td>
+                <td className="px-3 py-2 text-right">
+                  {r.fullyDepreciated ? "0 Ft" : huf(r.bookValue)}
+                </td>
                 <td className="px-3 py-2 text-xs text-muted-foreground">{r.note}</td>
               </tr>
             ))}
@@ -192,9 +213,12 @@ function ScrapListTable({ summary, isFinance, viewOnly }: { summary: ScrapListSu
           size="sm"
           variant="outline"
           onClick={() => {
-            exportXlsx(summary, summary.proposal.decidedBy ? lookup.user(summary.proposal.decidedBy)?.name : undefined).catch(
-              () => toast.error("Export sikertelen"),
-            );
+            exportXlsx(
+              summary,
+              summary.proposal.decidedBy
+                ? lookup.user(summary.proposal.decidedBy)?.name
+                : undefined,
+            ).catch(() => toast.error("Export sikertelen"));
           }}
         >
           <FileSpreadsheet className="mr-2 size-4" />
@@ -377,9 +401,7 @@ function ScrapPage() {
         <StatTile label="Selejtezésre javasolható eszköz" value={String(candidates.length)} />
         <StatTile
           label="Jóváhagyásra vár"
-          value={String(
-            proposals.filter((p) => p.status === "gazdasagi_jovahagyasra_var").length,
-          )}
+          value={String(proposals.filter((p) => p.status === "gazdasagi_jovahagyasra_var").length)}
         />
         <StatTile label="Kijelölt eszközök bruttó értéke" value={huf(pickedValue)} />
       </div>
@@ -426,7 +448,9 @@ function ScrapPage() {
                       />
                     </td>
                     <td className="px-3 py-2">{assetLabel(a)}</td>
-                    <td className="px-3 py-2">{Math.max(0, yearsSince(a.purchaseDate)).toFixed(1)} év</td>
+                    <td className="px-3 py-2">
+                      {Math.max(0, yearsSince(a.purchaseDate)).toFixed(1)} év
+                    </td>
                     <td className="px-3 py-2 text-xs">{LIFECYCLE_LABELS[lifecycleStatus(a)]}</td>
                     <td className="px-3 py-2 text-xs">{lookup.unit(a.orgUnitId)}</td>
                     <td className="px-3 py-2 text-xs">{holderLabel(a)}</td>

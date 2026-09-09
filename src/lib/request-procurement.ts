@@ -1,6 +1,11 @@
 import { HARDWARE_STANDARDS, NEXT_FINANCIAL_YEAR, REFERENCE_PRICES } from "./asset-data";
 import type { AssetCategoryKey, ProcurementPlanItem, Quarter } from "./asset-types";
-import { requestedTimingLabel, type Product, type ProductCategory, type ServiceRequest } from "./types";
+import {
+  requestedTimingLabel,
+  type Product,
+  type ProductCategory,
+  type ServiceRequest,
+} from "./types";
 
 /**
  * Jóváhagyott igényből beszerzési tervsor-javaslat.
@@ -19,13 +24,22 @@ interface Rule {
 }
 
 const RULES: Rule[] = [
-  { words: ["workstation", "munkaállomás", "gpu", "szimuláció", "hpc"], standardKey: "std-research-workstation" },
+  {
+    words: ["workstation", "munkaállomás", "gpu", "szimuláció", "hpc"],
+    standardKey: "std-research-workstation",
+  },
   { words: ["notebook", "laptop", "hordozható"], standardKey: "std-office-notebook" },
-  { words: ["macbook", "videovágás", "rendering", "emelt teljesítmény"], standardKey: "std-power-notebook" },
+  {
+    words: ["macbook", "videovágás", "rendering", "emelt teljesítmény"],
+    standardKey: "std-power-notebook",
+  },
   { words: ["monitor", "kijelző"], standardKey: "std-monitor-base" },
   { words: ["tablet", "ipad"], standardKey: "std-tablet" },
   { words: ["dokkoló", "dokkolo", "dock"], standardKey: "std-dock" },
-  { words: ["asztali", "pc", "desktop", "számítógép", "szamitogep"], standardKey: "std-office-desktop" },
+  {
+    words: ["asztali", "pc", "desktop", "számítógép", "szamitogep"],
+    standardKey: "std-office-desktop",
+  },
 ];
 
 /** Termékkör → intézményi eszközkategória. */
@@ -95,9 +109,20 @@ export function needsProcurement(r: ServiceRequest): boolean {
   if (r.internal?.procurement) return true;
   if (r.domain !== "hardver" && r.domain !== "szoftver") return false;
   const text = `${r.title} ${r.goal}`.toLowerCase();
-  return ["beszerz", "vásár", "vasar", "csere", "új eszköz", "uj eszkoz", "licenc", "notebook", "laptop", "monitor", "workstation", "számítógép"].some(
-    (w) => text.includes(w),
-  );
+  return [
+    "beszerz",
+    "vásár",
+    "vasar",
+    "csere",
+    "új eszköz",
+    "uj eszkoz",
+    "licenc",
+    "notebook",
+    "laptop",
+    "monitor",
+    "workstation",
+    "számítógép",
+  ].some((w) => text.includes(w));
 }
 
 export function planItemFromRequest(
@@ -112,9 +137,7 @@ export function planItemFromRequest(
 
   const categoryKey = product || category ? assetKeyForCategory(category) : undefined;
   const standard =
-    (categoryKey
-      ? HARDWARE_STANDARDS.find((s) => s.categoryKey === categoryKey)
-      : undefined) ??
+    (categoryKey ? HARDWARE_STANDARDS.find((s) => s.categoryKey === categoryKey) : undefined) ??
     HARDWARE_STANDARDS.find((s) => s.key === (pickStandardKey(text) ?? fallbackStandardKey()))!;
 
   const resolvedCategoryKey = categoryKey ?? standard.categoryKey;
@@ -136,8 +159,7 @@ export function planItemFromRequest(
     requested && requested !== "azonnali"
       ? ((requested.split("-").pop() ?? requested) as Quarter)
       : undefined;
-  const quarter: Quarter =
-    requestedQ ?? (immediate ? "Q1" : quarterFor(r.priority));
+  const quarter: Quarter = requestedQ ?? (immediate ? "Q1" : quarterFor(r.priority));
 
   return {
     planYear: NEXT_FINANCIAL_YEAR,
@@ -183,4 +205,3 @@ export function planItemFromRequest(
     timing: immediate ? "azonnali" : "negyedeves",
   };
 }
-

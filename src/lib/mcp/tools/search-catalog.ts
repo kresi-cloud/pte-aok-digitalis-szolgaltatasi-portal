@@ -8,7 +8,10 @@ export default defineTool({
   description:
     "Keresés a PTE ÁOK IT szolgáltatáskatalógusában (szoftver, hardver, web, digitalizáció). Visszaadja a szolgáltatás nevét, leírását, igénylési feltételeit, jóváhagyási lépcsőit és SLA-ját.",
   inputSchema: {
-    query: z.string().optional().describe("Keresőkifejezés a névben, leírásban vagy kulcsszavakban."),
+    query: z
+      .string()
+      .optional()
+      .describe("Keresőkifejezés a névben, leírásban vagy kulcsszavakban."),
     domain: z
       .enum(["szoftver", "hardver", "web", "digitalizacio"])
       .optional()

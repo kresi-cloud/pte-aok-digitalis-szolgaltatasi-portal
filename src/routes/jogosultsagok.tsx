@@ -32,12 +32,7 @@ import {
 } from "@/components/ui/table";
 import { lookup, useStore } from "@/lib/store";
 import { ORG_UNITS } from "@/lib/seed";
-import {
-  ROLE_DESCRIPTIONS,
-  ROLE_LABELS,
-  type EmployeeTier,
-  type RoleKey,
-} from "@/lib/types";
+import { ROLE_DESCRIPTIONS, ROLE_LABELS, type EmployeeTier, type RoleKey } from "@/lib/types";
 import { TIERS, TIER_LABELS } from "@/lib/product-catalog";
 import { PageHeading } from "@/components/page-heading";
 import { useViewOnly } from "@/lib/access";
@@ -124,7 +119,6 @@ function Permissions() {
     setReason("");
   }
 
-
   if (!allowed) {
     return (
       <div className="mx-auto max-w-3xl px-4 py-16 lg:px-8">
@@ -153,7 +147,7 @@ function Permissions() {
         <div className="flex items-center gap-3">
           {canManage && <NewUserDialog />}
           <Badge className="gap-1.5">
-          <ShieldCheck className="size-3.5" aria-hidden="true" />{" "}
+            <ShieldCheck className="size-3.5" aria-hidden="true" />{" "}
             {canManage ? "Admin jogkör aktív" : "Dékáni betekintés (csak olvasható)"}
           </Badge>
         </div>
@@ -207,7 +201,6 @@ function Permissions() {
                         setTierDraft(null);
                         setReason("");
                       }}
-
                     >
                       Kezelés
                     </Button>
@@ -260,7 +253,6 @@ function Permissions() {
                       disabled={!canManage}
                       checked={tier === t}
                       onChange={() => setTierDraft(t)}
-
                     />
                     {TIER_LABELS[t]}
                   </label>

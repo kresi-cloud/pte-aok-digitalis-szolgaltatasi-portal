@@ -290,7 +290,9 @@ function LeaderView() {
                 <span className="min-w-0 flex-1 truncate">{r.title}</span>
                 <span className="hidden text-xs text-muted-foreground sm:block">
                   {r.approvals.find((a) => a.decision === "fuggoben")
-                    ? lookup.userName(r.approvals.find((a) => a.decision === "fuggoben")!.approverId)
+                    ? lookup.userName(
+                        r.approvals.find((a) => a.decision === "fuggoben")!.approverId,
+                      )
                     : "—"}
                 </span>
                 <Link
@@ -325,7 +327,11 @@ function LeaderView() {
                 <span className="hidden text-xs text-muted-foreground sm:block">
                   {lookup.team(r.teamId)} · {r.dueDate ?? "nincs határidő"}
                 </span>
-                <Link to="/igeny/$id" params={{ id: r.id }} className="text-primary hover:underline">
+                <Link
+                  to="/igeny/$id"
+                  params={{ id: r.id }}
+                  className="text-primary hover:underline"
+                >
                   Eset
                 </Link>
               </li>

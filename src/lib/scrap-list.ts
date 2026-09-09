@@ -85,7 +85,7 @@ export function bookValue(
     fullyDepreciated,
     note: fullyDepreciated
       ? "Teljesen leírt"
-      : `${(rate * 100).toFixed(0)}%/év, ${Math.round(days / 365.25 * 10) / 10} év`,
+      : `${(rate * 100).toFixed(0)}%/év, ${Math.round((days / 365.25) * 10) / 10} év`,
   };
 }
 
@@ -108,7 +108,12 @@ export function buildScrapList(
       const employeeName = user?.name ?? "—";
       const employeeLabel = personal ? employeeName : `${employeeName} (leltárfelelős)`;
 
-      const { bookValue: bv, ratePct, fullyDepreciated, note } = bookValue(a, a.commissionDate, disposalDate);
+      const {
+        bookValue: bv,
+        ratePct,
+        fullyDepreciated,
+        note,
+      } = bookValue(a, a.commissionDate, disposalDate);
 
       return {
         assetId: a.id,

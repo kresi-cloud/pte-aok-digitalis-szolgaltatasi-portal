@@ -3,17 +3,8 @@
 import * as React from "react";
 import { Info } from "lucide-react";
 import { cn } from "@/lib/utils";
-import {
-  Tooltip,
-  TooltipTrigger,
-  TooltipContent,
-  TooltipProvider,
-} from "@/components/ui/tooltip";
-import {
-  Popover,
-  PopoverTrigger,
-  PopoverContent,
-} from "@/components/ui/popover";
+import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 
 interface PageHeadingProps {
   title: string;
@@ -35,9 +26,7 @@ export function PageHeading({
       <TooltipProvider delayDuration={150}>
         <Tooltip>
           <TooltipTrigger asChild>
-            <h1 className={cn("font-display text-2xl font-semibold", titleClassName)}>
-              {title}
-            </h1>
+            <h1 className={cn("font-display text-2xl font-semibold", titleClassName)}>{title}</h1>
           </TooltipTrigger>
           <TooltipContent side="bottom" align="start" className="max-w-sm">
             {description}

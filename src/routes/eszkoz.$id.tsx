@@ -6,7 +6,13 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { lookup, useStore } from "@/lib/store";
 import { TODAY } from "@/lib/asset-data";
 import {
@@ -68,7 +74,9 @@ function AssetDetail() {
   const compliance = meetsStandard(asset);
   const policy = policyFor(asset);
   const osEnd = osSupportEnd(asset);
-  const events = store.assetEvents.filter((e) => e.assetId === asset.id).sort((a, b) => a.at.localeCompare(b.at));
+  const events = store.assetEvents
+    .filter((e) => e.assetId === asset.id)
+    .sort((a, b) => a.at.localeCompare(b.at));
   const assignments = store.assignments.filter((a) => a.assetId === asset.id);
   const licences = store.licences.filter((l) => l.assetId === asset.id);
   const existing = store.replacementDecisions.find((d) => d.assetId === asset.id);
@@ -83,21 +91,28 @@ function AssetDetail() {
             </Link>{" "}
             / {asset.inventoryNo}
           </p>
-          <h1 className="font-display text-2xl font-semibold">{assetLookup.modelLabel(asset.modelKey)}</h1>
+          <h1 className="font-display text-2xl font-semibold">
+            {assetLookup.modelLabel(asset.modelKey)}
+          </h1>
           <p className="mt-1 text-muted-foreground">
-            {assetLookup.categoryLabel(asset.categoryKey)} · {asset.deviceId} · gyári szám: {asset.serial}
+            {assetLookup.categoryLabel(asset.categoryKey)} · {asset.deviceId} · gyári szám:{" "}
+            {asset.serial}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <LifecycleBadge status={lifecycleStatus(asset)} />
           <PriorityBadge priority={replacementPriority(asset)} />
-          <Badge variant="secondary">{asset.usage === "kozos" ? "Közös használatú" : "Személyi használatú"}</Badge>
+          <Badge variant="secondary">
+            {asset.usage === "kozos" ? "Közös használatú" : "Személyi használatú"}
+          </Badge>
         </div>
       </div>
 
       {!compliance.ok && (
         <div className="rounded-md border border-destructive/40 bg-destructive/5 p-4 text-sm">
-          <p className="font-medium text-destructive">Nem felel meg az aktuális hardverstandardnak</p>
+          <p className="font-medium text-destructive">
+            Nem felel meg az aktuális hardverstandardnak
+          </p>
           <ul className="mt-1 list-disc pl-5 text-muted-foreground">
             {compliance.reasons.map((r) => (
               <li key={r}>{r}</li>
@@ -129,11 +144,15 @@ function AssetDetail() {
               </Field>
               <Field label="Leltárfelelős">{lookup.userName(asset.inventoryResponsibleId)}</Field>
               <Field label="Felhasználás célja">{asset.purpose}</Field>
-              <Field label="Üzletmenet szempontjából kritikus">{asset.businessCritical ? "Igen" : "Nem"}</Field>
+              <Field label="Üzletmenet szempontjából kritikus">
+                {asset.businessCritical ? "Igen" : "Nem"}
+              </Field>
               <Field label="Beszerzés dátuma">{asset.purchaseDate}</Field>
               <Field label="Üzembe helyezés">{asset.commissionDate}</Field>
               <Field label="Beszerzési érték">{huf(asset.purchaseValue)}</Field>
-              <Field label="Finanszírozási forrás">{assetLookup.funding(asset.fundingSourceId)}</Field>
+              <Field label="Finanszírozási forrás">
+                {assetLookup.funding(asset.fundingSourceId)}
+              </Field>
               <Field label="Költséghely">{asset.costCenter}</Field>
               <Field label="Garancia vége">
                 {asset.warrantyEnd}
@@ -150,7 +169,9 @@ function AssetDetail() {
 
         <TabsContent value="muszaki">
           <section className="card-surface p-5">
-            <h2 className="font-display text-base font-semibold">Modellhez rendelt műszaki adatok</h2>
+            <h2 className="font-display text-base font-semibold">
+              Modellhez rendelt műszaki adatok
+            </h2>
             <dl className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               <Field label="Gyártó és modell">{assetLookup.modelLabel(asset.modelKey)}</Field>
               <Field label="Operációs rendszer">{spec?.os ?? "—"}</Field>
@@ -158,11 +179,15 @@ function AssetDetail() {
               <Field label="Architektúra">{spec?.architecture ?? "—"}</Field>
               <Field label="Processzor">{spec?.processor?.name ?? "—"}</Field>
               <Field label="Processzorgeneráció">
-                {spec?.processor ? `${spec.processor.generation} · ${spec.processor.releaseYear}` : "—"}
+                {spec?.processor
+                  ? `${spec.processor.generation} · ${spec.processor.releaseYear}`
+                  : "—"}
               </Field>
               <Field label="Magszám">{spec?.processor?.cores ?? "—"}</Field>
               <Field label="Memória">
-                {spec?.memory ? `${spec.memory.capacityGb} GB ${spec.memory.type} ${spec.memory.speed}` : "—"}
+                {spec?.memory
+                  ? `${spec.memory.capacityGb} GB ${spec.memory.type} ${spec.memory.speed}`
+                  : "—"}
               </Field>
               <Field label="Memóriakonfiguráció">{spec?.memory?.configuration ?? "—"}</Field>
               <Field label="Tároló">
@@ -188,8 +213,9 @@ function AssetDetail() {
               <div className="mt-4 rounded-md border border-border bg-secondary/40 p-4 text-sm">
                 <p className="font-medium">Vonatkozó hardverstandard: {std.label}</p>
                 <p className="text-muted-foreground">
-                  Minimum: {std.minSpec.cores} mag · {std.minSpec.ramGb} GB · {std.minSpec.storage} — Javasolt:{" "}
-                  {std.preferredSpec.cpu} · {std.preferredSpec.ramGb} GB · {std.preferredSpec.storage}
+                  Minimum: {std.minSpec.cores} mag · {std.minSpec.ramGb} GB · {std.minSpec.storage}{" "}
+                  — Javasolt: {std.preferredSpec.cpu} · {std.preferredSpec.ramGb} GB ·{" "}
+                  {std.preferredSpec.storage}
                 </p>
               </div>
             )}
@@ -203,15 +229,17 @@ function AssetDetail() {
               <Field label="Politika szerinti élettartam">
                 {policy.minYears}–{policy.maxYears} év (tervezés: {policy.plannedYears} év)
               </Field>
-              <Field label="Jelenlegi életkor">{Math.max(0, yearsSince(asset.commissionDate)).toFixed(1)} év</Field>
+              <Field label="Jelenlegi életkor">
+                {Math.max(0, yearsSince(asset.commissionDate)).toFixed(1)} év
+              </Field>
               <Field label="Életciklus vége">{lifecycleEnd(asset)}</Field>
               <Field label="Számított státusz">{lifecycleStatus(asset)}</Field>
               <Field label="Csereprioritás">{replacementPriority(asset)}</Field>
             </dl>
             <p className="mt-4 text-sm text-muted-foreground">
-              A státusz az életkorból, az operációs rendszer támogatottságából, az eszköz állapotából,
-              a hibabejelentések és javítások számából, valamint a garancia állapotából számítódik.
-              Eszközszinten indoklással felülírható.
+              A státusz az életkorból, az operációs rendszer támogatottságából, az eszköz
+              állapotából, a hibabejelentések és javítások számából, valamint a garancia állapotából
+              számítódik. Eszközszinten indoklással felülírható.
             </p>
             <div className="mt-4 flex flex-wrap gap-2">
               <Button
@@ -230,7 +258,11 @@ function AssetDetail() {
               <Button
                 variant="outline"
                 onClick={() => {
-                  store.updateAsset(asset.id, { lifecycleStatusOverride: "selejtezesre_var" }, "Életciklus-státusz felülírása (selejtezésre vár)");
+                  store.updateAsset(
+                    asset.id,
+                    { lifecycleStatusOverride: "selejtezesre_var" },
+                    "Életciklus-státusz felülírása (selejtezésre vár)",
+                  );
                   toast.success("Az eszköz selejtezésre váróként jelölve.");
                 }}
               >
@@ -275,9 +307,13 @@ function AssetDetail() {
 
         <TabsContent value="szoftver">
           <section className="card-surface p-5">
-            <h2 className="font-display text-base font-semibold">Eszközhöz kötött szoftverlicencek</h2>
+            <h2 className="font-display text-base font-semibold">
+              Eszközhöz kötött szoftverlicencek
+            </h2>
             {licences.length === 0 ? (
-              <p className="mt-2 text-sm text-muted-foreground">Nincs ehhez az eszközhöz rendelt licenc.</p>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Nincs ehhez az eszközhöz rendelt licenc.
+              </p>
             ) : (
               <ul className="mt-3 space-y-2 text-sm">
                 {licences.map((l) => (
@@ -286,7 +322,8 @@ function AssetDetail() {
                       {assetLookup.productName(l.productKey)} {l.version}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      {l.licenceType} · {lookup.userName(l.assignedUserId)} · lejárat: {l.licenceEnd ?? "nincs"}
+                      {l.licenceType} · {lookup.userName(l.assignedUserId)} · lejárat:{" "}
+                      {l.licenceEnd ?? "nincs"}
                     </p>
                   </li>
                 ))}
@@ -299,8 +336,8 @@ function AssetDetail() {
           <section className="card-surface p-5">
             <h2 className="font-display text-base font-semibold">Csereigény döntés</h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              A rendszer javaslatot ad, a döntést a szervezeti jóváhagyó és az IT eszközgazda hozza meg.
-              A jóváhagyott csereigény bekerül a következő gazdasági év beszerzési tervébe.
+              A rendszer javaslatot ad, a döntést a szervezeti jóváhagyó és az IT eszközgazda hozza
+              meg. A jóváhagyott csereigény bekerül a következő gazdasági év beszerzési tervébe.
             </p>
             {existing && (
               <p className="mt-3 rounded-md bg-secondary/50 p-3 text-sm">
@@ -312,7 +349,10 @@ function AssetDetail() {
             <div className="mt-4 grid gap-4 md:grid-cols-2">
               <div className="space-y-1.5">
                 <Label htmlFor="dec">Döntés</Label>
-                <Select value={decision} onValueChange={(v) => setDecision(v as ReplacementDecisionKey)}>
+                <Select
+                  value={decision}
+                  onValueChange={(v) => setDecision(v as ReplacementDecisionKey)}
+                >
                   <SelectTrigger id="dec">
                     <SelectValue />
                   </SelectTrigger>

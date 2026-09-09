@@ -62,7 +62,11 @@ function MyRequests() {
       </div>
 
       <div className="flex flex-wrap items-center gap-3">
-        <div role="tablist" aria-label="Szűrés állapot szerint" className="flex gap-1 rounded-md border border-border bg-card p-1">
+        <div
+          role="tablist"
+          aria-label="Szűrés állapot szerint"
+          className="flex gap-1 rounded-md border border-border bg-card p-1"
+        >
           {TABS.map((t) => (
             <button
               key={t.key}
@@ -88,17 +92,24 @@ function MyRequests() {
       </div>
 
       {filtered.length === 0 ? (
-        <p className="card-surface p-6 text-sm text-muted-foreground">Nincs megjeleníthető igény.</p>
+        <p className="card-surface p-6 text-sm text-muted-foreground">
+          Nincs megjeleníthető igény.
+        </p>
       ) : (
         <ul className="space-y-3">
           {filtered.map((r) => (
-            <li key={r.id} className="card-surface flex flex-wrap items-center gap-2 p-2 transition-colors hover:border-primary/40">
+            <li
+              key={r.id}
+              className="card-surface flex flex-wrap items-center gap-2 p-2 transition-colors hover:border-primary/40"
+            >
               <Link
                 to="/igeny/$id"
                 params={{ id: r.id }}
                 className="flex flex-1 flex-wrap items-center gap-4 p-2"
               >
-                <span className="w-32 shrink-0 font-mono text-xs text-muted-foreground">{r.id}</span>
+                <span className="w-32 shrink-0 font-mono text-xs text-muted-foreground">
+                  {r.id}
+                </span>
                 <span className="min-w-[240px] flex-1 font-medium">{r.title}</span>
                 <span className="text-sm text-muted-foreground">{lookup.team(r.teamId)}</span>
                 <PriorityBadge priority={r.priority} />
