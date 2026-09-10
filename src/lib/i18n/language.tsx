@@ -25,6 +25,13 @@ const SEPARATORS = [" · ", " – ", " — ", " | ", " / ", " → ", ", "];
 const PATTERNS: { re: RegExp; to: (m: RegExpExecArray) => string }[] = [
   { re: /^(.+) felelőse$/, to: (m) => `Owner of ${DICT[m[1]!.trim()] ?? m[1]}` },
   { re: /^(.+) előrehaladása$/, to: (m) => `Progress of ${DICT[m[1]!.trim()] ?? m[1]}` },
+  // vezetői KPI: "8 összes igény"
+  { re: /^(\d+) összes igény$/, to: (m) => `${m[1]} requests in total` },
+  // igénycímek a demóadatokban: "Nyomtató igénylés – HP LaserJet …"
+  {
+    re: /^(.+) igénylés – (.+)$/,
+    to: (m) => `${DICT[m[1]!.trim()] ?? m[1]} request – ${m[2]}`,
+  },
 ];
 
 export function translate(text: string, lang: Lang): string {

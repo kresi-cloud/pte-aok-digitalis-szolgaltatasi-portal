@@ -295,7 +295,7 @@ export const EN_DICT: Record<string, string> = {
   "Határidőn kívül kerülhetnek – felelős csapattal és határidővel.":
     "May fall outside the deadline – with responsible team and deadline.",
   "Vezetett igénybejelentés a PTE ÁOK digitális szolgáltatásaihoz.":
-    "Guided request submission for PTE MS digital services.",
+    "Guided request submission for PTE Medical School digital services.",
   "Jelenleg nincs Önhöz rendelt intézményi eszköz a kataszterben.":
     "There is currently no institutional asset assigned to you in the registry.",
   "Munkasor, besorolás, kiosztás és SLA-kockázatok egy felületen.":
@@ -325,7 +325,7 @@ export const EN_DICT: Record<string, string> = {
   "Szolgáltatási munkatér – ÁOK Digitális Szolgáltatási Portál":
     "Service workspace – Medical School Digital Service Portal",
   "Életciklus-előrejelzés – ÁOK Digitális Szolgáltatási Portál":
-    "Lifecycle forecast – MS Digital Services Portal",
+    "Lifecycle forecast – Medical School Digital Services Portal",
   "Az intézeti oldal megjelenése eltér az új kari arculattól.":
     "The institute page's appearance differs from the new faculty branding.",
   "Csak azt kérdezzük, ami ehhez a típusú igényhez szükséges.":
@@ -357,7 +357,7 @@ export const EN_DICT: Record<string, string> = {
   "Beszerzői munkatér – ÁOK Digitális Szolgáltatási Portál":
     "Procurement Workspace – ÁOK Digital Service Portal",
   "Jogosultságkezelés – ÁOK Digitális Szolgáltatási Portál":
-    "Permission management – MS Digital Services Portal",
+    "Permission management – Medical School Digital Services Portal",
   "Szerepkörök kiosztása és naplózása admin jogkörrel.":
     "Assignment and logging of roles with admin rights.",
   "Teljes kari rálátás, bármely ügy eset szintre bontható.":
@@ -365,7 +365,7 @@ export const EN_DICT: Record<string, string> = {
   "Vezetői döntéstámogatás kurzus- és terhelési adatokból.":
     "Management decision support based on course and workload data.",
   "Vezetői áttekintés – ÁOK Digitális Szolgáltatási Portál":
-    "Management overview – MS Digital Services Portal",
+    "Management overview – Medical School Digital Services Portal",
   "Windows 10 támogatás megszűnése miatti asztali gépcsere":
     "Desktop replacement due to end of Windows 10 support",
   "Új munkatárs első napjára minden hozzáférés készen áll.":
@@ -380,7 +380,7 @@ export const EN_DICT: Record<string, string> = {
   "Irodai felhasználás mellett 6 év tervezett élettartam.":
     "Planned lifespan of 6 years for office use.",
   "Új igény indítása – ÁOK Digitális Szolgáltatási Portál":
-    "Starting a new request – MS Digital Services Portal",
+    "Starting a new request – Medical School Digital Services Portal",
   "A szoftver rögzítve, rendszergazdai jóváhagyásra vár.":
     "The software has been recorded and is awaiting administrator approval.",
   "Csatlakozási szabvány elavulása esetén korábbi csere.":
@@ -400,7 +400,7 @@ export const EN_DICT: Record<string, string> = {
   "Eszközkataszter – ÁOK Digitális Szolgáltatási Portál":
     "Asset registry – Medical School Digital Services Portal",
   "Jóváhagyási sor – ÁOK Digitális Szolgáltatási Portál":
-    "Approval queue – MS Digital Services Portal",
+    "Approval queue – Medical School Digital Services Portal",
   "Keresés szolgáltatások, igények és projektek között…":
     "Search among services, requests, and projects…",
   "Pécsi Tudományegyetem · Általános Orvostudományi Kar": "University of Pécs · Medical School",
@@ -455,7 +455,8 @@ export const EN_DICT: Record<string, string> = {
     "My profile – Medical School Digital Service Portal",
   "Életciklus-vég 2026 IV. – 2027 I. negyedév között":
     "End of lifecycle between Q4 2026 and Q1 2027",
-  "A felhasználói jogosultságok kiosztása kizárólag": "Assigning user permissions is exclusively",
+  "A felhasználói jogosultságok kiosztása kizárólag":
+    "Assigning user permissions is possible only with",
   "A lejárat dátuma nem lehet a mai napnál korábbi.":
     "The expiration date cannot be earlier than today.",
   "A licencet a projekt lezárása óta nem használom.":
@@ -511,9 +512,10 @@ export const EN_DICT: Record<string, string> = {
   "Döntésre váró igények és jóváhagyási teendők.": "Requests awaiting decision and approval tasks.",
   "Egy eszköz teljes életútja és műszaki adatai.": "An asset's full lifecycle and technical data.",
   "Felhasználói tesztelés a klinikai oktatókkal.": "User testing with clinical instructors.",
-  "Igényeim – ÁOK Digitális Szolgáltatási Portál": "My requests – MS Digital Services Portal",
+  "Igényeim – ÁOK Digitális Szolgáltatási Portál":
+    "My requests – Medical School Digital Services Portal",
   "Jóváhagyva, végrehajtás tervezése következik.": "Approved, execution planning follows.",
-  "Kezdőlap – ÁOK Digitális Szolgáltatási Portál": "Home – MS Digital Services Portal",
+  "Kezdőlap – ÁOK Digitális Szolgáltatási Portál": "Home – Medical School Digital Services Portal",
   "Lenovo ThinkStation P3 (kutatói konfiguráció)":
     "Lenovo ThinkStation P3 (research configuration)",
   "Meghibásodásig történő használat megengedett.": "Use until failure is permitted.",
@@ -655,7 +657,7 @@ export const EN_DICT: Record<string, string> = {
   "Szervezeti jóváhagyó + Adatvédelem": "Organizational approver + Data protection",
   "Tényleges intézményi beszerzési ár": "Actual institutional purchase price",
   "Válasszon a saját hardverleltárból": "Choose from your own hardware inventory",
-  "ÁOK Digitális Szolgáltatási Portál": "MS Digital Services Portal",
+  "ÁOK Digitális Szolgáltatási Portál": "Medical School Digital Services Portal",
   "Új közlemény minden felhasználónak": "New announcement for all users",
   "Apple M3 (8 mag CPU / 10 mag GPU)": "Apple M3 (8-core CPU / 10-core GPU)",
   "Beszerzési terv tétel létrehozása": "Create procurement plan item",
@@ -692,7 +694,7 @@ export const EN_DICT: Record<string, string> = {
   "Egységem további közös eszközei": "Other shared assets of my unit",
   "Gyártói listaár alapján becsült": "Estimated based on manufacturer's list price",
   "Intézeti oldal technikai hibája": "Institute page technical error",
-  "Jogosultságkezelés – ÁOK Portál": "Permission management – MS Portal",
+  "Jogosultságkezelés – ÁOK Portál": "Permission management – Medical School Portal",
   "Jóváhagyásra váró leltártételek": "Inventory items awaiting approval",
   "Keresés a szolgáltatások között": "Search among services",
   "Még nincs részfeladat rögzítve.": "No subtasks recorded yet.",
@@ -704,7 +706,7 @@ export const EN_DICT: Record<string, string> = {
   "Szoftver már nincs használatban": "Software is no longer in use",
   "Szolgáltatási igények listázása": "Listing service requests",
   "Terv visszaküldése átdolgozásra": "Return plan for revision",
-  "Vezetői áttekintés – ÁOK Portál": "Management overview – MS Portal",
+  "Vezetői áttekintés – ÁOK Portál": "Management overview – Medical School Portal",
   "leltárfelelős ellenőrzésére vár": "awaiting review by the inventory manager",
   "· árinformáció felülvizsgálandó": "· price information to be reviewed",
   "Élettani mérőrendszer vezérlése": "Control of physiological measurement system",
@@ -748,7 +750,7 @@ export const EN_DICT: Record<string, string> = {
   "Biztonságos PIN-es nyomtatás": "Secure PIN printing",
   "Emelt teljesítményű notebook": "High-performance notebook",
   "Jelenlegi eszköz azonosítója": "Current asset ID",
-  "Jóváhagyási sor – ÁOK Portál": "Approval queue – MS Portal",
+  "Jóváhagyási sor – ÁOK Portál": "Approval queue – Medical School Portal",
   "Kari rendezvény landing page": "Faculty event landing page",
   "Kari rendezvény-regisztráció": "Faculty event registration",
   "Ki hagyja jóvá az igényemet?": "Who approves my request?",
