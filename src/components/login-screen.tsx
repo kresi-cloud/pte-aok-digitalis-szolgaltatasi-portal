@@ -16,11 +16,11 @@ export function LoginScreen() {
       <div className="flex flex-col justify-between bg-primary px-8 py-12 text-primary-foreground lg:px-16">
         <div className="flex items-center gap-3">
           <img
-            src="/logo/logo.png"
+            src="/logo/logo-white.png"
             alt="PTE ÁOK"
             width={40}
             height={40}
-            className="size-10 shrink-0 rounded-md"
+            className="size-10 shrink-0"
           />
           <span className="text-sm font-medium opacity-90">
             Pécsi Tudományegyetem · Általános Orvostudományi Kar

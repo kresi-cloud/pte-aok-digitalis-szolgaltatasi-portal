@@ -178,11 +178,11 @@ export function AppShell({ children }: { children: ReactNode }) {
           <div className="mx-auto flex h-20 max-w-[1400px] items-center gap-4 px-4 lg:px-8">
             <Link to="/" className="flex items-center gap-3">
               <img
-                src="/logo/logo.png"
+                src="/logo/logo-white.png"
                 alt="PTE ÁOK"
                 width={44}
                 height={44}
-                className="size-11 shrink-0 rounded-sm"
+                className="size-11 shrink-0"
               />
               <span className="hidden leading-tight sm:block">
                 <span className="pte-wordmark block text-base font-bold">
