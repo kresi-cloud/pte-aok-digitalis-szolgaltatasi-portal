@@ -37,6 +37,7 @@ import { TIERS, TIER_LABELS } from "@/lib/product-catalog";
 import { PageHeading } from "@/components/page-heading";
 import { useViewOnly } from "@/lib/access";
 import { ViewOnlyNotice } from "@/components/view-only-notice";
+import { MemberImportCard } from "@/components/member-import-card";
 
 export const Route = createFileRoute("/jogosultsagok")({
   head: () => ({
@@ -80,20 +81,23 @@ function Permissions() {
   const [draft, setDraft] = useState<RoleKey[] | null>(null);
   const [tierDraft, setTierDraft] = useState<(typeof TIERS)[number] | null>(null);
   const [reason, setReason] = useState("");
+  const [showInactive, setShowInactive] = useState(false);
 
   const canManage = store.activeRole === "admin";
   const allowed = canManage || store.activeRole === "dekan";
 
+  const inactiveCount = store.users.filter((u) => u.active === false).length;
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return store.users;
-    return store.users.filter(
+    const base = showInactive ? store.users : store.users.filter((u) => u.active !== false);
+    if (!q) return base;
+    return base.filter(
       (u) =>
         u.name.toLowerCase().includes(q) ||
         u.email.toLowerCase().includes(q) ||
         lookup.unit(u.orgUnitId).toLowerCase().includes(q),
     );
-  }, [query, store.users]);
+  }, [query, store.users, showInactive]);
 
   const selected = store.users.find((u) => u.id === selectedId) ?? store.users[0]!;
   const roles = draft ?? selected.roles;
@@ -157,13 +161,23 @@ function Permissions() {
 
       <div className="mt-8 grid gap-6 lg:grid-cols-[minmax(0,1fr)_420px]">
         <section className="rounded-md border border-border bg-card">
-          <div className="border-b border-border p-4">
+          <div className="flex flex-wrap items-center gap-3 border-b border-border p-4">
             <Input
+              className="min-w-64 flex-1"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Keresés név, e-mail vagy szervezeti egység szerint…"
               aria-label="Felhasználó keresése"
             />
+            {inactiveCount > 0 && (
+              <label className="flex cursor-pointer items-center gap-2 text-sm">
+                <Checkbox
+                  checked={showInactive}
+                  onCheckedChange={(v) => setShowInactive(v === true)}
+                />
+                Inaktívak mutatása ({inactiveCount})
+              </label>
+            )}
           </div>
           <Table>
             <TableHeader>
@@ -178,7 +192,14 @@ function Permissions() {
               {filtered.map((u) => (
                 <TableRow key={u.id} data-state={u.id === selected.id ? "selected" : undefined}>
                   <TableCell>
-                    <span className="block font-medium">{u.name}</span>
+                    <span className="block font-medium">
+                      {u.name}
+                      {u.active === false && (
+                        <Badge variant="outline" className="ml-2 align-middle">
+                          Inaktív
+                        </Badge>
+                      )}
+                    </span>
                     <span className="block text-xs text-muted-foreground">{u.email}</span>
                   </TableCell>
                   <TableCell className="text-sm">{lookup.unit(u.orgUnitId)}</TableCell>
@@ -320,6 +341,10 @@ function Permissions() {
             )}
           </div>
         </aside>
+      </div>
+
+      <div className="mt-8">
+        <MemberImportCard canManage={canManage} />
       </div>
     </div>
   );
@@ -472,7 +497,7 @@ function NewUserDialog() {
                 <SelectValue placeholder="Nincs megadva" />
               </SelectTrigger>
               <SelectContent>
-                {store.users
+                {store.activeUsers
                   .filter((u) => u.roles.includes("jovahagyo") || u.roles.includes("vezeto"))
                   .map((u) => (
                     <SelectItem key={u.id} value={u.id}>

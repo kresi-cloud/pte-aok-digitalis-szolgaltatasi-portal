@@ -46,6 +46,9 @@ const PATTERNS: { re: RegExp; to: (m: RegExpExecArray) => string }[] = [
     to: (m) => `${m[1]} scrapping proposal – phase ${m[2]}`,
   },
   { re: /^(.+) leterheltsége$/, to: (m) => `Workload of ${m[1]}` },
+  { re: /^Inaktívak mutatása \((\d+)\)$/, to: (m) => `Show inactive (${m[1]})` },
+  { re: /^(\d+)\. sor$/, to: (m) => `Row ${m[1]}` },
+  { re: /^… és még (\d+)$/, to: (m) => `… and ${m[1]} more` },
   { re: /^(.+) \(leltárfelelős\)$/, to: (m) => `${m[1]} (inventory officer)` },
   {
     re: /^(.+) termékkör törlése$/,

@@ -1,3 +1,4 @@
+import type { MemberImportPlan } from "./member-import";
 import {
   createContext,
   useCallback,
@@ -34,6 +35,7 @@ import type {
   RequestMessage,
   RoleKey,
   RoleAuditEvent,
+  MemberImportEvent,
   ServiceRequest,
   StatusKey,
   User,
@@ -169,6 +171,12 @@ interface PersistedState {
   tierOverrides: Record<string, EmployeeTier>;
   /** Admin által a jogosultságkezelésben létrehozott új felhasználók. */
   extraUsers: User[];
+  /** Taglista-frissítésből származó mezőfelülírások (seed és extra felhasználókra egyaránt). */
+  userOverrides: Record<string, Partial<User>>;
+  /** A legutóbbi taglista-frissítésben nem szereplő felhasználók. */
+  inactiveUserIds: string[];
+  /** Taglista-frissítések naplója. */
+  memberImports: MemberImportEvent[];
 }
 
 const initialState: PersistedState = {
@@ -197,12 +205,17 @@ const initialState: PersistedState = {
   products: INITIAL_PRODUCTS,
   tierOverrides: {},
   extraUsers: [],
+  userOverrides: {},
+  inactiveUserIds: [],
+  memberImports: [],
 };
 
 interface StoreValue extends PersistedState {
   /** Igaz, ha a localStorage-ban mentett állapot már betöltődött (csak kliensen). */
   hydrated: boolean;
   users: User[];
+  /** A választókban használandó lista: az inaktiváltak nélkül. */
+  activeUsers: User[];
   projects: Project[];
   currentUser: User;
   login: (userId: string) => void;
@@ -305,6 +318,12 @@ interface StoreValue extends PersistedState {
 
   /** Admin: új felhasználó létrehozása a jogosultságkezelésben. */
   addUser: (input: Omit<User, "id" | "initials">, reason: string) => string;
+  /** Teljes taglista frissítése CSV-tervből (member-import.ts). */
+  applyMemberImport: (
+    plan: MemberImportPlan,
+    reason: string,
+    fileName: string,
+  ) => MemberImportEvent;
   setUserRoles: (userId: string, roles: RoleKey[], reason: string) => void;
   /** Munkavállalói besorolás módosítása (jogosultságkezelés). */
   setUserTier: (userId: string, tier: EmployeeTier, reason?: string) => void;
@@ -497,14 +516,27 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const effectiveUsers = useMemo(() => {
     const all = [...USERS, ...(state.extraUsers ?? [])];
-    const mapped = all.map((u) => {
+    const overrides = state.userOverrides ?? {};
+    const inactive = new Set(state.inactiveUserIds ?? []);
+    const mapped = all.map((base) => {
+      const u = { ...base, ...(overrides[base.id] ?? {}) };
       const roles = state.roleOverrides[u.id];
       const tier = (state.tierOverrides ?? {})[u.id] ?? u.employeeTier ?? defaultTierFor(u);
-      return { ...u, ...(roles ? { roles } : {}), employeeTier: tier };
+      return { ...u, ...(roles ? { roles } : {}), employeeTier: tier, active: !inactive.has(u.id) };
     });
-    syncExtraUsers(state.extraUsers ?? []);
+    syncExtraUsers(state.extraUsers ?? [], overrides);
     return mapped;
-  }, [state.roleOverrides, state.tierOverrides, state.extraUsers]);
+  }, [
+    state.roleOverrides,
+    state.tierOverrides,
+    state.extraUsers,
+    state.userOverrides,
+    state.inactiveUserIds,
+  ]);
+  const activeUsers = useMemo(
+    () => effectiveUsers.filter((u) => u.active !== false),
+    [effectiveUsers],
+  );
 
   const currentUser = useMemo(
     () => effectiveUsers.find((u) => u.id === state.currentUserId) ?? effectiveUsers[0]!,
@@ -522,6 +554,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     hydrated,
     ...state,
     users: effectiveUsers,
+    activeUsers,
     projects: PROJECTS,
     currentUser,
     login: (userId) =>
@@ -2082,6 +2115,110 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       }));
       return id;
     },
+    applyMemberImport: (plan, reason, fileName) => {
+      const stamp = Date.now();
+      const event: MemberImportEvent = {
+        id: `mi-${stamp}`,
+        at: today(),
+        actorId: state.currentUserId,
+        fileName,
+        created: plan.creates.length,
+        updated: plan.updates.filter((u) => u.changes.length > 0).length,
+        deactivated: plan.deactivate.length,
+        reactivated: plan.updates.filter((u) => u.reactivate).length,
+        reason,
+      };
+      setState((s) => {
+        // 1) új felhasználók (a fájlon belüli vezető-hivatkozások ideiglenes azonosítóit feloldva)
+        const idOf = new Map<string, string>();
+        const created: User[] = plan.creates.map((c, i) => {
+          const id = `u-${stamp.toString(36)}${i}`;
+          idOf.set(c.tempId, id);
+          const initials = c.input.name
+            .split(/\s+/)
+            .filter(Boolean)
+            .slice(0, 2)
+            .map((w) => w[0]!.toUpperCase())
+            .join("");
+          return { ...c.input, id, initials };
+        });
+        const fix = (m?: string) => (m && idOf.has(m) ? idOf.get(m) : m);
+        for (const u of created) u.managerId = fix(u.managerId);
+        // 2) felülírások a meglévőkre
+        const userOverrides = { ...(s.userOverrides ?? {}) };
+        const roleOverrides = { ...s.roleOverrides };
+        const audit: RoleAuditEvent[] = [];
+        const known = [...USERS, ...(s.extraUsers ?? [])];
+        for (const up of plan.updates) {
+          const { managerId: rawManager, ...rest } = up.patch;
+          const fixedManager = fix(rawManager);
+          const patch = fixedManager === undefined ? rest : { ...rest, managerId: fixedManager };
+          userOverrides[up.userId] = { ...(userOverrides[up.userId] ?? {}), ...patch };
+          if (up.roles) {
+            const base = known.find((u) => u.id === up.userId);
+            const prev = roleOverrides[up.userId] ?? base?.roles ?? [];
+            up.roles
+              .filter((r) => !prev.includes(r))
+              .forEach((role, i) =>
+                audit.push({
+                  id: `ra-${stamp}-${up.userId}-a${i}`,
+                  at: today(),
+                  actorId: s.currentUserId,
+                  targetUserId: up.userId,
+                  action: "megadva",
+                  role,
+                  reason: `Taglista-frissítés (${fileName}) – ${reason}`,
+                }),
+              );
+            prev
+              .filter((r) => !up.roles!.includes(r))
+              .forEach((role, i) =>
+                audit.push({
+                  id: `ra-${stamp}-${up.userId}-r${i}`,
+                  at: today(),
+                  actorId: s.currentUserId,
+                  targetUserId: up.userId,
+                  action: "visszavonva",
+                  role,
+                  reason: `Taglista-frissítés (${fileName}) – ${reason}`,
+                }),
+              );
+            roleOverrides[up.userId] = up.roles;
+          }
+        }
+        created.forEach((u) =>
+          u.roles.forEach((role, i) =>
+            audit.push({
+              id: `ra-${stamp}-${u.id}-n${i}`,
+              at: today(),
+              actorId: s.currentUserId,
+              targetUserId: u.id,
+              action: "megadva",
+              role,
+              reason: `Taglista-frissítés (${fileName}) – új felhasználó – ${reason}`,
+            }),
+          ),
+        );
+        // 3) inaktiválás / újraaktiválás
+        const reactivated = new Set(plan.updates.filter((u) => u.reactivate).map((u) => u.userId));
+        const inactiveUserIds = Array.from(
+          new Set([
+            ...(s.inactiveUserIds ?? []).filter((id) => !reactivated.has(id)),
+            ...plan.deactivate.map((d) => d.userId),
+          ]),
+        );
+        return {
+          ...s,
+          extraUsers: [...(s.extraUsers ?? []), ...created],
+          userOverrides,
+          roleOverrides,
+          inactiveUserIds,
+          roleAudit: [...audit, ...s.roleAudit],
+          memberImports: [event, ...(s.memberImports ?? [])],
+        };
+      });
+      return event;
+    },
     setUserRoles: (userId, roles, reason) =>
       setState((s) => {
         const base =
@@ -2267,19 +2404,24 @@ export function useStore() {
 // Admin által létrehozott felhasználók modul-szintű tükre, hogy a statikus
 // `lookup` segédfüggvények is feloldják őket (demó, egy fület feltételez).
 const EXTRA_USERS: User[] = [];
-function syncExtraUsers(users: User[]) {
+let USER_OVERRIDES: Record<string, Partial<User>> = {};
+function syncExtraUsers(users: User[], overrides: Record<string, Partial<User>> = {}) {
   EXTRA_USERS.length = 0;
   EXTRA_USERS.push(...users);
+  USER_OVERRIDES = overrides;
+}
+function withOverrides(u: User | undefined): User | undefined {
+  return u ? { ...u, ...(USER_OVERRIDES[u.id] ?? {}) } : undefined;
 }
 
 export const lookup = {
-  user: (id?: string) => USERS.find((u) => u.id === id) ?? EXTRA_USERS.find((u) => u.id === id),
+  user: (id?: string) =>
+    withOverrides(USERS.find((u) => u.id === id) ?? EXTRA_USERS.find((u) => u.id === id)),
   userName: (id?: string) =>
     id === "u-system"
       ? "Rendszer"
-      : (USERS.find((u) => u.id === id)?.name ??
-        EXTRA_USERS.find((u) => u.id === id)?.name ??
-        "Ismeretlen"),
+      : (withOverrides(USERS.find((u) => u.id === id) ?? EXTRA_USERS.find((u) => u.id === id))
+          ?.name ?? "Ismeretlen"),
   unit: (id?: string) => ORG_UNITS.find((o) => o.id === id)?.name ?? "—",
   team: (id?: string) => TEAMS.find((t) => t.id === id)?.name ?? "—",
   catalog: (id?: string) => CATALOG.find((c) => c.id === id),

@@ -305,7 +305,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                   <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">
                     Demó: felhasználóváltás
                   </DropdownMenuLabel>
-                  {store.users
+                  {store.activeUsers
                     .filter(
                       (u) =>
                         DEMO_USER_IDS.includes(u.id) ||

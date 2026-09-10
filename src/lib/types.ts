@@ -102,6 +102,21 @@ export interface User {
   initials: string;
   /** Munkavállalói besorolás – meghatározza, mely termékcsomagból igényelhet. */
   employeeTier?: EmployeeTier | undefined;
+  /** false, ha a taglista-frissítés inaktiválta: előzményekben marad, választókból eltűnik. */
+  active?: boolean | undefined;
+}
+
+/** Taglista CSV-frissítés naplóbejegyzése. */
+export interface MemberImportEvent {
+  id: string;
+  at: string;
+  actorId: string;
+  fileName: string;
+  created: number;
+  updated: number;
+  deactivated: number;
+  reactivated: number;
+  reason: string;
 }
 
 /** Munkavállalói kategóriák a termékkatalógus elérhetőségéhez. */

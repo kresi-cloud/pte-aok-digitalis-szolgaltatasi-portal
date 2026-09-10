@@ -147,7 +147,7 @@ function RequestDetail() {
   const pendingApprovers = request.approvals
     .filter((a) => a.decision === "fuggoben")
     .map((a) => `${a.step}. ${a.role} – ${lookup.userName(a.approverId)}`);
-  const buyerUser = store.users.find((u) => u.roles.includes("beszerzo"));
+  const buyerUser = store.activeUsers.find((u) => u.roles.includes("beszerzo"));
   const procurementTrack: { label: string; done: boolean; detail: string; sensitive?: boolean }[] =
     [
       {
@@ -222,7 +222,7 @@ function RequestDetail() {
     | { kind: "people"; people: { name: string; role: string; note?: string }[] }
     | { kind: "message"; text: string }
     | { kind: "closed" };
-  const roleUser = (role: RoleKey) => store.users.find((u) => u.roles.includes(role));
+  const roleUser = (role: RoleKey) => store.activeUsers.find((u) => u.roles.includes(role));
   const ownerInfo: OwnerInfo = (() => {
     if (["lezarva", "elutasitva", "visszavonva"].includes(request.status)) {
       return { kind: "closed" };
