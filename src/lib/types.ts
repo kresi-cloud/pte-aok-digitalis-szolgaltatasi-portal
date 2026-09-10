@@ -66,10 +66,24 @@ export interface ServiceDomain {
   prefix: string;
 }
 
+export type OrgUnitType = "hivatal" | "osztaly" | "iroda" | "intezet" | "kozpont" | "egyeb";
+
+export const ORG_UNIT_TYPE_LABELS: Record<OrgUnitType, string> = {
+  hivatal: "Hivatal",
+  osztaly: "Osztály",
+  iroda: "Iroda",
+  intezet: "Intézet",
+  kozpont: "Központ",
+  egyeb: "Egyéb egység",
+};
+
+/** Szervezeti egység a kar hatályos organogramja szerint (3. sz. melléklet). */
 export interface OrgUnit {
   id: string;
   name: string;
-  type: "hivatal" | "intezet" | "oktatas" | "kutatas" | "klinikai";
+  type: OrgUnitType;
+  /** Fölérendelt egység az organogramban (a felső szintűeknél nincs). */
+  parentId?: string | undefined;
   approverUserId?: string | undefined;
   /** Helyettes jóváhagyó – akkor dönt, ha a jóváhagyó maga az igénylő. */
   deputyApproverUserId?: string | undefined;

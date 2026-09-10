@@ -78,6 +78,18 @@ const PHRASES: [RegExp, string][] = [
   .sort((a, b) => b.length - a.length)
   .map((p) => [new RegExp(`(?<![\\p{L}])${p}(?![\\p{L}])`, "gu"), DICT[p]!]);
 
+function translatePart(part: string): string {
+  const direct = DICT[part];
+  if (direct !== undefined) return direct;
+  for (const p of PATTERNS) {
+    const m = p.re.exec(part);
+    if (m) return p.to(m);
+  }
+  const m = /^(.*?)([.:!?…]+)$/.exec(part);
+  if (m && DICT[m[1]!]) return DICT[m[1]!]! + m[2];
+  return part;
+}
+
 export function translate(text: string, lang: Lang): string {
   if (lang === "hu") return text;
   const raw = text;
@@ -86,11 +98,12 @@ export function translate(text: string, lang: Lang): string {
   const direct = DICT[trimmed];
   if (direct !== undefined) return raw.replace(trimmed, direct);
 
-  // composite strings joined by common separators
+  // composite strings joined by common separators – a darabok a szótáron
+  // túl a mintákon is átmennek („Beszerzési terv – 2027. gazdasági év")
   for (const sep of SEPARATORS) {
     if (trimmed.includes(sep)) {
       const parts = trimmed.split(sep);
-      const mapped = parts.map((p) => DICT[p.trim()] ?? p.trim());
+      const mapped = parts.map((p) => translatePart(p.trim()));
       if (mapped.some((m, i) => m !== parts[i]!.trim())) {
         return raw.replace(trimmed, mapped.join(sep));
       }

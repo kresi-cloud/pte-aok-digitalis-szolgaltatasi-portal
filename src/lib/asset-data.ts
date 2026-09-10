@@ -210,7 +210,7 @@ export const ASSET_LOCATIONS: AssetLocation[] = [
     building: "Központi épület",
     room: "IT szervizműhely 002.",
     kind: "muhely",
-    orgUnitId: "ou-it",
+    orgUnitId: "ou-oktatastechnika",
     primaryUserIds: ["u-eszkozmgr"],
   },
   {
@@ -218,7 +218,7 @@ export const ASSET_LOCATIONS: AssetLocation[] = [
     building: "Központi épület",
     room: "IT eszközraktár 004.",
     kind: "muhely",
-    orgUnitId: "ou-it",
+    orgUnitId: "ou-oktatastechnika",
   },
 
   // Élettani Intézet
@@ -339,7 +339,7 @@ export const ASSET_LOCATIONS: AssetLocation[] = [
     building: "Központi épület",
     room: "Oktatásszervezés 007.",
     kind: "iroda",
-    orgUnitId: "ou-oktatas",
+    orgUnitId: "ou-tanulmanyi",
     primaryUserIds: ["u-simon"],
   },
   {
@@ -347,7 +347,7 @@ export const ASSET_LOCATIONS: AssetLocation[] = [
     building: "Központi épület",
     room: "Számítógépes labor 1.",
     kind: "labor",
-    orgUnitId: "ou-oktatas",
+    orgUnitId: "ou-tanulmanyi",
   },
 
   // Kutatástámogatás
@@ -356,7 +356,7 @@ export const ASSET_LOCATIONS: AssetLocation[] = [
     building: "Kutatóház",
     room: "Kutatástámogatás 12.",
     kind: "iroda",
-    orgUnitId: "ou-kutatas",
+    orgUnitId: "ou-preklinikai",
     primaryUserIds: ["u-lukacs"],
   },
   {
@@ -364,7 +364,7 @@ export const ASSET_LOCATIONS: AssetLocation[] = [
     building: "Kutatóház",
     room: "Kutatási labor 07.",
     kind: "labor",
-    orgUnitId: "ou-kutatas",
+    orgUnitId: "ou-preklinikai",
   },
 
   // Klinikai együttműködés
@@ -373,14 +373,14 @@ export const ASSET_LOCATIONS: AssetLocation[] = [
     building: "Klinikai Tömb",
     room: "Együttműködési iroda 4.",
     kind: "iroda",
-    orgUnitId: "ou-klinikai",
+    orgUnitId: "ou-keszsegfejleszto",
   },
   {
     id: "loc-klinikai-2",
     building: "Klinikai Tömb",
     room: "Klinikai oktatólabor 9.",
     kind: "labor",
-    orgUnitId: "ou-klinikai",
+    orgUnitId: "ou-keszsegfejleszto",
   },
 ];
 
@@ -1324,9 +1324,9 @@ const UNIT_USERS: Record<string, string[]> = {
   "ou-anatomiai": ["u-fekete", "u-farkas"],
   "ou-biokemiai": ["u-varga"],
   "ou-farmakologiai": ["u-toth"],
-  "ou-oktatas": ["u-nemeth", "u-kiss"],
-  "ou-kutatas": ["u-feher"],
-  "ou-klinikai": ["u-fekete"],
+  "ou-tanulmanyi": ["u-nemeth", "u-kiss"],
+  "ou-preklinikai": ["u-feher"],
+  "ou-keszsegfejleszto": ["u-fekete"],
 };
 
 const UNIT_LOCATIONS: Record<string, string[]> = {
@@ -1335,9 +1335,9 @@ const UNIT_LOCATIONS: Record<string, string[]> = {
   "ou-anatomiai": ["loc-anatomiai-1", "loc-anatomiai-2"],
   "ou-biokemiai": ["loc-biokemiai-1"],
   "ou-farmakologiai": ["loc-farmakologiai-1"],
-  "ou-oktatas": ["loc-oktatas-1", "loc-oktatas-2"],
-  "ou-kutatas": ["loc-kutatas-1"],
-  "ou-klinikai": ["loc-klinikai-1"],
+  "ou-tanulmanyi": ["loc-oktatas-1", "loc-oktatas-2"],
+  "ou-preklinikai": ["loc-kutatas-1"],
+  "ou-keszsegfejleszto": ["loc-klinikai-1"],
 };
 
 const INVENTORY_RESPONSIBLE: Record<string, string> = {
@@ -1346,9 +1346,9 @@ const INVENTORY_RESPONSIBLE: Record<string, string> = {
   "ou-anatomiai": "u-farkas",
   "ou-biokemiai": "u-varga",
   "ou-farmakologiai": "u-toth",
-  "ou-oktatas": "u-kiss",
-  "ou-kutatas": "u-feher",
-  "ou-klinikai": "u-fekete",
+  "ou-tanulmanyi": "u-kiss",
+  "ou-preklinikai": "u-feher",
+  "ou-keszsegfejleszto": "u-fekete",
 };
 
 const PURPOSES: Record<AssetCategoryKey, string[]> = {
@@ -1395,7 +1395,7 @@ const BLUEPRINTS: Blueprint[] = [
     count: 9,
     yearFrom: 2024,
     yearTo: 2026,
-    units: ["ou-dekani", "ou-elettani", "ou-oktatas", "ou-kutatas"],
+    units: ["ou-dekani", "ou-elettani", "ou-tanulmanyi", "ou-preklinikai"],
   },
   {
     modelKey: "dell-latitude-5540",
@@ -1403,7 +1403,7 @@ const BLUEPRINTS: Blueprint[] = [
     count: 12,
     yearFrom: 2022,
     yearTo: 2023,
-    units: ["ou-dekani", "ou-elettani", "ou-anatomiai", "ou-biokemiai", "ou-oktatas"],
+    units: ["ou-dekani", "ou-elettani", "ou-anatomiai", "ou-biokemiai", "ou-tanulmanyi"],
   },
   {
     modelKey: "dell-latitude-5420",
@@ -1416,8 +1416,8 @@ const BLUEPRINTS: Blueprint[] = [
       "ou-elettani",
       "ou-anatomiai",
       "ou-farmakologiai",
-      "ou-oktatas",
-      "ou-klinikai",
+      "ou-tanulmanyi",
+      "ou-keszsegfejleszto",
     ],
   },
   {
@@ -1426,7 +1426,7 @@ const BLUEPRINTS: Blueprint[] = [
     count: 6,
     yearFrom: 2023,
     yearTo: 2024,
-    units: ["ou-kutatas", "ou-biokemiai", "ou-elettani"],
+    units: ["ou-preklinikai", "ou-biokemiai", "ou-elettani"],
   },
   {
     modelKey: "macbook-pro-14-m3",
@@ -1434,7 +1434,7 @@ const BLUEPRINTS: Blueprint[] = [
     count: 3,
     yearFrom: 2023,
     yearTo: 2024,
-    units: ["ou-dekani", "ou-kutatas"],
+    units: ["ou-dekani", "ou-preklinikai"],
   },
   {
     modelKey: "hp-elitedesk-800-g9",
@@ -1442,7 +1442,7 @@ const BLUEPRINTS: Blueprint[] = [
     count: 8,
     yearFrom: 2023,
     yearTo: 2025,
-    units: ["ou-oktatas", "ou-dekani", "ou-elettani"],
+    units: ["ou-tanulmanyi", "ou-dekani", "ou-elettani"],
   },
   {
     modelKey: "hp-prodesk-600-g5",
@@ -1450,7 +1450,7 @@ const BLUEPRINTS: Blueprint[] = [
     count: 11,
     yearFrom: 2019,
     yearTo: 2020,
-    units: ["ou-oktatas", "ou-dekani", "ou-anatomiai", "ou-farmakologiai"],
+    units: ["ou-tanulmanyi", "ou-dekani", "ou-anatomiai", "ou-farmakologiai"],
   },
   {
     modelKey: "dell-optiplex-7060",
@@ -1458,7 +1458,7 @@ const BLUEPRINTS: Blueprint[] = [
     count: 9,
     yearFrom: 2018,
     yearTo: 2019,
-    units: ["ou-elettani", "ou-anatomiai", "ou-biokemiai", "ou-klinikai"],
+    units: ["ou-elettani", "ou-anatomiai", "ou-biokemiai", "ou-keszsegfejleszto"],
   },
   {
     modelKey: "dell-precision-5860",
@@ -1466,7 +1466,7 @@ const BLUEPRINTS: Blueprint[] = [
     count: 3,
     yearFrom: 2023,
     yearTo: 2025,
-    units: ["ou-kutatas", "ou-elettani"],
+    units: ["ou-preklinikai", "ou-elettani"],
   },
   {
     modelKey: "lenovo-p3-linux",
@@ -1474,7 +1474,7 @@ const BLUEPRINTS: Blueprint[] = [
     count: 5,
     yearFrom: 2022,
     yearTo: 2024,
-    units: ["ou-elettani", "ou-biokemiai", "ou-kutatas"],
+    units: ["ou-elettani", "ou-biokemiai", "ou-preklinikai"],
   },
   {
     modelKey: "hp-z4-g4",
@@ -1490,7 +1490,7 @@ const BLUEPRINTS: Blueprint[] = [
     count: 18,
     yearFrom: 2019,
     yearTo: 2024,
-    units: ["ou-dekani", "ou-elettani", "ou-oktatas", "ou-anatomiai", "ou-biokemiai"],
+    units: ["ou-dekani", "ou-elettani", "ou-tanulmanyi", "ou-anatomiai", "ou-biokemiai"],
   },
   {
     modelKey: "dell-u2723qe",
@@ -1498,7 +1498,7 @@ const BLUEPRINTS: Blueprint[] = [
     count: 7,
     yearFrom: 2023,
     yearTo: 2025,
-    units: ["ou-kutatas", "ou-dekani", "ou-elettani"],
+    units: ["ou-preklinikai", "ou-dekani", "ou-elettani"],
   },
   {
     modelKey: "ipad-pro-11-m2",
@@ -1506,7 +1506,7 @@ const BLUEPRINTS: Blueprint[] = [
     count: 4,
     yearFrom: 2022,
     yearTo: 2024,
-    units: ["ou-dekani", "ou-kutatas", "ou-oktatas"],
+    units: ["ou-dekani", "ou-preklinikai", "ou-tanulmanyi"],
   },
   {
     modelKey: "samsung-a54",
@@ -1514,7 +1514,7 @@ const BLUEPRINTS: Blueprint[] = [
     count: 5,
     yearFrom: 2023,
     yearTo: 2024,
-    units: ["ou-dekani", "ou-klinikai", "ou-oktatas"],
+    units: ["ou-dekani", "ou-keszsegfejleszto", "ou-tanulmanyi"],
   },
   {
     modelKey: "dell-wd19",
@@ -1522,7 +1522,7 @@ const BLUEPRINTS: Blueprint[] = [
     count: 12,
     yearFrom: 2020,
     yearTo: 2024,
-    units: ["ou-dekani", "ou-elettani", "ou-oktatas", "ou-kutatas"],
+    units: ["ou-dekani", "ou-elettani", "ou-tanulmanyi", "ou-preklinikai"],
   },
   // közös használatú eszközök
   {
@@ -1531,7 +1531,7 @@ const BLUEPRINTS: Blueprint[] = [
     count: 7,
     yearFrom: 2019,
     yearTo: 2024,
-    units: ["ou-dekani", "ou-elettani", "ou-anatomiai", "ou-oktatas", "ou-farmakologiai"],
+    units: ["ou-dekani", "ou-elettani", "ou-anatomiai", "ou-tanulmanyi", "ou-farmakologiai"],
   },
   {
     modelKey: "epson-ds530",
@@ -1539,7 +1539,7 @@ const BLUEPRINTS: Blueprint[] = [
     count: 4,
     yearFrom: 2019,
     yearTo: 2023,
-    units: ["ou-dekani", "ou-oktatas", "ou-klinikai"],
+    units: ["ou-dekani", "ou-tanulmanyi", "ou-keszsegfejleszto"],
   },
   {
     modelKey: "epson-eb-l520",
@@ -1547,7 +1547,7 @@ const BLUEPRINTS: Blueprint[] = [
     count: 4,
     yearFrom: 2018,
     yearTo: 2022,
-    units: ["ou-oktatas", "ou-anatomiai", "ou-elettani"],
+    units: ["ou-tanulmanyi", "ou-anatomiai", "ou-elettani"],
   },
   {
     modelKey: "hp-prodesk-600-g5",
@@ -1555,7 +1555,7 @@ const BLUEPRINTS: Blueprint[] = [
     count: 8,
     yearFrom: 2019,
     yearTo: 2020,
-    units: ["ou-oktatas", "ou-anatomiai"],
+    units: ["ou-tanulmanyi", "ou-anatomiai"],
   },
   {
     modelKey: "dell-latitude-5420",
@@ -1563,7 +1563,7 @@ const BLUEPRINTS: Blueprint[] = [
     count: 4,
     yearFrom: 2020,
     yearTo: 2021,
-    units: ["ou-oktatas", "ou-dekani", "ou-klinikai"],
+    units: ["ou-tanulmanyi", "ou-dekani", "ou-keszsegfejleszto"],
   },
   {
     modelKey: "ipad-pro-11-m2",
@@ -1571,7 +1571,7 @@ const BLUEPRINTS: Blueprint[] = [
     count: 2,
     yearFrom: 2022,
     yearTo: 2023,
-    units: ["ou-oktatas", "ou-kutatas"],
+    units: ["ou-tanulmanyi", "ou-preklinikai"],
   },
   {
     modelKey: "eizo-rx270",
@@ -1579,7 +1579,7 @@ const BLUEPRINTS: Blueprint[] = [
     count: 2,
     yearFrom: 2020,
     yearTo: 2022,
-    units: ["ou-klinikai", "ou-anatomiai"],
+    units: ["ou-keszsegfejleszto", "ou-anatomiai"],
   },
   {
     modelKey: "leica-dmi8-pc",
@@ -1587,7 +1587,7 @@ const BLUEPRINTS: Blueprint[] = [
     count: 3,
     yearFrom: 2018,
     yearTo: 2021,
-    units: ["ou-elettani", "ou-biokemiai", "ou-kutatas"],
+    units: ["ou-elettani", "ou-biokemiai", "ou-preklinikai"],
   },
 ];
 
@@ -1767,7 +1767,7 @@ export const PERSONAL_LICENCES: PersonalSoftwareLicence[] = [
     version: "R2023b",
     licenceType: "Egyedi kutatói licenc (munkaállomáshoz kötött)",
     assignedUserId: "u-feher",
-    orgUnitId: "ou-kutatas",
+    orgUnitId: "ou-preklinikai",
     assetId: notebookOf("u-feher"),
     purchaseDate: "2023-11-05",
     purchaseValue: 640000,
@@ -1821,7 +1821,7 @@ export const PERSONAL_LICENCES: PersonalSoftwareLicence[] = [
     version: "23",
     licenceType: "Éves egyfelhasználós előfizetés",
     assignedUserId: "u-nemeth",
-    orgUnitId: "ou-oktatas",
+    orgUnitId: "ou-tanulmanyi",
     assetId: notebookOf("u-nemeth"),
     purchaseDate: "2025-09-01",
     purchaseValue: 210000,
@@ -1859,7 +1859,7 @@ export const PERSONAL_LICENCES: PersonalSoftwareLicence[] = [
     version: "14",
     licenceType: "Egyfelhasználós licenc",
     assignedUserId: "u-kiss",
-    orgUnitId: "ou-oktatas",
+    orgUnitId: "ou-tanulmanyi",
     assetId: notebookOf("u-kiss"),
     purchaseDate: "2025-05-19",
     purchaseValue: 265000,
@@ -1964,7 +1964,7 @@ export const INITIAL_DISCREPANCIES: InventoryDiscrepancy[] = [
     assetId: ASSETS[11]?.id,
     reportedBy: "u-nemeth",
     at: "2026-07-15",
-    description: "Az eszközt tavaly átadtam az Oktatásszervezési Egységnek.",
+    description: "Az eszközt tavaly átadtam a Tanulmányi Hivatalnak.",
     status: "vizsgalat_alatt",
     handledBy: "u-molnar",
   },
@@ -2106,7 +2106,7 @@ export const INITIAL_PROCUREMENT_ITEMS: ProcurementPlanItem[] = [
     id: "pp-002",
     planYear: NEXT_FINANCIAL_YEAR,
     quarter: "Q2",
-    orgUnitId: "ou-oktatas",
+    orgUnitId: "ou-tanulmanyi",
     replacedAssetIds: [],
     reason: 'Elavult 24" monitorok cseréje',
     categoryKey: "monitor",
@@ -2167,7 +2167,7 @@ export const INITIAL_PROCUREMENT_ITEMS: ProcurementPlanItem[] = [
     id: "pp-005",
     planYear: NEXT_FINANCIAL_YEAR,
     quarter: "Q4",
-    orgUnitId: "ou-kutatas",
+    orgUnitId: "ou-preklinikai",
     replacedAssetIds: [],
     reason: "Új kutatócsoport eszközigénye",
     categoryKey: "notebook",

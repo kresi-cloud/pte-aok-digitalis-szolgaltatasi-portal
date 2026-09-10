@@ -334,7 +334,7 @@ export const EN_DICT: Record<string, string> = {
     "Development portfolio – Medical School Digital Services Portal",
   "Szolgáltatáskatalógus – ÁOK Digitális Szolgáltatási Portál":
     "Service catalog – Medical School Digital Service Portal",
-  "Az eszközt tavaly átadtam az Oktatásszervezési Egységnek.":
+  "Az eszközt tavaly átadtam a Tanulmányi Hivatalnak.":
     "I handed over the device to the Education Organization Unit last year.",
   "Beszerzési terv 2027 – ÁOK Digitális Szolgáltatási Portál":
     "Procurement Plan 2027 – ÁOK Digital Service Portal",
@@ -566,7 +566,6 @@ export const EN_DICT: Record<string, string> = {
   "Ügyviteli rendszerek, irodai alkalmazások.": "Administrative systems, office applications.",
   "Automatikusan hozzárendelt műszaki adatok": "Automatically assigned technical data",
   "Besorolás elfogadva, jóváhagyásra küldve.": "Classification accepted, sent for approval.",
-  "Klinikai Központtal együttműködő egységek": "Units cooperating with the Clinical Center",
   "Leltári visszaigazolás – 2026. évi ciklus": "Inventory confirmation – 2026 cycle",
   "Munkaállomáshoz kötött node-locked licenc": "Node-locked license bound to a workstation",
   "Portálbeállítások rendszergazdák számára.": "Portal settings for administrators.",
@@ -875,7 +874,6 @@ export const EN_DICT: Record<string, string> = {
   "IT biztonsági ellenőrzés": "IT security review",
   "Javítás tesztelés alatt.": "Fix under testing.",
   "Jelenleg nem támogatott.": "Currently not supported.",
-  "Kutatástámogatási Egység": "Research Support Unit",
   "Kézzel felülírt egységár": "Manually overridden unit price",
   "Köszönjük az értékelést!": "Thank you for the review!",
   "Licenc újra használatban": "License in use again",
@@ -883,7 +881,6 @@ export const EN_DICT: Record<string, string> = {
   "Microsoft 365 hozzáférés": "Microsoft 365 access",
   "Munkaállomás és notebook": "Workstation and notebook",
   "Nincs döntésre váró ügy.": "No cases awaiting a decision.",
-  "Oktatásszervezési Egység": "Education Organization Unit",
   "Periféria és eszközcsere": "Peripheral and device replacement",
   "Szimuláció és modellezés": "Simulation and modeling",
   "határidőn kívül kerülhet": "may fall outside the deadline",
@@ -1310,7 +1307,7 @@ export const EN_DICT: Record<string, string> = {
   "Terv jóváhagyva": "Plan approved",
   "Tápegység csere": "Power supply replacement",
   "Vizsgált időtáv": "Time range examined",
-  intézetigazgató: "institute director",
+  intézetigazgató: "chairman",
   oktatásszervező: "education coordinator",
   "Életciklus vége": "End of lifecycle",
   "Érintett eszköz": "Affected device",
@@ -1599,7 +1596,6 @@ export const EN_DICT: Record<string, string> = {
 
   "Helyiségleltár: minden szervezeti egységhez tartozó iroda, műhely és labor, a hozzájuk rendelt munkatársakkal és az ott nyilvántartott eszközök számával.":
     "Room inventory: every office, workshop and laboratory per organisational unit, with the assigned staff and the number of registered assets.",
-  "IT Szolgáltatási Egység": "IT Services Unit",
 
   Helyszín: "Location",
   Igényeim: "My requests",

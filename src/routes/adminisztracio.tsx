@@ -29,6 +29,7 @@ import {
   INVENTORY_STATUS_LABELS,
   ROLE_LABELS,
   type AnnouncementLevel,
+  ORG_UNIT_TYPE_LABELS,
 } from "@/lib/types";
 import { HARDWARE_MODELS } from "@/lib/inventory-data";
 import { SpecGrid } from "@/routes/leltar";
@@ -126,7 +127,9 @@ function Admin() {
                   {ORG_UNITS.map((o) => (
                     <TableRow key={o.id}>
                       <TableCell className="font-medium">{o.name}</TableCell>
-                      <TableCell className="text-muted-foreground">{o.type}</TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {ORG_UNIT_TYPE_LABELS[o.type]}
+                      </TableCell>
                       <TableCell>{lookup.userName(o.approverUserId)}</TableCell>
                     </TableRow>
                   ))}
