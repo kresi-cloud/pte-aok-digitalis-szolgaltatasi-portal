@@ -177,9 +177,13 @@ export function AppShell({ children }: { children: ReactNode }) {
         <div className="pte-topbar">
           <div className="mx-auto flex h-20 max-w-[1400px] items-center gap-4 px-4 lg:px-8">
             <Link to="/" className="flex items-center gap-3">
-              <span className="grid size-11 place-items-center rounded-sm border border-white/25 bg-white/10 pte-wordmark text-sm font-bold">
-                ÁOK
-              </span>
+              <img
+                src="/logo/logo.png"
+                alt="PTE ÁOK"
+                width={44}
+                height={44}
+                className="size-11 shrink-0 rounded-sm"
+              />
               <span className="hidden leading-tight sm:block">
                 <span className="pte-wordmark block text-base font-bold">
                   Pécsi Tudományegyetem
