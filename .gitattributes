@@ -1,0 +1,8 @@
+# Szöveges fájlok a repóban LF-fel; a kicsomagolás sorvége az operációs rendszeré.
+* text=auto
+
+# Bináris eszközök – soha ne normalizálja a git
+*.png binary
+*.ico binary
+*.jpg binary
+*.woff2 binary
