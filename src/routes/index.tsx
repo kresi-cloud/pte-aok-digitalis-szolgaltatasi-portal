@@ -152,14 +152,9 @@ function Home() {
       </section>
 
       <section aria-labelledby="folyamatban">
-        <div className="mb-3 flex items-end justify-between">
-          <h2 id="folyamatban" className="font-display text-lg font-semibold">
-            Folyamatban lévő igényeim
-          </h2>
-          <Link to="/igenyeim" className="text-sm font-medium text-primary hover:underline">
-            Összes igényem
-          </Link>
-        </div>
+        <h2 id="folyamatban" className="mb-3 font-display text-lg font-semibold">
+          Folyamatban lévő igényeim
+        </h2>
         {active.length === 0 ? (
           <p className="card-surface p-6 text-sm text-muted-foreground">
             Jelenleg nincs folyamatban lévő igénye.
