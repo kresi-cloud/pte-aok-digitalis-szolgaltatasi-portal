@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: Formázás, lint, típusok, tesztek, build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Függőségek (a lockfile szerint, változtatás nélkül)
+        run: bun install --frozen-lockfile
+
+      - name: Prettier
+        run: bunx prettier --check .
+
+      - name: ESLint
+        run: bun run lint
+
+      - name: TypeScript
+        run: bunx tsc --noEmit
+
+      - name: Tesztek
+        run: bun test
+
+      - name: Build
+        run: bun run build
+
+      # A @lovable.dev/mcp-js plugin buildkor újraírja az MCP route-fájlokat.
+      # Ha eltérnek a commitolt változattól, az a plugin verzióváltását vagy
+      # kézi szerkesztést jelez – ne csendben menjen át.
+      - name: Generált fájlok változatlanok
+        run: git diff --exit-code -- src/routes
