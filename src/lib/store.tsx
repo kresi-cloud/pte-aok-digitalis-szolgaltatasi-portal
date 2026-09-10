@@ -137,7 +137,10 @@ function seedScrapProposals(assets: Asset[]): ScrapProposal[] {
   ];
 }
 
-const STORAGE_KEY = "aok-portal-state-v2";
+// v3: a szervezeti egységek a hatályos organogram szerint (új azonosítók);
+// a korábbi verziók tárolt állapota a régi egységekre hivatkozna.
+const STORAGE_KEY = "aok-portal-state-v3";
+const LEGACY_STORAGE_KEYS = ["aok-portal-state-v2", "aok-portal-state-v1", "aok-portal-state"];
 
 interface PersistedState {
   requests: ServiceRequest[];
@@ -387,6 +390,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     try {
+      for (const k of LEGACY_STORAGE_KEYS) window.localStorage.removeItem(k);
       const raw = window.localStorage.getItem(STORAGE_KEY);
       if (raw) {
         const saved = JSON.parse(raw) as Partial<PersistedState>;
