@@ -1,3 +1,4 @@
+import { withRouteAccess } from "@/lib/with-route-access";
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -48,7 +49,7 @@ export const Route = createFileRoute("/adminisztracio")({
       { property: "og:description", content: "Portálbeállítások rendszergazdák számára." },
     ],
   }),
-  component: Admin,
+  component: withRouteAccess("/adminisztracio", "Adminisztráció", Admin),
 });
 
 function Admin() {

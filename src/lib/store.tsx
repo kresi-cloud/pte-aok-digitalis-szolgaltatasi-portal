@@ -197,6 +197,8 @@ const initialState: PersistedState = {
 };
 
 interface StoreValue extends PersistedState {
+  /** Igaz, ha a localStorage-ban mentett állapot már betöltődött (csak kliensen). */
+  hydrated: boolean;
   users: User[];
   projects: Project[];
   currentUser: User;
@@ -513,6 +515,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const value: StoreValue = {
+    hydrated,
     ...state,
     users: effectiveUsers,
     projects: PROJECTS,

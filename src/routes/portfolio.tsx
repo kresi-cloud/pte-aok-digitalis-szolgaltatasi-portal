@@ -33,6 +33,12 @@ function Portfolio() {
         />
       </div>
 
+      {PROJECTS.length === 0 && (
+        <p className="card-surface p-6 text-sm text-muted-foreground">
+          Jelenleg nincs nyilvántartott fejlesztési projekt.
+        </p>
+      )}
+
       <div className="grid gap-4 overflow-x-auto lg:grid-flow-col lg:auto-cols-[minmax(260px,1fr)]">
         {PROJECT_STAGES.map((stage) => {
           const items = PROJECTS.filter((p) => p.stage === stage.key);

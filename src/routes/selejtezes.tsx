@@ -19,6 +19,7 @@ import {
   type ScrapProposal,
 } from "@/lib/asset-types";
 import { buildScrapList, isPersonalUse, type ScrapListSummary } from "@/lib/scrap-list";
+import type { Cell, CellObject, Row } from "write-excel-file/browser";
 import { FileSpreadsheet } from "lucide-react";
 
 export const Route = createFileRoute("/selejtezes")({
@@ -61,99 +62,65 @@ function assetLabel(a: Asset) {
 }
 
 async function exportXlsx(summary: ScrapListSummary, approverName?: string) {
-  const XLSX = await import("xlsx");
-  const wb = XLSX.utils.book_new();
+  const { default: writeXlsxFile } = await import("write-excel-file/browser");
 
-  const headerRows = [
-    ["Selejtlista"],
-    ["Javaslat megnevezése", summary.proposal.title],
-    ["Év", summary.proposal.year],
-    ["Gazdasági vezetői jóváhagyás dátuma", summary.proposal.decidedAt ?? "—"],
-    ["Jóváhagyó", approverName ?? "—"],
-    [],
+  const bold = { fontWeight: "bold" as const };
+  const ft = { format: '# ##0" Ft"' };
+  const cell = (
+    value: string | number | null | undefined,
+    extra: Partial<CellObject> = {},
+  ): Cell => (value === "" || value === null || value === undefined ? null : { value, ...extra });
+
+  const headers = [
+    "Eszköz megnevezése",
+    "Leltári szám",
+    "Munkavállaló neve",
+    "Aktiválás dátuma",
+    "Kivonás dátuma",
+    "Beszerzéskori bruttó érték (Ft)",
+    "Bruttó könyv szerinti érték (Ft)",
+    "Értékvesztés",
   ];
 
-  const dataRows = summary.rows.map((r) => ({
-    "Eszköz megnevezése": r.name,
-    "Leltári szám": r.inventoryNo,
-    "Munkavállaló neve": r.employeeLabel,
-    "Aktiválás dátuma": r.activationDate,
-    "Kivonás dátuma": r.disposalDate,
-    "Beszerzéskori bruttó érték (Ft)": r.grossPurchaseValue,
-    "Bruttó könyv szerinti érték (Ft)": r.bookValue,
-    Értékvesztés: r.note,
-  }));
-
-  const totals = [
+  const rows: Row[] = [
+    [{ value: "Selejtlista", ...bold, fontSize: 14 }],
+    [{ value: "Javaslat megnevezése", ...bold }, cell(summary.proposal.title)],
+    [{ value: "Év", ...bold }, cell(summary.proposal.year)],
+    [
+      { value: "Gazdasági vezetői jóváhagyás dátuma", ...bold },
+      cell(summary.proposal.decidedAt ?? "—"),
+    ],
+    [{ value: "Jóváhagyó", ...bold }, cell(approverName ?? "—")],
+    [],
+    headers.map((h) => ({ value: h, ...bold, backgroundColor: "#E2E8F0" })),
+    ...summary.rows.map((r) => [
+      cell(r.name),
+      cell(r.inventoryNo),
+      cell(r.employeeLabel),
+      cell(r.activationDate),
+      cell(r.disposalDate),
+      cell(r.grossPurchaseValue, ft),
+      cell(r.bookValue, ft),
+      cell(r.note),
+    ]),
     [],
     [
-      "Összesen",
-      `${summary.totalCount} tétel`,
-      "",
-      "",
-      "",
-      summary.totalGross,
-      summary.totalBook,
-      "",
+      { value: "Összesen", ...bold },
+      cell(`${summary.totalCount} tétel`),
+      null,
+      null,
+      null,
+      cell(summary.totalGross, ft),
+      cell(summary.totalBook, ft),
+      null,
     ],
   ];
 
-  const ws = XLSX.utils.aoa_to_sheet([]);
-  XLSX.utils.sheet_add_aoa(ws, headerRows, { origin: "A1" });
-  XLSX.utils.sheet_add_json(ws, dataRows, { origin: "A7", skipHeader: false });
-  XLSX.utils.sheet_add_aoa(ws, totals, { origin: -1 });
-
-  const cols = [
-    { wch: 42 },
-    { wch: 22 },
-    { wch: 32 },
-    { wch: 18 },
-    { wch: 18 },
-    { wch: 22 },
-    { wch: 26 },
-    { wch: 28 },
-  ];
-  ws["!cols"] = cols;
-
-  const ftFmt = '# ##0" Ft"';
-  const dataStart = 7; // Excel row 7 = data header
-  for (let r = dataStart + 1; r <= dataStart + dataRows.length; r++) {
-    const grossCell = XLSX.utils.encode_cell({ r: r - 1, c: 5 });
-    const bookCell = XLSX.utils.encode_cell({ r: r - 1, c: 6 });
-    if (ws[grossCell]) ws[grossCell].z = ftFmt;
-    if (ws[bookCell]) ws[bookCell].z = ftFmt;
-  }
-  const totalRow = dataStart + dataRows.length + 1;
-  const grossTotalCell = XLSX.utils.encode_cell({ r: totalRow - 1, c: 5 });
-  const bookTotalCell = XLSX.utils.encode_cell({ r: totalRow - 1, c: 6 });
-  if (ws[grossTotalCell]) ws[grossTotalCell].z = ftFmt;
-  if (ws[bookTotalCell]) ws[bookTotalCell].z = ftFmt;
-
-  ws["F7"].z = ftFmt;
-  ws["G7"].z = ftFmt;
-
-  ws["A1"].s = { font: { bold: true, sz: 14 } };
-  ws["A2"].s = { font: { bold: true } };
-  ws["A3"].s = { font: { bold: true } };
-  ws["A4"].s = { font: { bold: true } };
-  ws["A5"].s = { font: { bold: true } };
-
-  const headerRange = XLSX.utils.decode_range(ws["!ref"] ?? "A1");
-  const lastRow = headerRange.e.r;
-  for (let c = 0; c <= headerRange.e.c; c++) {
-    const cell = XLSX.utils.encode_cell({ r: 6, c });
-    if (ws[cell])
-      ws[cell].s = {
-        font: { bold: true },
-        fill: { patternType: "solid", fgColor: { rgb: "E2E8F0" } },
-      };
-  }
-  const totalCellA = XLSX.utils.encode_cell({ r: lastRow, c: 0 });
-  if (ws[totalCellA]) ws[totalCellA].s = { font: { bold: true } };
-
-  XLSX.utils.book_append_sheet(wb, ws, "Selejtlista");
   const fileName = `selejtlista-${summary.proposal.year}-${summary.proposal.id}.xlsx`;
-  XLSX.writeFile(wb, fileName);
+  await writeXlsxFile(rows, {
+    sheet: "Selejtlista",
+    columns: [42, 22, 32, 18, 18, 22, 26, 28].map((width) => ({ width })),
+  }).toFile(fileName);
 }
 
 function ScrapListTable({

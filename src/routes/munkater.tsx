@@ -1,3 +1,4 @@
+import { withRouteAccess } from "@/lib/with-route-access";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -47,7 +48,7 @@ export const Route = createFileRoute("/munkater")({
       },
     ],
   }),
-  component: Workbench,
+  component: withRouteAccess("/munkater", "Szolgáltatási munkatér", Workbench),
 });
 
 const OPEN: StatusKey[] = [

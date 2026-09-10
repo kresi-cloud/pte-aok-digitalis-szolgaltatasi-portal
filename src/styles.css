@@ -1,4 +1,15 @@
 @import "tailwindcss" source(none);
+/* Önállóan hosztolt betűtípusok (@fontsource). Korábban a Google Fonts-ról
+   töltődtek: egy külső, renderelés-blokkoló stíluslap szűrt hálózaton
+   másodpercekig késleltette a kliens hidratálását (a bejelentkezett
+   felhasználó a belépőképernyőt látta), és minden látogatónál külső
+   szerverhez fordult. A latin-ext alkészlet (ő, ű) benne van. */
+@import "@fontsource/poppins/300.css";
+@import "@fontsource/poppins/400.css";
+@import "@fontsource/poppins/500.css";
+@import "@fontsource/poppins/600.css";
+@import "@fontsource/poppins/700.css";
+@import "@fontsource/playfair-display/700.css";
 @source "../src";
 @import "tw-animate-css";
 
@@ -84,7 +95,7 @@
   --secondary: oklch(0.938 0.011 256.7);
   --secondary-foreground: oklch(0.298 0.095 265.6);
   --muted: oklch(0.951 0.008 256);
-  --muted-foreground: oklch(0.528 0.056 264.5);
+  --muted-foreground: oklch(0.49 0.056 264.5);
   --accent: oklch(0.689 0.122 184.4);
   --accent-foreground: oklch(0.18 0.05 200);
   --destructive: oklch(0.53 0.19 25);

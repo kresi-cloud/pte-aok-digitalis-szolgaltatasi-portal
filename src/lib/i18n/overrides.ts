@@ -1,5 +1,33 @@
 // Manually curated additions for fragments the automated pass did not cover.
 export const EN_OVERRIDES: Record<string, string> = {
+  // --- jogosultság-gát (access-denied.tsx) ---
+  "Ez a felület a következő szerepkörök számára érhető el:":
+    "This area is available to the following roles:",
+  // --- angol módú végigjárás során talált hiányok ---
+  "Számítógép, notebook, okostelefon, mobiltelefon, periféria, eszközcsere vagy bővítés.":
+    "Computer, notebook, smartphone, mobile phone, peripheral, device replacement or upgrade.",
+  "Válasszon területet az igénylés indításához": "Choose an area to start a request",
+  "Igénylés indítása": "Start a request",
+  "Nincs kiosztva": "Unassigned",
+  "Ez a felület a beszerző, az IT eszközmenedzser, a gazdasági vezető és a dékán (betekintés) számára érhető el.":
+    "This area is available to the procurement officer, the IT asset manager, the financial director and the dean (view only).",
+  "A beszerzési terv az IT eszközmenedzser, a beszerző, a gazdasági vezető és a kari vezetés felülete. Saját igényei állapotát az „Igényeim” oldalon követheti.":
+    "The procurement plan is the workspace of the IT asset manager, the procurement officer, the financial director and the faculty leadership. You can follow your own requests on the “My requests” page.",
+  "Ez a felület az IT eszközmenedzser és a gazdasági vezető számára érhető el.":
+    "This area is available to the IT asset manager and the financial director.",
+  "Beszerzési tételek a folyamat lépései szerint": "Procurement items by process step",
+  Igénylés: "Request",
+  "Szervezeti jóváhagyás": "Organisational approval",
+  "Gazdasági jóváhagyás": "Financial approval",
+  Eszközátadás: "Asset handover",
+  "Nincs késedelmes beszerzési tétel.": "No overdue procurement items.",
+  "jogkörrel végezhető.": "rights.",
+  "gazdasági vezető": "financial director",
+  "Gazdasági vezető": "Financial director",
+  "oktatásszervezési vezető": "head of education organisation",
+  "kutatástámogatási vezető": "head of research support",
+  Nyomtató: "Printer",
+  Okostelefon: "Smartphone",
   Igényelhető: "Requestable",
   "Új felhasználó": "New user",
   "Új felhasználó létrehozása": "Create new user",
@@ -128,7 +156,7 @@ export const EN_OVERRIDES: Record<string, string> = {
   "Belső prototípus – demonstrációs adatokkal.": "Internal prototype – with demonstration data.",
   "Digitális és informatikai igények egy helyen": "Digital and IT requests in one place",
   "Pécsi Tudományegyetem · Általános Orvostudományi Kar": "University of Pécs · Medical School",
-  "ÁOK Digitális Szolgáltatási Portál": "MS Digital Services Portal",
+  "ÁOK Digitális Szolgáltatási Portál": "Medical School Digital Services Portal",
   Beszerző: "Procurer",
   Dékán: "Dean",
   "Superuser (jogosultságkezelő)": "Superuser (permission manager)",
