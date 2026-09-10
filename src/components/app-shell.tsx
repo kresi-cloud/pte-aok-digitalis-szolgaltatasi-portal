@@ -33,6 +33,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { cn } from "@/lib/utils";
 import { lookup, useStore, USERS } from "@/lib/store";
 import { ROLE_LABELS, type RoleKey } from "@/lib/types";
+import { ROUTE_ROLES } from "@/lib/route-access";
 import { LoginScreen } from "@/components/login-screen";
 import { GlobalSearch } from "@/components/global-search";
 import { LanguageSwitcher } from "@/components/language-switcher";
@@ -69,60 +70,62 @@ const NAV: NavItem[] = [
     to: "/eszkozkataszter",
     label: "Eszközkataszter",
     icon: Boxes,
-    roles: [
-      "eszkozmenedzser",
-      "it_referens",
-      "beszerzo",
-      "gazdasagi_vezeto",
-      "vezeto",
-      "dekan",
-      "admin",
-    ],
+    roles: ROUTE_ROLES["/eszkozkataszter"],
   },
   {
     to: "/beszerzesek",
     label: "Beszerzői munkatér",
     icon: PackageCheck,
-    roles: ["beszerzo", "eszkozmenedzser", "gazdasagi_vezeto", "dekan"],
+    roles: ROUTE_ROLES["/beszerzesek"],
   },
   {
     to: "/beszerzesi-terv",
     label: "Beszerzési terv",
     icon: ShoppingCart,
-    roles: ["eszkozmenedzser", "beszerzo", "gazdasagi_vezeto", "vezeto", "dekan"],
+    roles: ROUTE_ROLES["/beszerzesi-terv"],
   },
   {
     to: "/eszkozatadas",
     label: "Eszközátadás",
     icon: PackageCheck,
-    roles: ["it_referens", "eszkozmenedzser", "beszerzo", "dekan"],
+    roles: ROUTE_ROLES["/eszkozatadas"],
   },
   {
     to: "/selejtezes",
     label: "Selejtezési javaslat",
     icon: Trash2,
-    roles: ["eszkozmenedzser", "gazdasagi_vezeto", "dekan"],
+    roles: ROUTE_ROLES["/selejtezes"],
   },
   {
     to: "/eletciklus-elorejelzes",
     label: "Életciklus-előrejelzés",
     icon: TrendingUp,
-    roles: ["eszkozmenedzser", "gazdasagi_vezeto", "szolgaltatasgazda", "vezeto", "dekan"],
+    roles: ROUTE_ROLES["/eletciklus-elorejelzes"],
   },
   {
     to: "/jovahagyasok",
     label: "Jóváhagyási sor",
     icon: CheckCheck,
-    roles: ["jovahagyo", "ugyintezo", "szolgaltatasgazda", "vezeto", "dekan"],
+    roles: ROUTE_ROLES["/jovahagyasok"],
   },
   {
     to: "/vezetoi-attekintes",
     label: "Vezetői áttekintés",
     icon: GaugeCircle,
-    roles: ["vezeto", "dekan", "szolgaltatasgazda", "gazdasagi_vezeto"],
+    roles: ROUTE_ROLES["/vezetoi-attekintes"],
   },
-  { to: "/adminisztracio", label: "Adminisztráció", icon: Settings2, roles: ["admin", "dekan"] },
-  { to: "/jogosultsagok", label: "Jogosultságkezelés", icon: KeyRound, roles: ["admin", "dekan"] },
+  {
+    to: "/adminisztracio",
+    label: "Adminisztráció",
+    icon: Settings2,
+    roles: ROUTE_ROLES["/adminisztracio"],
+  },
+  {
+    to: "/jogosultsagok",
+    label: "Jogosultságkezelés",
+    icon: KeyRound,
+    roles: ROUTE_ROLES["/jogosultsagok"],
+  },
   { to: "/segitseg", label: "Segítség", icon: LifeBuoy, roles: ALL },
 ];
 

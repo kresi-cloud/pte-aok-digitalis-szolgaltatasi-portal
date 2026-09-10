@@ -1,3 +1,4 @@
+import { withRouteAccess } from "@/lib/with-route-access";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { Label } from "@/components/ui/label";
@@ -37,7 +38,7 @@ export const Route = createFileRoute("/eletciklus-elorejelzes")({
       { name: "twitter:card", content: "summary" },
     ],
   }),
-  component: ForecastPage,
+  component: withRouteAccess("/eletciklus-elorejelzes", "Életciklus-előrejelzés", ForecastPage),
 });
 
 function ForecastPage() {

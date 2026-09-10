@@ -1,3 +1,4 @@
+import { withRouteAccess } from "@/lib/with-route-access";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { Input } from "@/components/ui/input";
@@ -59,7 +60,7 @@ export const Route = createFileRoute("/eszkozkataszter")({
       { name: "twitter:card", content: "summary" },
     ],
   }),
-  component: CataloguePage,
+  component: withRouteAccess("/eszkozkataszter", "Intézményi eszközkataszter", CataloguePage),
 });
 
 function CataloguePage() {

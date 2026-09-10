@@ -1,3 +1,4 @@
+import { withRouteAccess } from "@/lib/with-route-access";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import {
@@ -50,7 +51,7 @@ export const Route = createFileRoute("/vezetoi-attekintes")({
       { name: "twitter:card", content: "summary" },
     ],
   }),
-  component: LeaderView,
+  component: withRouteAccess("/vezetoi-attekintes", "Vezetői áttekintés", LeaderView),
 });
 
 const OPEN: StatusKey[] = [
