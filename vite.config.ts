@@ -7,8 +7,21 @@
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 import { mcpPlugin } from "@lovable.dev/mcp-js/stacks/tanstack/vite";
 
+// A @lovable.dev/mcp-js Vite plugin Windowson nem indul el. A routesDir-t a
+// node:path resolve() adja (fordított perjelekkel), a projectRoot-ot viszont a
+// Vite már normál perjelesre normalizálta, így a plugin belső assertContains
+// ellenőrzése mindig hibát dob:
+//   routesDir "src/routes" must resolve under C:/..., got C:\...
+// A hiba a csomag legfrissebb, 2.0.4-es verziójában is megvan.
+//
+// A plugin egyetlen feladata az MCP route-fájlok legenerálása
+// (src/routes/mcp.ts, [.mcp]/*, [.well-known]/*). Ezek a fájlok a repóban
+// vannak, és futásidőben a plugin nélkül is kiszolgálják az MCP végpontokat,
+// ezért Windowson egyszerűen kihagyjuk a plugint.
+const isWindows = process.platform === "win32";
+
 export default defineConfig({
-  plugins: [mcpPlugin()],
+  plugins: isWindows ? [] : [mcpPlugin()],
   tanstackStart: {
     // Redirect TanStack Start's bundled server entry to src/server.ts (our SSR error wrapper).
     // nitro/vite builds from this
