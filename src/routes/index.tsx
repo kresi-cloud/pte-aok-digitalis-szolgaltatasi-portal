@@ -133,13 +133,15 @@ function Home() {
             return (
               <div
                 key={d.key}
-                className="card-surface pointer-events-none flex items-start gap-3 p-4 opacity-50"
+                className="card-surface pointer-events-none flex items-start gap-3 p-4"
               >
-                <span className="grid size-9 shrink-0 place-items-center rounded-md bg-muted text-muted-foreground">
+                <span className="grid size-9 shrink-0 place-items-center rounded-md bg-muted text-muted-foreground opacity-60">
                   <Icon className="size-4.5" aria-hidden="true" />
                 </span>
                 <span className="min-w-0">
-                  <span className="block font-display text-sm font-semibold">{d.name}</span>
+                  <span className="block font-display text-sm font-semibold text-muted-foreground">
+                    {d.name}
+                  </span>
                   <span className="mt-1 block text-xs text-muted-foreground">{d.description}</span>
                   <span className="mt-2 inline-block rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
                     Hamarosan elérhető

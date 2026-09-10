@@ -783,6 +783,10 @@ export const EN_DICT: Record<string, string> = {
   "Nincs megjeleníthető tétel.": "No items to display.",
   "Nincs Önhöz rendelt licenc.": "You have no license assigned.",
   "Nyitott ügyek területenként": "Open cases by area",
+  "Ügyek területenként": "Cases by area",
+  Nyitott: "Open",
+  "Jelenleg nincs nyilvántartott fejlesztési projekt.":
+    "There are no development projects on record at the moment.",
   "Nálam van, de nem használom": "I have it, but I don't use it",
   "Piszkozat – beküldésre vár.": "Draft – awaiting submission.",
   "Saját bejelentés – szoftver": "My report – software",

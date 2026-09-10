@@ -151,6 +151,10 @@ export function AppShell({ children }: { children: ReactNode }) {
     [store.activeRole, hasPendingApproval],
   );
 
+  // A szerver nem ismeri a localStorage-t, ezért SSR-en mindig kijelentkezett
+  // állapot renderelődne. Amíg a mentett állapot be nem töltődik, semleges vázat
+  // mutatunk – így nem villan be a belépőképernyő a bejelentkezett felhasználónak.
+  if (!store.hydrated) return <div className="min-h-screen bg-background" aria-busy="true" />;
   if (!store.loggedIn) return <LoginScreen />;
 
   const unread = store.notifications.filter((n) => !n.read).length;

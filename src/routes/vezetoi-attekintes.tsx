@@ -8,6 +8,7 @@ import {
   Pie,
   PieChart,
   ResponsiveContainer,
+  Legend,
   Tooltip,
   XAxis,
   YAxis,
@@ -225,7 +226,7 @@ function LeaderView() {
 
       <section className="mt-6 grid gap-6 lg:grid-cols-2">
         <div className="rounded-md border border-border bg-card p-5">
-          <h2 className="font-display text-lg font-semibold">Nyitott ügyek területenként</h2>
+          <h2 className="font-display text-lg font-semibold">Ügyek területenként</h2>
           <div className="mt-4 h-64">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart
@@ -239,8 +240,19 @@ function LeaderView() {
                 <XAxis dataKey="name" fontSize={11} />
                 <YAxis fontSize={11} allowDecimals={false} />
                 <Tooltip />
-                <Bar dataKey="nyitott" fill="var(--color-chart-1)" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="lezart" fill="var(--color-chart-3)" radius={[4, 4, 0, 0]} />
+                <Legend />
+                <Bar
+                  dataKey="nyitott"
+                  name="Nyitott"
+                  fill="var(--color-chart-1)"
+                  radius={[4, 4, 0, 0]}
+                />
+                <Bar
+                  dataKey="lezart"
+                  name="Lezárt"
+                  fill="var(--color-chart-3)"
+                  radius={[4, 4, 0, 0]}
+                />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -248,32 +260,38 @@ function LeaderView() {
 
         <div className="rounded-md border border-border bg-card p-5">
           <h2 className="font-display text-lg font-semibold">Fejlesztési portfólió állapota</h2>
-          <div className="mt-4 h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={[...new Set(PROJECTS.map((p) => p.stage))].map((s) => ({
-                    name: s,
-                    value: PROJECTS.filter((p) => p.stage === s).length,
-                  }))}
-                  dataKey="value"
-                  nameKey="name"
-                  outerRadius={90}
-                  label
-                >
-                  {PROJECTS.map((_, i) => (
-                    <Cell key={i} fill={COLORS[i % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
+          {PROJECTS.length === 0 ? (
+            <p className="mt-4 text-sm text-muted-foreground">
+              Jelenleg nincs nyilvántartott fejlesztési projekt.
+            </p>
+          ) : (
+            <div className="mt-4 h-64">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={[...new Set(PROJECTS.map((p) => p.stage))].map((s) => ({
+                      name: s,
+                      value: PROJECTS.filter((p) => p.stage === s).length,
+                    }))}
+                    dataKey="value"
+                    nameKey="name"
+                    outerRadius={90}
+                    label
+                  >
+                    {PROJECTS.map((_, i) => (
+                      <Cell key={i} fill={COLORS[i % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          )}
         </div>
       </section>
 
       <section className="mt-8 grid gap-6 lg:grid-cols-2">
-        <div className="rounded-md border border-border bg-card">
+        <div className="rounded-md border border-border bg-card min-w-0">
           <div className="flex items-center justify-between gap-3 border-b border-border p-5">
             <h2 className="font-display text-lg font-semibold">Döntésre váró ügyek</h2>
             <Link
@@ -312,7 +330,7 @@ function LeaderView() {
           </ul>
         </div>
 
-        <div className="rounded-md border border-border bg-card">
+        <div className="rounded-md border border-border bg-card min-w-0">
           <div className="border-b border-border p-5">
             <h2 className="font-display text-lg font-semibold">SLA-kockázatos ügyek</h2>
             <p className="text-sm text-muted-foreground">
