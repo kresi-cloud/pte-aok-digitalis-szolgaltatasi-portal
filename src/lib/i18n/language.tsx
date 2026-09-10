@@ -32,7 +32,51 @@ const PATTERNS: { re: RegExp; to: (m: RegExpExecArray) => string }[] = [
     re: /^(.+) igénylés – (.+)$/,
     to: (m) => `${DICT[m[1]!.trim()] ?? m[1]} request – ${m[2]}`,
   },
+  // évszámos / negyedéves / darabszámos kifejezések
+  { re: /^Értesítések \((\d+) olvasatlan\)$/, to: (m) => `Notifications (${m[1]} unread)` },
+  { re: /^(\d+) db a teljes kataszterben$/, to: (m) => `${m[1]} in the full registry` },
+  { re: /^(\d{4})\. gazdasági év$/, to: (m) => `${m[1]} financial year` },
+  { re: /^(\d{4})\. évi keret$/, to: (m) => `${m[1]} budget` },
+  {
+    re: /^(\d{4})\. (I|II|III|IV)\. negyedév$/,
+    to: (m) => `${m[1]} Q${{ I: 1, II: 2, III: 3, IV: 4 }[m[2]!]}`,
+  },
+  {
+    re: /^(\d{4})\. évi selejtezési javaslat – (\d+)\. ütem$/,
+    to: (m) => `${m[1]} scrapping proposal – phase ${m[2]}`,
+  },
+  { re: /^(.+) leterheltsége$/, to: (m) => `Workload of ${m[1]}` },
+  { re: /^(.+) \(leltárfelelős\)$/, to: (m) => `${m[1]} (inventory officer)` },
+  {
+    re: /^(.+) termékkör törlése$/,
+    to: (m) => `Delete product group ${DICT[m[1]!.trim()] ?? m[1]}`,
+  },
+  { re: /^(.+) aktív$/, to: (m) => `${DICT[m[1]!.trim()] ?? m[1]} active` },
+  {
+    re: /^(\d+) folyamatban lévő igény hivatkozik rá – amíg ezek le nem zárulnak, nem távolítható el a beszerezhető eszközök közül\.$/,
+    to: (m) =>
+      `${m[1]} request(s) in progress reference it – it cannot be removed from the available devices until they are closed.`,
+  },
 ];
+
+// Utolsó lépcső: mondatba ágyazott, önállóan ismert kifejezések (szerepkörök,
+// lépésnevek) cseréje, ha a szöveg egészére nem volt találat.
+// Pl. "1. Szervezeti jóváhagyó – Dr. Rédei T. · 2. Szolgáltatásgazda – Dobrossy T."
+const PHRASES: [RegExp, string][] = [
+  "Szervezeti jóváhagyó",
+  "Szolgáltatási ügyintéző",
+  "Szolgáltatásgazda",
+  "Kari vezető",
+  "Gazdasági vezető",
+  "IT eszközmenedzser",
+  "Kari IT referens",
+  "Beszerző",
+  "Igénylő",
+  "Dékán",
+]
+  .filter((p) => DICT[p])
+  .sort((a, b) => b.length - a.length)
+  .map((p) => [new RegExp(`(?<![\\p{L}])${p}(?![\\p{L}])`, "gu"), DICT[p]!]);
 
 export function translate(text: string, lang: Lang): string {
   if (lang === "hu") return text;
@@ -61,6 +105,11 @@ export function translate(text: string, lang: Lang): string {
   // trailing punctuation tolerance
   const m = /^(.*?)([.:!?…]+)$/.exec(trimmed);
   if (m && DICT[m[1]!]) return raw.replace(trimmed, DICT[m[1]!]! + m[2]);
+
+  // phrase-level fallback
+  let phrased = trimmed;
+  for (const [re, en] of PHRASES) phrased = phrased.replace(re, en);
+  if (phrased !== trimmed) return raw.replace(trimmed, phrased);
 
   return raw;
 }
