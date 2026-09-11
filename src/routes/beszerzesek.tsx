@@ -474,9 +474,13 @@ function ApprovalCard({ approval }: { approval: PlanApproval }) {
               <Textarea
                 value={comment}
                 onChange={(e) => setComment(e.target.value)}
-                placeholder="Gazdasági vezetői megjegyzés (opcionális)"
+                placeholder="Gazdasági vezetői megjegyzés – visszaküldéshez kötelező"
                 rows={2}
+                aria-describedby="plan-decision-hint"
               />
+              <p id="plan-decision-hint" className="text-xs text-muted-foreground">
+                Visszaküldéshez írja le, mit kell átdolgozni – az eszközmenedzser ezt látja.
+              </p>
               <div className="flex flex-wrap gap-2">
                 <Button
                   size="sm"
@@ -490,8 +494,9 @@ function ApprovalCard({ approval }: { approval: PlanApproval }) {
                 <Button
                   size="sm"
                   variant="outline"
+                  disabled={comment.trim().length < 5}
                   onClick={() => {
-                    store.decidePlanApproval(approval.id, "visszakuldve", comment || undefined);
+                    store.decidePlanApproval(approval.id, "visszakuldve", comment.trim());
                     toast("Terv visszaküldve az eszközmenedzsernek");
                   }}
                 >

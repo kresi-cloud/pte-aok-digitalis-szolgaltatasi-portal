@@ -1,5 +1,14 @@
 // Manually curated additions for fragments the automated pass did not cover.
 export const EN_OVERRIDES: Record<string, string> = {
+  // ===== terv visszaküldése átdolgozásra =====
+  "Gazdasági vezetői megjegyzés – visszaküldéshez kötelező":
+    "Financial director's note – required to send back",
+  "Visszaküldéshez írja le, mit kell átdolgozni – az eszközmenedzser ezt látja.":
+    "To send back, describe what needs rework – the asset manager will see this.",
+  "A gazdasági vezető átdolgozásra visszaküldte a tervet.":
+    "The financial director sent the plan back for rework.",
+  "Átdolgozás a gazdasági vezető megjegyzése szerint és újbóli beküldés":
+    "Rework according to the financial director's note and resubmit",
   // ===== döntési dialógusok (decision-dialogs.tsx) =====
   "Elutasítja az igényt?": "Reject the request?",
   "Mit kér pontosítani?": "What should be clarified?",

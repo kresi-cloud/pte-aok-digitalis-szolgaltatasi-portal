@@ -201,12 +201,17 @@ export function demoCurrentStep(ctx: DemoFlowContext): DemoStep {
   const status = approval ? normalizeLegacyPlanStatus(approval.status) : "tervezes";
 
   if (!approval || status === "tervezes" || status === "visszakuldve") {
+    const returned = status === "visszakuldve";
     return {
       ...base,
       index: 3,
-      state: "A tétel IT besorolás alatt van.",
+      state: returned
+        ? "A gazdasági vezető átdolgozásra visszaküldte a tervet."
+        : "A tétel IT besorolás alatt van.",
       waitingOn: `${users.find((u) => u.id === plannerId)?.name ?? "IT eszközmenedzser"} – IT eszközmenedzser`,
-      action: "Besorolás, ütemezés és beküldés gazdasági jóváhagyásra",
+      action: returned
+        ? "Átdolgozás a gazdasági vezető megjegyzése szerint és újbóli beküldés"
+        : "Besorolás, ütemezés és beküldés gazdasági jóváhagyásra",
       actorId: plannerId,
       role: "eszkozmenedzser",
       route: "/beszerzesek",
