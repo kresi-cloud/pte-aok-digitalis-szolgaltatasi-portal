@@ -65,7 +65,7 @@ function MyRequests() {
         <div
           role="tablist"
           aria-label="Szűrés állapot szerint"
-          className="flex gap-1 rounded-md border border-border bg-card p-1"
+          className="flex flex-wrap gap-1 rounded-md border border-border bg-card p-1"
         >
           {TABS.map((t) => (
             <button

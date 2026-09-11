@@ -160,7 +160,7 @@ function Permissions() {
       {!canManage && <ViewOnlyNotice />}
 
       <div className="mt-8 grid gap-6 lg:grid-cols-[minmax(0,1fr)_420px]">
-        <section className="rounded-md border border-border bg-card">
+        <section className="min-w-0 rounded-md border border-border bg-card">
           <div className="flex flex-wrap items-center gap-3 border-b border-border p-4">
             <Input
               className="min-w-64 flex-1"
@@ -232,7 +232,7 @@ function Permissions() {
           </Table>
         </section>
 
-        <aside className="space-y-6">
+        <aside className="min-w-0 space-y-6">
           <div className="rounded-md border border-border bg-card p-5">
             <h2 className="font-display text-lg font-semibold">{selected.name}</h2>
             <p className="text-sm text-muted-foreground">
