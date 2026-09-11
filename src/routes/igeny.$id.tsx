@@ -1,3 +1,4 @@
+import { ClarificationButton, RejectRequestButton } from "@/components/decision-dialogs";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -547,31 +548,20 @@ function RequestDetail() {
               >
                 <Check className="size-4" /> Jóváhagyás
               </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => {
-                  store.decideApproval(
-                    request.id,
-                    pendingApproval.id,
-                    "elutasitva",
-                    "Jelenleg nem támogatott.",
-                  );
+              <RejectRequestButton
+                requestId={request.id}
+                onConfirm={(reason) => {
+                  store.decideApproval(request.id, pendingApproval.id, "elutasitva", reason);
                   toast.error("Az igényt elutasította.");
                 }}
-              >
-                <X className="size-4" /> Elutasítás
-              </Button>
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => {
-                  store.setStatus(request.id, "pontositas");
+              />
+              <ClarificationButton
+                requestId={request.id}
+                onConfirm={(question) => {
+                  store.requestClarification(request.id, question);
                   toast.info("Pontosítást kért az igénylőtől.");
                 }}
-              >
-                Pontosítás kérése
-              </Button>
+              />
             </div>
           </div>
         )}

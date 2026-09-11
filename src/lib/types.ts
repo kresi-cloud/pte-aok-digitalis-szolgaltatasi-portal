@@ -297,6 +297,8 @@ export interface ServiceRequest {
   teamId?: string | undefined;
   assigneeId?: string | undefined;
   status: StatusKey;
+  /** Pontosítás kérésekor ide tér vissza az állapot az igénylő válasza után. */
+  clarificationReturnStatus?: StatusKey | undefined;
   priority: Priority;
   createdAt: string;
   updatedAt: string;

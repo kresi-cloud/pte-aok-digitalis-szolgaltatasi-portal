@@ -1,3 +1,4 @@
+import { ClarificationButton, RejectRequestButton } from "@/components/decision-dialogs";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -83,7 +84,7 @@ function ApprovalQueue() {
   // Igénylő szerepkörben is dönthet, ha személy szerint rá vár jóváhagyás.
   const canApprove = store.activeRole !== "igenylo" || myPending.length > 0;
 
-  const decide = (r: ServiceRequest, decision: "jovahagyva" | "elutasitva") => {
+  const decide = (r: ServiceRequest, decision: "jovahagyva" | "elutasitva", reason?: string) => {
     const mine = r.approvals.find(
       (a) => a.decision === "fuggoben" && a.approverId === store.currentUser.id,
     );
@@ -92,7 +93,7 @@ function ApprovalQueue() {
       r.id,
       mine.id,
       decision,
-      decision === "jovahagyva" ? "Támogatom." : "Jelenleg nem támogatott.",
+      decision === "jovahagyva" ? "Támogatom." : (reason ?? "Jelenleg nem támogatott."),
     );
     if (decision === "jovahagyva") toast.success(`${r.id} jóváhagyva.`);
     else toast.error(`${r.id} elutasítva.`);
@@ -210,23 +211,18 @@ function ApprovalQueue() {
                               <Button size="sm" onClick={() => decide(r, "jovahagyva")}>
                                 <Check className="size-4" /> Jóváhagyás
                               </Button>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => decide(r, "elutasitva")}
-                              >
-                                <X className="size-4" /> Elutasítás
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={() => {
-                                  store.setStatus(r.id, "pontositas");
+                              <RejectRequestButton
+                                requestId={r.id}
+                                onConfirm={(reason) => decide(r, "elutasitva", reason)}
+                              />
+                              <ClarificationButton
+                                requestId={r.id}
+                                label="Pontosítás"
+                                onConfirm={(question) => {
+                                  store.requestClarification(r.id, question);
                                   toast.info("Pontosítást kért az igénylőtől.");
                                 }}
-                              >
-                                Pontosítás
-                              </Button>
+                              />
                             </>
                           )}
                           <Link

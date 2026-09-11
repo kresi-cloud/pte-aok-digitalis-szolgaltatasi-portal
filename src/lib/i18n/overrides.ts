@@ -1,5 +1,18 @@
 // Manually curated additions for fragments the automated pass did not cover.
 export const EN_OVERRIDES: Record<string, string> = {
+  // ===== döntési dialógusok (decision-dialogs.tsx) =====
+  "Elutasítja az igényt?": "Reject the request?",
+  "Mit kér pontosítani?": "What should be clarified?",
+  "Kérdés *": "Question *",
+  "Például: az eszköz a jelenlegi keretből nem fedezhető.":
+    "E.g. the device cannot be covered from the current budget.",
+  "Például: milyen szoftvereket futtat majd az eszközön?":
+    "E.g. which software will run on the device?",
+  "Pontosítás megválaszolva": "Clarification answered",
+  "Pontosítás megválaszolva – jóváhagyásra vár.": "Clarification answered – awaiting approval.",
+  "Pontosítás megválaszolva – értékelés folytatódik.":
+    "Clarification answered – assessment continues.",
+  "Pontosítás szükséges az igénylő részéről.": "Clarification needed from the requester.",
   Beosztás: "Position",
   Név: "Name",
   "E-mail": "Email",

@@ -227,6 +227,8 @@ interface StoreValue extends PersistedState {
   ) => string;
   updateRequest: (id: string, patch: Partial<ServiceRequest>, auditLabel?: string) => void;
   setStatus: (id: string, status: StatusKey) => void;
+  /** Pontosítás kérése az igénylőtől: kérdés üzenetként, státusz „pontosítás”, értesítés. */
+  requestClarification: (id: string, question: string) => void;
   withdrawRequest: (id: string, reason?: string) => void;
   addMessage: (id: string, body: string, internal: boolean) => void;
   decideApproval: (
@@ -802,22 +804,121 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         body,
         internal,
       };
-      patchRequest(id, (r) => ({
-        ...r,
-        updatedAt: today(),
-        messages: [...r.messages, message],
-        audit: [
-          ...r.audit,
-          {
-            id: `a-${Date.now()}`,
-            at: today(),
-            actorId: currentUser.id,
-            action: internal ? "Belső megjegyzés" : "Üzenet az igénylőnek",
-            detail: body.slice(0, 60),
-          },
-        ],
-      }));
+      setState((s) => {
+        const target = s.requests.find((r) => r.id === id);
+        if (!target) return s;
+        // Az igénylő nyilvános válasza lezárja a pontosítás-kört: az ügy oda tér
+        // vissza, ahonnan a pontosítást kérték (függő jóváhagyásnál jóváhagyásra).
+        const answersClarification =
+          !internal && target.requesterId === currentUser.id && target.status === "pontositas";
+        const returnStatus: StatusKey = answersClarification
+          ? (target.clarificationReturnStatus ??
+            (target.approvals.some((a) => a.decision === "fuggoben")
+              ? "jovahagyasra_var"
+              : "elso_ertekeles"))
+          : target.status;
+        const requests = s.requests.map((r) =>
+          r.id === id
+            ? {
+                ...r,
+                updatedAt: today(),
+                status: returnStatus,
+                ...(answersClarification
+                  ? {
+                      clarificationReturnStatus: undefined,
+                      nextStep:
+                        returnStatus === "jovahagyasra_var"
+                          ? "Pontosítás megválaszolva – jóváhagyásra vár."
+                          : "Pontosítás megválaszolva – értékelés folytatódik.",
+                    }
+                  : {}),
+                messages: [...r.messages, message],
+                audit: [
+                  ...r.audit,
+                  {
+                    id: `a-${Date.now()}`,
+                    at: today(),
+                    actorId: currentUser.id,
+                    action: internal
+                      ? "Belső megjegyzés"
+                      : answersClarification
+                        ? "Pontosítás megválaszolva"
+                        : "Üzenet az igénylőnek",
+                    detail: body.slice(0, 60),
+                  },
+                ],
+              }
+            : r,
+        );
+        return {
+          ...s,
+          requests,
+          notifications: answersClarification
+            ? [
+                {
+                  id: `n-${Date.now()}`,
+                  requestId: id,
+                  at: today(),
+                  text: `${id} – az igénylő megválaszolta a pontosítást, az ügy folytatódik.`,
+                  read: false,
+                },
+                ...s.notifications,
+              ]
+            : s.notifications,
+        };
+      });
     },
+    requestClarification: (id, question) =>
+      setState((s) => {
+        const target = s.requests.find((r) => r.id === id);
+        if (!target || target.status === "pontositas") return s;
+        const stamp = Date.now();
+        const requests = s.requests.map((r) =>
+          r.id === id
+            ? {
+                ...r,
+                status: "pontositas" as StatusKey,
+                clarificationReturnStatus: r.status,
+                nextStep: "Pontosítás szükséges az igénylő részéről.",
+                updatedAt: today(),
+                messages: [
+                  ...r.messages,
+                  {
+                    id: `m-${stamp}`,
+                    authorId: currentUser.id,
+                    createdAt: today(),
+                    body: `Pontosítást kérünk: ${question}`,
+                    internal: false,
+                  },
+                ],
+                audit: [
+                  ...r.audit,
+                  {
+                    id: `a-${stamp}`,
+                    at: today(),
+                    actorId: currentUser.id,
+                    action: "Pontosítás kérése",
+                    detail: question.slice(0, 60),
+                  },
+                ],
+              }
+            : r,
+        );
+        return {
+          ...s,
+          requests,
+          notifications: [
+            {
+              id: `n-${stamp}`,
+              requestId: id,
+              at: today(),
+              text: `${id} – pontosítást kértek: ${question.slice(0, 80)}`,
+              read: false,
+            },
+            ...s.notifications,
+          ],
+        };
+      }),
     decideApproval: (id, approvalId, decision, comment) =>
       setState((s) => {
         let approvedNow = false;
@@ -852,9 +953,23 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           };
         });
         const updated = requests.find((r) => r.id === id);
-        return approvedNow && updated
-          ? applyProcurementLink(s, requests, updated)
-          : { ...s, requests };
+        const next =
+          approvedNow && updated ? applyProcurementLink(s, requests, updated) : { ...s, requests };
+        const rejected = decision === "elutasitva";
+        const text = rejected
+          ? `${id} – az igényt elutasították${comment ? `: ${comment}` : "."}`
+          : approvedNow
+            ? `${id} – az igényt jóváhagyták, a végrehajtás tervezése következik.`
+            : null;
+        return text
+          ? {
+              ...next,
+              notifications: [
+                { id: `n-${Date.now()}`, requestId: id, at: today(), text, read: false },
+                ...next.notifications,
+              ],
+            }
+          : next;
       }),
     markNotificationsRead: () =>
       setState((s) => ({
