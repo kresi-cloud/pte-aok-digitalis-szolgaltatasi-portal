@@ -60,6 +60,17 @@ import {
   canStartProcurement,
 } from "./procurement-rules";
 import { OLD_ASSET_DISPOSITION_LABELS } from "./types";
+import {
+  DEADLINE_STEP_KEYS,
+  DEADLINE_STEP_LABELS,
+  DEFAULT_PROCESS_SETTINGS,
+  normalizeProcessSettings,
+  type DeadlineLevel,
+  type ProcessSettings,
+} from "./deadlines";
+import { requestSituation } from "./request-situation";
+import { PROCESS_STEPS } from "./process-steps";
+import { formatHuDate } from "./clock";
 import { handoverPurposeTitle, productForHandover, specFromProduct } from "./handover-products";
 import { modelKeyForStandard, standardLabel } from "./handover-mapping";
 import { productLockInfo } from "./product-lock";
@@ -180,6 +191,10 @@ interface PersistedState {
   inactiveUserIds: string[];
   /** Taglista-frissítések naplója. */
   memberImports: MemberImportEvent[];
+  /** Lépésenkénti határidők és emlékeztető-szabályok (D3/D6/D7). */
+  processSettings: ProcessSettings;
+  /** Már kiküldött határidő-jelzések: „igény:lépés:kezdet” → szint. */
+  deadlineNotices: Record<string, DeadlineLevel>;
 }
 
 const initialState: PersistedState = {
@@ -197,6 +212,8 @@ const initialState: PersistedState = {
   replacementDecisions: INITIAL_REPLACEMENT_DECISIONS,
   planItems: INITIAL_PROCUREMENT_ITEMS,
   planApprovals: buildPlanApprovals(),
+  processSettings: DEFAULT_PROCESS_SETTINGS,
+  deadlineNotices: {},
   scrapProposals: seedScrapProposals(ASSETS),
   handovers: [],
   currentUserId: "u-kovacs",
@@ -315,6 +332,10 @@ interface StoreValue extends PersistedState {
   handOverToUser: (id: string, comment?: string) => void;
   /** Igénylő: átvétel visszaigazolása – az eszköz bekerül a személyi leltárba. */
   confirmHandoverReceipt: (id: string, comment?: string) => void;
+  /** Lépésenkénti határidők és emlékeztető-szabályok (D3/D6/D7). */
+  processSettings: ProcessSettings;
+  /** Admin: a határidő-beállítások módosítása; minden változás naplózva. */
+  updateProcessSettings: (next: ProcessSettings) => void;
   /**
    * Igénylő: átvételi kifogás indoklással (D4) – az eszköz visszakerül a kari IT referenshez.
    * Tiltott átmenetnél az állapot változatlan, a visszatérési érték a hibaüzenet.
@@ -415,6 +436,181 @@ function applyProcurementLink(
   };
 }
 
+/**
+ * 8. lépés – átvétel visszaigazolása és teljes lezárás (közös a kézi és az
+ * automatikus lezárásnál, D4/D6: a határidő után a rendszer zárja le).
+ */
+function confirmReceiptState(
+  s: PersistedState,
+  id: string,
+  actorId: string,
+  comment: string | undefined,
+  auto: boolean,
+): PersistedState {
+  const h = (s.handovers ?? []).find((x) => x.id === id);
+  if (!h) return s;
+  // Idempotens: ismételt kattintás nem duplikál leltártételt vagy előzményt.
+  if (h.status === "atvetel_igazolva") return s;
+  // 8. lépés: csak megtörtént átadás után, csak a címzett igazolhatja vissza.
+  if (!auto && !canConfirmReceipt(h, s.activeRole, actorId).allowed) return s;
+  const catalogCtx = {
+    products: s.products ?? [],
+    categories: s.productCategories ?? [],
+    requests: s.requests,
+  };
+  const catalogProduct = productForHandover(h, catalogCtx);
+  // Ha a tétel már az átadáskor létrejött („Átvételre vár”), csak státuszt váltunk.
+  const invId = h.inventoryItemId ?? `inv-${Date.now()}`;
+  const item: InventoryItem = {
+    id: invId,
+    ownerId: h.recipientId,
+    kind: "hardver",
+    name: handoverPurposeTitle(h, catalogCtx),
+    modelKey: h.modelKey,
+    productId: catalogProduct?.id,
+    serial: h.serial,
+    inventoryNo: h.inventoryNo,
+    building: h.building,
+    room: h.room,
+    note: `Beszerzési folyamatból átvéve (${h.planItemId})${h.note ? ` · ${h.note}` : ""}`,
+    spec: catalogProduct ? specFromProduct(catalogProduct) : specForModel(h.modelKey),
+    status: "jovahagyva",
+    createdAt: today(),
+    decidedAt: today(),
+    decidedBy: h.referentId ?? actorId,
+    decisionComment: "Intézményi beszerzés és átadás-átvétel alapján automatikusan jóváhagyva.",
+  };
+  // Az átvett eszköz az intézményi eszközkataszterbe is bekerül,
+  // különben a „Rám rendelt eszközök” nézetben nem jelenne meg.
+  const planItem = s.planItems.find((p) => p.id === h.planItemId);
+  const location =
+    ASSET_LOCATIONS.find(
+      (l) => (!h.building || l.building === h.building) && (!h.room || l.room === h.room),
+    ) ??
+    ASSET_LOCATIONS.find((l) => l.orgUnitId === h.orgUnitId) ??
+    ASSET_LOCATIONS[0]!;
+  const alreadyRegistered = s.assets.some((a) => a.note?.includes(h.id));
+  const assetId = `as-${Date.now()}`;
+  const newAsset: Asset = {
+    id: assetId,
+    inventoryNo: h.inventoryNo ?? `PTE-AOK-IT-${Date.now().toString().slice(-6)}`,
+    deviceId: h.serial ?? assetId,
+    categoryKey: planItem?.categoryKey ?? "egyeb",
+    modelKey: h.modelKey ?? "",
+    productId: catalogProduct?.id,
+    serial: h.serial ?? "",
+    usage: "szemelyi",
+    assignedUserId: h.recipientId,
+    inventoryResponsibleId: h.referentId ?? h.recipientId,
+    orgUnitId: h.orgUnitId,
+    locationId: location.id,
+    purpose: item.name,
+    purchaseDate: today(),
+    commissionDate: today(),
+    purchaseValue: planItem?.unitPriceOverride ?? 0,
+    fundingSourceId: planItem?.fundingSourceId ?? "fs-kari",
+    costCenter: h.orgUnitId,
+    warrantyEnd: `${new Date().getUTCFullYear() + 3}-12-31`,
+    condition: "kifogastalan",
+    active: true,
+    reportedIssues: 0,
+    repairCount: 0,
+    businessCritical: false,
+    note: `Beszerzési átadásból (${h.id})`,
+  };
+  return {
+    ...s,
+    inventory: h.inventoryItemId
+      ? s.inventory.map((i) =>
+          i.id === h.inventoryItemId
+            ? {
+                ...i,
+                status: "jovahagyva",
+                decidedAt: today(),
+                decidedBy: h.referentId ?? actorId,
+                decisionComment:
+                  "Intézményi beszerzés és átadás-átvétel alapján automatikusan jóváhagyva.",
+              }
+            : i,
+        )
+      : [item, ...s.inventory],
+    assets: alreadyRegistered ? s.assets : [newAsset, ...s.assets],
+    planItems: s.planItems.map((p) =>
+      planItem && p.id === planItem.id ? { ...p, status: "teljesult" } : p,
+    ),
+
+    handovers: (s.handovers ?? []).map((x) =>
+      x.id === id
+        ? {
+            ...x,
+            status: "atvetel_igazolva",
+            confirmedAt: today(),
+            inventoryItemId: invId,
+            history: [
+              ...x.history,
+              {
+                at: today(),
+                actorId: actorId,
+                action: auto
+                  ? "Automatikus lezárás – az igénylő a határidőn belül nem igazolta vissza az átvételt"
+                  : "Átvétel visszaigazolva – eszköz a személyi leltárba került",
+                comment,
+              },
+            ],
+          }
+        : x,
+    ),
+    requests: s.requests.map((r) =>
+      r.id === h.requestId
+        ? {
+            ...r,
+            status: "lezarva",
+            updatedAt: today(),
+            nextStep: auto
+              ? "Az átvétel visszaigazolása a határidőn belül elmaradt, az ügy automatikusan lezárult."
+              : "Az eszköz átadva és átvéve, az igény lezárult.",
+            audit: [
+              ...r.audit,
+              {
+                id: `a-${Date.now()}`,
+                at: today(),
+                actorId: actorId,
+                action: auto ? "Automatikus lezárás" : "Átvétel visszaigazolása",
+                detail: `${h.deviceName} bekerült a személyi leltárba`,
+              },
+            ],
+          }
+        : r,
+    ),
+    notifications: [
+      {
+        id: `n-${Date.now()}`,
+        at: today(),
+        read: false,
+        requestId: h.requestId,
+        text: auto
+          ? `${h.deviceName}: az átvétel visszaigazolása a határidőn belül elmaradt, az ügy automatikusan lezárult – az eszköz a személyi leltárba került.`
+          : `${h.deviceName} átvétele visszaigazolva – az eszköz bekerült a személyi leltárba.`,
+      },
+      ...s.notifications,
+    ],
+    assetAudit: [
+      {
+        id: `aud-${Date.now()}`,
+        at: today(),
+        actorId: actorId,
+        entity: "leltar",
+        entityId: invId,
+        action: auto
+          ? "Átvétel automatikus lezárása (határidő lejárt)"
+          : "Átvétel visszaigazolva, személyi leltártétel létrehozva",
+        detail: `${h.deviceName}${h.inventoryNo ? ` · leltárkód: ${h.inventoryNo}` : ""}`,
+      },
+      ...s.assetAudit,
+    ],
+  };
+}
+
 export function StoreProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<PersistedState>(initialState);
   const [hydrated, setHydrated] = useState(false);
@@ -432,6 +628,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           if (Array.isArray(fallback) && !Array.isArray(value)) continue;
           (merged as unknown as Record<string, unknown>)[key] = value;
         }
+        merged.processSettings = normalizeProcessSettings(saved.processSettings);
+        merged.deadlineNotices = saved.deadlineNotices ?? {};
         // A megszűnt superuser szerepkör / demó felhasználó kitisztítása a mentett állapotból.
         const legacyRole = (merged.activeRole as string) === "superuser";
         if (legacyRole || merged.currentUserId === "u-superuser") {
@@ -561,6 +759,72 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       requests: s.requests.map((r) => (r.id === id ? fn(r) : r)),
     }));
   }, []);
+
+  // D3/D7: határidő-söprés. Emlékeztető a határidő adott százalékánál, jelzés
+  // lejáratkor (a felelős marad), az átvétel visszaigazolása a beállított
+  // munkanap után automatikusan lezárul. Csak új eseménynél ír állapotot.
+  useEffect(() => {
+    if (!hydrated) return;
+    const settings = state.processSettings ?? DEFAULT_PROCESS_SETTINGS;
+    const notices = state.deadlineNotices ?? {};
+    const newNotices: Record<string, DeadlineLevel> = {};
+    const newNotifications: AppNotification[] = [];
+    const autoClose: string[] = [];
+    for (const r of state.requests) {
+      if (r.domain !== "hardver") continue;
+      const sit = requestSituation(r, {
+        planItems: state.planItems,
+        planApprovals: state.planApprovals ?? [],
+        handovers: state.handovers ?? [],
+        users: effectiveUsers,
+        settings,
+      });
+      const d = sit.deadline;
+      if (!d || d.level === "ok") continue;
+      if (d.key === "atvetel" && d.waitingWorkdays >= settings.receiptAutoCloseDays) {
+        const h = (state.handovers ?? []).find(
+          (x) => x.requestId === r.id && x.status === "atadva",
+        );
+        if (h) autoClose.push(h.id);
+        continue;
+      }
+      const key = `${r.id}:${sit.stageIndex}:${d.since}`;
+      if (notices[key] === d.level || (notices[key] === "overdue" && d.level === "reminder"))
+        continue;
+      newNotices[key] = d.level;
+      const who = sit.owner;
+      const step = PROCESS_STEPS[sit.stageIndex] ?? "";
+      newNotifications.push({
+        id: `n-${Date.now()}-${newNotifications.length}`,
+        at: today(),
+        read: false,
+        requestId: r.id,
+        text:
+          d.level === "overdue"
+            ? `Lejárt határidő: „${r.title}” – ${step}, felelős: ${who}. A határidő ${formatHuDate(d.dueDate)} volt, ${d.waitingWorkdays} munkanapja vár. A szakmai felügyelet jelzést kapott, a döntés a felelősnél marad.`
+            : `Emlékeztető: „${r.title}” – ${step}, felelős: ${who}. Határidő: ${formatHuDate(d.dueDate)} (${Math.max(0, d.remainingWorkdays)} munkanap van hátra).`,
+      });
+    }
+    if (Object.keys(newNotices).length === 0 && autoClose.length === 0) return;
+    setState((s) => {
+      let next: PersistedState = {
+        ...s,
+        deadlineNotices: { ...(s.deadlineNotices ?? {}), ...newNotices },
+        notifications: [...newNotifications, ...s.notifications],
+      };
+      for (const id of autoClose) next = confirmReceiptState(next, id, "u-system", undefined, true);
+      return next;
+    });
+  }, [
+    hydrated,
+    state.requests,
+    state.planItems,
+    state.planApprovals,
+    state.handovers,
+    state.processSettings,
+    state.deadlineNotices,
+    effectiveUsers,
+  ]);
 
   const value: StoreValue = {
     hydrated,
@@ -2176,164 +2440,51 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       });
       return null;
     },
-    confirmHandoverReceipt: (id, comment) =>
+    processSettings: state.processSettings ?? DEFAULT_PROCESS_SETTINGS,
+    updateProcessSettings: (next) =>
       setState((s) => {
-        const h = (s.handovers ?? []).find((x) => x.id === id);
-        if (!h) return s;
-        // Idempotens: ismételt kattintás nem duplikál leltártételt vagy előzményt.
-        if (h.status === "atvetel_igazolva") return s;
-        // 8. lépés: csak megtörtént átadás után, csak a címzett igazolhatja vissza.
-        if (!canConfirmReceipt(h, s.activeRole, currentUser.id).allowed) return s;
-        const catalogCtx = {
-          products: s.products ?? [],
-          categories: s.productCategories ?? [],
-          requests: s.requests,
-        };
-        const catalogProduct = productForHandover(h, catalogCtx);
-        // Ha a tétel már az átadáskor létrejött („Átvételre vár”), csak státuszt váltunk.
-        const invId = h.inventoryItemId ?? `inv-${Date.now()}`;
-        const item: InventoryItem = {
-          id: invId,
-          ownerId: h.recipientId,
-          kind: "hardver",
-          name: handoverPurposeTitle(h, catalogCtx),
-          modelKey: h.modelKey,
-          productId: catalogProduct?.id,
-          serial: h.serial,
-          inventoryNo: h.inventoryNo,
-          building: h.building,
-          room: h.room,
-          note: `Beszerzési folyamatból átvéve (${h.planItemId})${h.note ? ` · ${h.note}` : ""}`,
-          spec: catalogProduct ? specFromProduct(catalogProduct) : specForModel(h.modelKey),
-          status: "jovahagyva",
-          createdAt: today(),
-          decidedAt: today(),
-          decidedBy: h.referentId ?? currentUser.id,
-          decisionComment:
-            "Intézményi beszerzés és átadás-átvétel alapján automatikusan jóváhagyva.",
-        };
-        // Az átvett eszköz az intézményi eszközkataszterbe is bekerül,
-        // különben a „Rám rendelt eszközök” nézetben nem jelenne meg.
-        const planItem = s.planItems.find((p) => p.id === h.planItemId);
-        const location =
-          ASSET_LOCATIONS.find(
-            (l) => (!h.building || l.building === h.building) && (!h.room || l.room === h.room),
-          ) ??
-          ASSET_LOCATIONS.find((l) => l.orgUnitId === h.orgUnitId) ??
-          ASSET_LOCATIONS[0]!;
-        const alreadyRegistered = s.assets.some((a) => a.note?.includes(h.id));
-        const assetId = `as-${Date.now()}`;
-        const newAsset: Asset = {
-          id: assetId,
-          inventoryNo: h.inventoryNo ?? `PTE-AOK-IT-${Date.now().toString().slice(-6)}`,
-          deviceId: h.serial ?? assetId,
-          categoryKey: planItem?.categoryKey ?? "egyeb",
-          modelKey: h.modelKey ?? "",
-          productId: catalogProduct?.id,
-          serial: h.serial ?? "",
-          usage: "szemelyi",
-          assignedUserId: h.recipientId,
-          inventoryResponsibleId: h.referentId ?? h.recipientId,
-          orgUnitId: h.orgUnitId,
-          locationId: location.id,
-          purpose: item.name,
-          purchaseDate: today(),
-          commissionDate: today(),
-          purchaseValue: planItem?.unitPriceOverride ?? 0,
-          fundingSourceId: planItem?.fundingSourceId ?? "fs-kari",
-          costCenter: h.orgUnitId,
-          warrantyEnd: `${new Date().getUTCFullYear() + 3}-12-31`,
-          condition: "kifogastalan",
-          active: true,
-          reportedIssues: 0,
-          repairCount: 0,
-          businessCritical: false,
-          note: `Beszerzési átadásból (${h.id})`,
-        };
+        const prev = s.processSettings ?? DEFAULT_PROCESS_SETTINGS;
+        const clean = normalizeProcessSettings(next);
+        const changes: { label: string; from: number; to: number }[] = [];
+        for (const k of DEADLINE_STEP_KEYS)
+          if (prev.deadlines[k] !== clean.deadlines[k])
+            changes.push({
+              label: `${DEADLINE_STEP_LABELS[k]} határideje (munkanap)`,
+              from: prev.deadlines[k],
+              to: clean.deadlines[k],
+            });
+        if (prev.reminderPct !== clean.reminderPct)
+          changes.push({
+            label: "Emlékeztető a határidő százalékánál",
+            from: prev.reminderPct,
+            to: clean.reminderPct,
+          });
+        if (prev.receiptAutoCloseDays !== clean.receiptAutoCloseDays)
+          changes.push({
+            label: "Átvétel automatikus lezárása (munkanap)",
+            from: prev.receiptAutoCloseDays,
+            to: clean.receiptAutoCloseDays,
+          });
+        if (changes.length === 0) return s;
         return {
           ...s,
-          inventory: h.inventoryItemId
-            ? s.inventory.map((i) =>
-                i.id === h.inventoryItemId
-                  ? {
-                      ...i,
-                      status: "jovahagyva",
-                      decidedAt: today(),
-                      decidedBy: h.referentId ?? currentUser.id,
-                      decisionComment:
-                        "Intézményi beszerzés és átadás-átvétel alapján automatikusan jóváhagyva.",
-                    }
-                  : i,
-              )
-            : [item, ...s.inventory],
-          assets: alreadyRegistered ? s.assets : [newAsset, ...s.assets],
-          planItems: s.planItems.map((p) =>
-            planItem && p.id === planItem.id ? { ...p, status: "teljesult" } : p,
-          ),
-
-          handovers: (s.handovers ?? []).map((x) =>
-            x.id === id
-              ? {
-                  ...x,
-                  status: "atvetel_igazolva",
-                  confirmedAt: today(),
-                  inventoryItemId: invId,
-                  history: [
-                    ...x.history,
-                    {
-                      at: today(),
-                      actorId: currentUser.id,
-                      action: "Átvétel visszaigazolva – eszköz a személyi leltárba került",
-                      comment,
-                    },
-                  ],
-                }
-              : x,
-          ),
-          requests: s.requests.map((r) =>
-            r.id === h.requestId
-              ? {
-                  ...r,
-                  status: "lezarva",
-                  updatedAt: today(),
-                  nextStep: "Az eszköz átadva és átvéve, az igény lezárult.",
-                  audit: [
-                    ...r.audit,
-                    {
-                      id: `a-${Date.now()}`,
-                      at: today(),
-                      actorId: currentUser.id,
-                      action: "Átvétel visszaigazolása",
-                      detail: `${h.deviceName} bekerült a személyi leltárba`,
-                    },
-                  ],
-                }
-              : r,
-          ),
-          notifications: [
-            {
-              id: `n-${Date.now()}`,
-              at: today(),
-              read: false,
-              requestId: h.requestId,
-              text: `${h.deviceName} átvétele visszaigazolva – az eszköz bekerült a személyi leltárba.`,
-            },
-            ...s.notifications,
-          ],
+          processSettings: clean,
           assetAudit: [
-            {
-              id: `aud-${Date.now()}`,
+            ...changes.map((c, i) => ({
+              id: `aud-${Date.now()}-${i}`,
               at: today(),
               actorId: currentUser.id,
-              entity: "leltar",
-              entityId: invId,
-              action: "Átvétel visszaigazolva, személyi leltártétel létrehozva",
-              detail: `${h.deviceName}${h.inventoryNo ? ` · leltárkód: ${h.inventoryNo}` : ""}`,
-            },
+              entity: "beallitas" as const,
+              entityId: "folyamat",
+              action: "Folyamat-beállítás módosítva",
+              detail: `${c.label}: ${c.from} → ${c.to}`,
+            })),
             ...s.assetAudit,
           ],
         };
       }),
+    confirmHandoverReceipt: (id, comment) =>
+      setState((s) => confirmReceiptState(s, id, currentUser.id, comment, false)),
 
     resetDemo: (options) => {
       try {

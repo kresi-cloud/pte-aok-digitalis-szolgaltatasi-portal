@@ -32,6 +32,8 @@ import { planApprovalForItem } from "@/lib/withdraw";
 import { PROCESS_STEPS } from "@/lib/process-steps";
 import { DOMAINS, ORG_UNITS, PROJECTS, TEAMS, lookup, useStore } from "@/lib/store";
 import { STATUS_LABELS, type ServiceRequest, type StatusKey } from "@/lib/types";
+import { requestSituation } from "@/lib/request-situation";
+import { formatHuDate } from "@/lib/clock";
 
 export const Route = createFileRoute("/vezetoi-attekintes")({
   head: () => ({
@@ -100,7 +102,7 @@ function groupLabel(key: string, dim: Dimension): string {
 }
 
 function LeaderView() {
-  const { requests, planItems, planApprovals, handovers, users } = useStore();
+  const { requests, planItems, planApprovals, handovers, users, processSettings } = useStore();
   const [dimension, setDimension] = useState<Dimension>("domain");
   const [drill, setDrill] = useState<string | null>(null);
 
@@ -132,24 +134,70 @@ function LeaderView() {
   // Nyolclépcsős folyamat: lépésenkénti megoszlás és késedelmes tételek.
   // Származtatott adat, nincs külön tárolt állapot.
   const processOverview = useMemo(() => {
-    const perStep = PROCESS_STEPS.map((label) => ({ label, count: 0 }));
-    const overdue: { id: string; name: string; step: string; waitingOn: string }[] = [];
+    const perStep = PROCESS_STEPS.map((label) => ({
+      label,
+      count: 0,
+      waitingSum: 0,
+      waitingN: 0,
+      overdue: 0,
+    }));
+    const overdue: {
+      id: string;
+      name: string;
+      step: string;
+      waitingOn: string;
+      detail: string;
+      requestId?: string;
+    }[] = [];
     for (const item of planItems) {
       const approval = planApprovalForItem(item, planApprovals ?? []);
       const handover = (handovers ?? []).find((h) => h.planItemId === item.id);
       const stage = planItemStage(item, approval, handover, users);
-      perStep[stage.stageIndex]!.count += 1;
+      // Az igényből származó tételeket az ügyek szintjén számoljuk (lent).
+      if (!item.sourceRequestId) perStep[stage.stageIndex]!.count += 1;
       if (stage.overdue) {
         overdue.push({
           id: item.id,
           name: item.deviceName ?? item.standardKey,
           step: stage.stepLabel,
           waitingOn: stage.waitingOn,
+          detail: "A tervezett negyedév vége elmúlt, a tétel nem teljesült.",
+          ...(item.sourceRequestId ? { requestId: item.sourceRequestId } : {}),
+        });
+      }
+    }
+    // D3/D7: lépés-határidők az igények szintjén – mióta vár, lejárt jelzés.
+    for (const r of requests) {
+      if (r.domain !== "hardver") continue;
+      const sit = requestSituation(r, {
+        planItems,
+        planApprovals: planApprovals ?? [],
+        handovers: handovers ?? [],
+        users,
+        settings: processSettings,
+      });
+      if (sit.closed || sit.terminated) continue;
+      const step = perStep[sit.stageIndex]!;
+      step.count += 1;
+      const d = sit.deadline;
+      if (!d) continue;
+      step.waitingSum += d.waitingWorkdays;
+      step.waitingN += 1;
+      if (d.level === "overdue") {
+        step.overdue += 1;
+        overdue.push({
+          id: `req-${r.id}`,
+          name: r.title,
+          step: PROCESS_STEPS[sit.stageIndex] ?? "",
+          waitingOn: sit.waitingOn,
+          detail: `Lejárt határidő: ${formatHuDate(d.dueDate)} · ${d.waitingWorkdays} munkanapja vár (${-d.remainingWorkdays} munkanap késés)`,
+          requestId: r.id,
         });
       }
     }
     return { perStep, overdue };
-  }, [planItems, planApprovals, handovers, users]);
+  }, [requests, planItems, planApprovals, handovers, users, processSettings]);
+  const overdueDeadlines = processOverview.perStep.reduce((n, s2) => n + s2.overdue, 0);
 
   const drillItems = useMemo(
     () => (drill ? requests.filter((r) => groupKey(r, dimension) === drill) : []),
@@ -160,6 +208,11 @@ function LeaderView() {
     { label: "Nyitott ügyek", value: open.length, hint: `${requests.length} összes igény` },
     { label: "Jóváhagyásra vár", value: waitingApproval.length, hint: "vezetői döntést igényel" },
     { label: "SLA-kockázat", value: risky.length, hint: "határidőn kívül kerülhet" },
+    {
+      label: "Lejárt lépés-határidő",
+      value: overdueDeadlines,
+      hint: "beszerzési ügy, ahol a lépés határideje elmúlt",
+    },
     { label: "Lezárt ügyek", value: closed.length, hint: "teljesített igények" },
     { label: "Igényelt költség", value: huf(totalCost), hint: "összes igény becsült értéke" },
     { label: "Tervezett beszerzés", value: huf(plannedCost), hint: "beszerzési terv sorai" },
@@ -180,7 +233,7 @@ function LeaderView() {
         />
       </header>
 
-      <section className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-6">
+      <section className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
         {kpis.map((k) => (
           <div key={k.label} className="rounded-md border border-border bg-card p-4">
             <p className="text-xs text-muted-foreground">{k.label}</p>
@@ -193,31 +246,62 @@ function LeaderView() {
       <section className="mt-6 grid gap-6 lg:grid-cols-2">
         <div className="rounded-md border border-border bg-card p-5">
           <h2 className="font-display text-lg font-semibold">
-            Beszerzési tételek a folyamat lépései szerint
+            Beszerzési ügyek a folyamat lépései szerint
           </h2>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Nyitott ügyek száma, átlagos várakozás munkanapban, lejárt határidők.
+          </p>
           <ul className="mt-4 space-y-2 text-sm">
             {processOverview.perStep.map((s2, i) => (
               <li key={s2.label} className="flex items-center justify-between gap-3">
                 <span className="text-muted-foreground">
                   {i + 1}. {s2.label}
                 </span>
-                <span className="font-display font-semibold">{s2.count}</span>
+                <span className="flex items-center gap-2 text-xs">
+                  {s2.waitingN > 0 && (
+                    <span className="text-muted-foreground">
+                      {`átl. ${Math.round(s2.waitingSum / s2.waitingN)} mn`}
+                    </span>
+                  )}
+                  {s2.overdue > 0 && (
+                    <span className="rounded-full bg-destructive/10 px-2 py-0.5 font-medium text-destructive">
+                      {`${s2.overdue} lejárt`}
+                    </span>
+                  )}
+                  <span className="font-display text-sm font-semibold">{s2.count}</span>
+                </span>
               </li>
             ))}
           </ul>
         </div>
         <div className="rounded-md border border-border bg-card p-5">
-          <h2 className="font-display text-lg font-semibold">Késedelmes tételek</h2>
+          <h2 className="font-display text-lg font-semibold">Lejárt határidejű ügyek</h2>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Jelzés a felelősnek és a szakmai felügyeletnek; a döntés a felelősnél marad.
+          </p>
           {processOverview.overdue.length === 0 ? (
-            <p className="mt-4 text-sm text-muted-foreground">Nincs késedelmes beszerzési tétel.</p>
+            <p className="mt-4 text-sm text-muted-foreground">
+              Nincs lejárt határidejű vagy késedelmes beszerzési ügy.
+            </p>
           ) : (
             <ul className="mt-4 space-y-2 text-sm">
               {processOverview.overdue.map((o) => (
                 <li key={o.id} className="rounded-md bg-destructive/10 px-3 py-2">
-                  <p className="font-medium">{o.name}</p>
+                  {o.requestId ? (
+                    <Link
+                      to="/igeny/$id"
+                      params={{ id: o.requestId }}
+                      className="font-medium underline-offset-2 hover:underline"
+                    >
+                      {o.name}
+                    </Link>
+                  ) : (
+                    <p className="font-medium">{o.name}</p>
+                  )}
                   <p className="text-xs text-muted-foreground">
                     {o.step} · {o.waitingOn}
                   </p>
+                  <p className="text-xs text-destructive">{o.detail}</p>
                 </li>
               ))}
             </ul>

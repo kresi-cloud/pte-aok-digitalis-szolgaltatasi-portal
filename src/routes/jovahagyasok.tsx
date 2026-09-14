@@ -18,6 +18,8 @@ import { lookup, useStore } from "@/lib/store";
 import type { ServiceRequest } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { PageHeading } from "@/components/page-heading";
+import { DeadlineBadge } from "@/components/deadline-badge";
+import { requestSituation } from "@/lib/request-situation";
 
 export const Route = createFileRoute("/jovahagyasok")({
   head: () => ({
@@ -49,6 +51,14 @@ const OPEN_RISK = ["lezarva", "elutasitva", "piszkozat"];
 
 function ApprovalQueue() {
   const store = useStore();
+  const situationOf = (r: ServiceRequest) =>
+    requestSituation(r, {
+      planItems: store.planItems,
+      planApprovals: store.planApprovals ?? [],
+      handovers: store.handovers ?? [],
+      users: store.users,
+      settings: store.processSettings,
+    });
   const [tab, setTab] = useState<TabKey>("sajat");
 
   const myPending = useMemo(
@@ -200,6 +210,9 @@ function ApprovalQueue() {
                       </TableCell>
                       <TableCell>
                         <StatusBadge status={r.status} />
+                        <span className="mt-1 block">
+                          <DeadlineBadge deadline={situationOf(r).deadline} compact />
+                        </span>
                       </TableCell>
                       <TableCell className="text-right text-sm">
                         {(r.estimatedCost ?? 0).toLocaleString("hu-HU")} Ft

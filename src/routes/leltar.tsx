@@ -180,7 +180,8 @@ function Inventory() {
           <p className="text-sm text-muted-foreground">
             A kari IT referens telepítette és átadta az alábbi eszközt, amely már „Átvételre vár”
             státusszal szerepel a leltárában. Kérjük, igazolja vissza az átvételt – ezzel
-            véglegesedik a leltártétel.
+            véglegesedik a leltártétel.{" "}
+            {`Ha ${store.processSettings.receiptAutoCloseDays} munkanapon belül nem igazolja vissza és kifogást sem jelez, az ügy automatikusan lezárul.`}
           </p>
           {pendingHandovers.map((h) => (
             <div

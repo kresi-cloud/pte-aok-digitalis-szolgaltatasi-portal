@@ -4,6 +4,14 @@ import { ROLE_LABELS, STATUS_LABELS } from "./types";
 import { planApprovalForItem } from "./withdraw";
 import { planItemStage } from "./plan-stage";
 import { PROCESS_STEPS, STEP } from "./process-steps";
+import {
+  DEFAULT_PROCESS_SETTINGS,
+  deadlineInfo,
+  deadlineKeyForStage,
+  stepSince,
+  type DeadlineInfo,
+  type ProcessSettings,
+} from "./deadlines";
 
 /**
  * Az ügy jelenlegi helyzetének egységes összefoglalója.
@@ -15,6 +23,10 @@ export interface SituationContext {
   planApprovals: PlanApproval[];
   handovers: AssetHandover[];
   users: User[];
+  /** Lépésenkénti határidők; ha hiányzik, az alapértékek. */
+  settings?: ProcessSettings | undefined;
+  /** A „mai” dátum felülírása (tesztekhez). */
+  today?: string | undefined;
 }
 
 export interface TrackStage {
@@ -43,6 +55,10 @@ export interface RequestSituation {
   terminated: boolean;
   /** A tervezett negyedév vége elmúlt, a tétel nem teljesült. */
   overdue: boolean;
+  /** 0-alapú lépésindex a nyolclépcsős folyamatban. */
+  stageIndex: number;
+  /** A jelenlegi lépés határideje és a várakozás (nyitott ügynél). */
+  deadline?: DeadlineInfo | undefined;
 }
 
 const STAGES: readonly string[] = PROCESS_STEPS;
@@ -128,6 +144,22 @@ export function requestSituation(request: ServiceRequest, ctx: SituationContext)
     overdue = stage.overdue;
   }
 
+  // Lépésenkénti határidő (D3/D6): csak nyitott, várakozó lépésnél.
+  let deadline: DeadlineInfo | undefined;
+  if (!closed && !terminated && request.status !== "piszkozat") {
+    const key = deadlineKeyForStage(stageIndex);
+    const since = stepSince(request, stageIndex, { planItem, approval, handover });
+    if (key && since) {
+      deadline = deadlineInfo(
+        key,
+        since,
+        ctx.settings ?? DEFAULT_PROCESS_SETTINGS,
+        ctx.today,
+        key === "beszerzes" ? planItem?.expectedArrival : undefined,
+      );
+    }
+  }
+
   return {
     statusLabel: derivedStatusLabel ?? STATUS_LABELS[request.status],
     owner,
@@ -145,5 +177,7 @@ export function requestSituation(request: ServiceRequest, ctx: SituationContext)
     closed,
     terminated,
     overdue,
+    stageIndex,
+    deadline,
   };
 }

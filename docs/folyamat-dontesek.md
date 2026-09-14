@@ -153,3 +153,27 @@ Minden tétel: a kérdés, a döntés, a következmény a prototípusra.
 - **Döntés:** egy-egy tematikus csomag → teljes e2e-teszt → CI-zöld commit a main-re → rövid
   beszámoló; a következő csomag a megrendelő jóváhagyása után indul.
 - **Dokumentum:** külön megosztható folyamat-oldal nem készül, a döntésnapló a repóban elegendő.
+
+## Megvalósítási megjegyzések
+
+### 1. csomag – D4, D13 (kész)
+
+- Kifogásnál az ügy „Megvalósítás alatt” státuszba lép vissza; az átadáskor létrehozott
+  „Átvételre vár” leltártétel visszakerül, az eszköz fizikailag a referensnél van.
+- A régi eszköz sorsa a kataszterben: raktárnál megszűnik a személyhez rendelés (felelős a
+  referens), selejtnél „selejtezésre vár” életciklus-jelölés, „marad”-nál csak napló.
+
+### 2. csomag – D3, D6, D7 (kész)
+
+- A határidők munkanapban, hétvége nélkül számolnak; ünnepnapokat a prototípus nem kezel.
+- A 6. (konfigurálás) és a 7. (eszközátadás) lépés egy közös „Konfigurálás és átadás”
+  határidőt kap, mert ugyanaz a felelős és ugyanaz a rekord.
+- A beszerzési lépés határideje a beszerző által rögzített várható érkezés (a 3. csomag
+  rendelési rekordja tölti); amíg nincs, az admin által állított alapérték (30 munkanap).
+- A „mióta vár” a lépésbe lépés naplózott dátumából számít (beküldés/pontosítás,
+  eszközmenedzserhez adás, gazdasági beküldés, jóváhagyás, beérkezés, átadás).
+- Emlékeztető és lejárt-jelzés értesítésként jelenik meg (a felelős nevével és a
+  határidővel), egyszer, lépésenként; a vezetői irányítópulton lépésenkénti átlagos
+  várakozás és a lejárt ügyek listája látható. Nincs átvétel: a felelős marad.
+- Az átvétel visszaigazolásának elmaradásakor a beállított munkanap után a rendszer zárja le
+  az ügyet („u-system” szereplővel, naplózva); kifogásolt eszköznél nem fut automatikus lezárás.

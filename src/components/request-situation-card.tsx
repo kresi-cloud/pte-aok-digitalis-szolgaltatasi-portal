@@ -6,6 +6,8 @@ import { useDemoMode } from "@/lib/demo-mode";
 import { requestSituation } from "@/lib/request-situation";
 import { demoCurrentStep } from "@/lib/demo-flow";
 import type { ServiceRequest } from "@/lib/types";
+import { formatHuDate } from "@/lib/clock";
+import { DeadlineBadge } from "@/components/deadline-badge";
 
 /** „Az ügy jelenlegi helyzete” – egységes állapotkártya az igény oldal tetején. */
 export function RequestSituationCard({ request }: { request: ServiceRequest }) {
@@ -18,7 +20,9 @@ export function RequestSituationCard({ request }: { request: ServiceRequest }) {
     planApprovals: store.planApprovals ?? [],
     handovers: store.handovers ?? [],
     users: store.users,
+    settings: store.processSettings,
   });
+  const d = s.deadline;
 
   const demoStep = demo
     ? demoCurrentStep({
@@ -57,6 +61,16 @@ export function RequestSituationCard({ request }: { request: ServiceRequest }) {
           Késedelmes: a tervezett negyedév vége elmúlt, a tétel még nem teljesült.
         </p>
       )}
+      {d?.level === "overdue" && (
+        <p className="rounded-md bg-destructive/10 px-3 py-2 text-xs font-medium text-destructive">
+          {`Lejárt a lépés határideje (${formatHuDate(d.dueDate)}): ${-d.remainingWorkdays} munkanapja túllépve. A felelős és a szakmai felügyelet jelzést kapott; a döntés a felelősnél marad.`}
+        </p>
+      )}
+      {d?.level === "reminder" && (
+        <p className="rounded-md bg-warning/15 px-3 py-2 text-xs font-medium text-warning-foreground">
+          {`Emlékeztető: a lépés határideje ${formatHuDate(d.dueDate)}, ${d.remainingWorkdays} munkanap van hátra.`}
+        </p>
+      )}
 
       <dl className="grid gap-4 text-sm sm:grid-cols-2 lg:grid-cols-3">
         <div>
@@ -87,6 +101,24 @@ export function RequestSituationCard({ request }: { request: ServiceRequest }) {
             {s.approvalsDone} / {s.approvalsTotal}
           </dd>
         </div>
+        {d && (
+          <>
+            <div>
+              <dt className="text-xs text-muted-foreground">Mióta vár</dt>
+              <dd className="mt-0.5 font-medium">
+                {`${d.waitingWorkdays} munkanap (${formatHuDate(d.since)} óta)`}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-xs text-muted-foreground">
+                {`Lépés határideje (${d.limitWorkdays} munkanap)`}
+              </dt>
+              <dd className="mt-0.5 font-medium">
+                {formatHuDate(d.dueDate)} <DeadlineBadge deadline={d} compact />
+              </dd>
+            </div>
+          </>
+        )}
       </dl>
 
       <ol className="flex flex-wrap items-center gap-x-1 gap-y-2 border-t border-border pt-4 text-xs">

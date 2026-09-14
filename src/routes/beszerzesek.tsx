@@ -34,6 +34,8 @@ import { useViewOnly } from "@/lib/access";
 import { ViewOnlyNotice } from "@/components/view-only-notice";
 import { ProductCatalogAdmin } from "@/components/product-catalog-admin";
 import { StatTile } from "@/components/asset-bits";
+import { DeadlineBadge } from "@/components/deadline-badge";
+import { requestSituation } from "@/lib/request-situation";
 
 export const Route = createFileRoute("/beszerzesek")({
   head: () => ({
@@ -134,6 +136,18 @@ function ItemRow({
     { planApprovals: store.planApprovals ?? [], handovers: store.handovers ?? [] },
     store.activeRole,
   );
+  const sourceRequest = item.sourceRequestId
+    ? store.requests.find((r) => r.id === item.sourceRequestId)
+    : undefined;
+  const sourceSituation = sourceRequest
+    ? requestSituation(sourceRequest, {
+        planItems: store.planItems,
+        planApprovals: store.planApprovals ?? [],
+        handovers: store.handovers ?? [],
+        users: store.users,
+        settings: store.processSettings,
+      })
+    : undefined;
   return (
     <tr className="border-t border-border align-top">
       {canSchedule && (
@@ -175,6 +189,11 @@ function ItemRow({
       <td className="px-3 py-3 text-xs">{stage.label}</td>
       <td className="px-3 py-3 text-xs text-muted-foreground">
         {stage.waitingOn}
+        {sourceRequest && (
+          <span className="mt-1 block">
+            <DeadlineBadge deadline={sourceSituation?.deadline} compact />
+          </span>
+        )}
         {stage.overdue && (
           <span className="ml-2 inline-flex rounded-full bg-destructive/10 px-2 py-0.5 text-[11px] font-medium text-destructive">
             Késedelmes
@@ -200,7 +219,7 @@ function ItemRow({
                 );
               }}
             >
-              <SelectTrigger className="w-[170px]">
+              <SelectTrigger className="w-[170px]" aria-label="Bontás">
                 <SelectValue placeholder="Bontás" />
               </SelectTrigger>
               <SelectContent>
@@ -221,7 +240,7 @@ function ItemRow({
                 toast.success(`Átütemezve: ${block.label}`);
               }}
             >
-              <SelectTrigger className="w-[170px]">
+              <SelectTrigger className="w-[170px]" aria-label="Célnegyedév">
                 <SelectValue
                   placeholder={
                     isImmediate
@@ -611,7 +630,7 @@ function BuyerWorkspace() {
                 Tömeges átütemezés ({selectedIds.length} kijelölt)
               </span>
               <Select value={bulkBlock} onValueChange={setBulkBlock}>
-                <SelectTrigger className="w-[190px]">
+                <SelectTrigger className="w-[190px]" aria-label="Tömeges átütemezés célja">
                   <SelectValue placeholder="Cél: azonnali vagy negyedév" />
                 </SelectTrigger>
                 <SelectContent>

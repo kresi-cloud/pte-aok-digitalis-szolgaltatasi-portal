@@ -36,6 +36,14 @@ import { SpecGrid } from "@/routes/leltar";
 import { PageHeading } from "@/components/page-heading";
 import { useViewOnly } from "@/lib/access";
 import { ViewOnlyNotice } from "@/components/view-only-notice";
+import {
+  DEADLINE_STEP_KEYS,
+  DEADLINE_STEP_LABELS,
+  DEFAULT_PROCESS_SETTINGS,
+  normalizeProcessSettings,
+  type DeadlineStepKey,
+  type ProcessSettings,
+} from "@/lib/deadlines";
 
 export const Route = createFileRoute("/adminisztracio")({
   head: () => ({
@@ -79,6 +87,7 @@ function Admin() {
               Leltár jóváhagyás{pending.length > 0 ? ` (${pending.length})` : ""}
             </TabsTrigger>
             <TabsTrigger value="kozlemenyek">Közlemények</TabsTrigger>
+            <TabsTrigger value="folyamat">Folyamat-beállítások</TabsTrigger>
             <TabsTrigger value="ai">AI-beállítások</TabsTrigger>
           </TabsList>
 
@@ -302,6 +311,10 @@ function Admin() {
             <AnnouncementsAdmin />
           </TabsContent>
 
+          <TabsContent value="folyamat">
+            <ProcessSettingsAdmin />
+          </TabsContent>
+
           <TabsContent value="ai">
             <section className="card-surface space-y-5 p-5">
               {/* AI beállítások */}
@@ -355,6 +368,112 @@ const defaultExpiry = () => {
   d.setDate(d.getDate() + 14);
   return d.toISOString().slice(0, 10);
 };
+
+/** D3/D6/D7: lépésenkénti határidők – szabadon állítható, minden módosítás naplózva. */
+function ProcessSettingsAdmin() {
+  const store = useStore();
+  const [draft, setDraft] = useState<ProcessSettings>(store.processSettings);
+  const dirty = JSON.stringify(draft) !== JSON.stringify(store.processSettings);
+  const log = store.assetAudit.filter((a) => a.entity === "beallitas").slice(0, 20);
+  const setDeadline = (k: DeadlineStepKey, v: string) =>
+    setDraft((d) => ({ ...d, deadlines: { ...d.deadlines, [k]: Number(v) } }));
+  return (
+    <div className="space-y-4">
+      <section className="card-surface space-y-4 p-5">
+        <div>
+          <h2 className="font-display text-base font-semibold">Lépésenkénti döntési határidők</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Munkanapban, hétvége nélkül. Állami fenntartású intézménynél az átfutások erősen
+            ingadoznak, ezért minden érték szabadon állítható; a folyamat sehol nem kódol be fix
+            napszámot. A beszerzési lépésnél a beszerző által rögzített várható érkezés a határidő,
+            ha van; egyébként az itt megadott érték.
+          </p>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {DEADLINE_STEP_KEYS.map((k) => (
+            <div key={k} className="space-y-1.5">
+              <Label htmlFor={`dl-${k}`}>{DEADLINE_STEP_LABELS[k]}</Label>
+              <Input
+                id={`dl-${k}`}
+                type="number"
+                inputMode="numeric"
+                min={1}
+                max={365}
+                value={draft.deadlines[k]}
+                onChange={(e) => setDeadline(k, e.target.value)}
+              />
+            </div>
+          ))}
+          <div className="space-y-1.5">
+            <Label htmlFor="dl-reminder">Emlékeztető a határidő százalékánál</Label>
+            <Input
+              id="dl-reminder"
+              type="number"
+              inputMode="numeric"
+              min={10}
+              max={100}
+              value={draft.reminderPct}
+              onChange={(e) => setDraft((d) => ({ ...d, reminderPct: Number(e.target.value) }))}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="dl-autoclose">Átvétel automatikus lezárása (munkanap)</Label>
+            <Input
+              id="dl-autoclose"
+              type="number"
+              inputMode="numeric"
+              min={1}
+              max={365}
+              value={draft.receiptAutoCloseDays}
+              onChange={(e) =>
+                setDraft((d) => ({ ...d, receiptAutoCloseDays: Number(e.target.value) }))
+              }
+            />
+          </div>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Lejárt határidőnél az ügy piros jelzést kap a vezetői és a saját munkatéri nézetben, a
+          felelős és a szakmai felügyelet értesítést kap, de a felelős marad – senki nem veszi át
+          automatikusan a döntést.
+        </p>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            disabled={!dirty}
+            onClick={() => {
+              store.updateProcessSettings(draft);
+              setDraft(normalizeProcessSettings(draft));
+              toast.success("Folyamat-beállítások mentve, a változás naplózva.");
+            }}
+          >
+            Beállítások mentése
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => {
+              setDraft(DEFAULT_PROCESS_SETTINGS);
+            }}
+          >
+            Alapértékek betöltése
+          </Button>
+        </div>
+      </section>
+      <section className="card-surface p-5">
+        <h2 className="font-display text-base font-semibold">Módosítások naplója</h2>
+        {log.length === 0 ? (
+          <p className="mt-2 text-sm text-muted-foreground">Még nem történt módosítás.</p>
+        ) : (
+          <ul className="mt-3 space-y-1 text-xs text-muted-foreground">
+            {log.map((a) => (
+              <li key={a.id}>
+                {a.at} · {lookup.user(a.actorId)?.name ?? a.actorId} – {a.detail}
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+    </div>
+  );
+}
 
 function AnnouncementsAdmin() {
   const { announcements, addAnnouncement, updateAnnouncement, removeAnnouncement } = useStore();

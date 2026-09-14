@@ -47,6 +47,8 @@ import { PageHeading } from "@/components/page-heading";
 import { useViewOnly } from "@/lib/access";
 import { ViewOnlyNotice } from "@/components/view-only-notice";
 import { StatTile } from "@/components/asset-bits";
+import { DeadlineBadge } from "@/components/deadline-badge";
+import { useSituation } from "@/lib/use-situation";
 
 const MAX_FILE_BYTES = 5 * 1024 * 1024;
 
@@ -142,6 +144,10 @@ function HandoverCard({ handover, canAct }: { handover: AssetHandover; canAct: b
   const oldAssetDone = oldAssetDecisionComplete(handover);
   const objected = handover.status === "kifogasolva";
   const lastObjection = handover.objections?.at(-1);
+  const sourceRequest = handover.requestId
+    ? store.requests.find((r) => r.id === handover.requestId)
+    : undefined;
+  const situation = useSituation(sourceRequest);
 
   const checklist = handover.checklist ?? {};
   const attachments = handover.attachments ?? [];
@@ -255,6 +261,11 @@ function HandoverCard({ handover, canAct }: { handover: AssetHandover; canAct: b
             >
               Forrásigény: {handover.requestId}
             </Link>
+          )}
+          {situation?.deadline && (
+            <span className="mt-1 block">
+              <DeadlineBadge deadline={situation.deadline} />
+            </span>
           )}
         </div>
         <span

@@ -22,7 +22,68 @@ export function readStoredLang(): Lang {
 
 const SEPARATORS = [" · ", " – ", " — ", " | ", " / ", " → ", ", "];
 
+const HU_MONTHS_EN: Record<string, string> = {
+  január: "January",
+  február: "February",
+  március: "March",
+  április: "April",
+  május: "May",
+  június: "June",
+  július: "July",
+  augusztus: "August",
+  szeptember: "September",
+  október: "October",
+  november: "November",
+  december: "December",
+};
+
+/** „2026. szeptember 8.” → „8 September 2026”; más alak változatlan. */
+function huDate(text: string): string {
+  const m = /^(\d{4})\. (\p{L}+) (\d{1,2})\.$/u.exec(text.trim());
+  if (!m) return text;
+  const month = HU_MONTHS_EN[m[2]!];
+  return month ? `${m[3]} ${month} ${m[1]}` : text;
+}
+
 const PATTERNS: { re: RegExp; to: (m: RegExpExecArray) => string }[] = [
+  // lépés-határidők (D3/D6/D7)
+  { re: /^(\d{4})\. (\p{L}+) (\d{1,2})\.$/u, to: (m) => huDate(m[0]) },
+  { re: /^Lejárt: (\d+) munkanapja$/, to: (m) => `Overdue by ${m[1]} working days` },
+  {
+    re: /^Határidő közeleg: (\d+) munkanap$/,
+    to: (m) => `Deadline approaching: ${m[1]} working days left`,
+  },
+  { re: /^(\d+) munkanapja vár$/, to: (m) => `waiting ${m[1]} working days` },
+  { re: /^· határidő (\S+)$/, to: (m) => `· due ${m[1]}` },
+  {
+    re: /^(\d+) munkanap \((.+) óta\)$/,
+    to: (m) => `${m[1]} working days (since ${huDate(m[2]!)})`,
+  },
+  {
+    re: /^Lépés határideje \((\d+) munkanap\)$/,
+    to: (m) => `Step deadline (${m[1]} working days)`,
+  },
+  {
+    re: /^Lejárt a lépés határideje \((.+)\): (\d+) munkanapja túllépve\. A felelős és a szakmai felügyelet jelzést kapott; a döntés a felelősnél marad\.$/,
+    to: (m) =>
+      `The step deadline (${huDate(m[1]!)}) passed ${m[2]} working days ago. The responsible person and professional supervision were notified; the decision stays with the responsible person.`,
+  },
+  {
+    re: /^Emlékeztető: a lépés határideje (.+), (\d+) munkanap van hátra\.$/,
+    to: (m) => `Reminder: the step deadline is ${huDate(m[1]!)}, ${m[2]} working days left.`,
+  },
+  { re: /^Lejárt határidő: (.+)$/, to: (m) => `Deadline passed: ${huDate(m[1]!)}` },
+  {
+    re: /^(\d+) munkanapja vár \((\d+) munkanap késés\)$/,
+    to: (m) => `waiting ${m[1]} working days (${m[2]} working days late)`,
+  },
+  { re: /^átl\. (\d+) mn$/, to: (m) => `avg. ${m[1]} wd` },
+  { re: /^(\d+) lejárt$/, to: (m) => `${m[1]} overdue` },
+  {
+    re: /^Ha (\d+) munkanapon belül nem igazolja vissza és kifogást sem jelez, az ügy automatikusan lezárul\.$/,
+    to: (m) =>
+      `If you neither confirm receipt nor raise an objection within ${m[1]} working days, the case closes automatically.`,
+  },
   { re: /^(.+) felelőse$/, to: (m) => `Owner of ${DICT[m[1]!.trim()] ?? m[1]}` },
   { re: /^(.+) előrehaladása$/, to: (m) => `Progress of ${DICT[m[1]!.trim()] ?? m[1]}` },
   // vezetői KPI: "8 összes igény"

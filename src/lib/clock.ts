@@ -41,6 +41,35 @@ export function daysBetween(fromIso: string, toIsoStr: string): number {
   return Math.round((b - a) / 86_400_000);
 }
 
+function isWorkday(d: Date): boolean {
+  const day = d.getUTCDay();
+  return day !== 0 && day !== 6;
+}
+
+/** ISO dátum + n munkanap (hétvége nélkül; ünnepnapok a prototípusban nincsenek). */
+export function addWorkdays(fromIso: string, n: number): string {
+  const d = new Date(`${fromIso}T00:00:00Z`);
+  let left = Math.max(0, Math.round(n));
+  while (left > 0) {
+    d.setUTCDate(d.getUTCDate() + 1);
+    if (isWorkday(d)) left -= 1;
+  }
+  return d.toISOString().slice(0, 10);
+}
+
+/** Munkanapok száma a kezdőnap után a záró napig bezárólag (hétvége nélkül). */
+export function workdaysBetween(fromIso: string, toIsoStr: string): number {
+  if (toIsoStr <= fromIso) return 0;
+  const d = new Date(`${fromIso}T00:00:00Z`);
+  const end = Date.parse(`${toIsoStr}T00:00:00Z`);
+  let n = 0;
+  while (d.getTime() < end) {
+    d.setUTCDate(d.getUTCDate() + 1);
+    if (isWorkday(d)) n += 1;
+  }
+  return n;
+}
+
 const HU_MONTHS = [
   "január",
   "február",

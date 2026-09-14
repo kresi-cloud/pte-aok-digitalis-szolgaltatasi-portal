@@ -23,11 +23,13 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PriorityBadge, StatusBadge } from "@/components/status-badge";
 import { DOMAINS, TEAMS, USERS, lookup, useStore } from "@/lib/store";
-import { STATUS_LABELS, type StatusKey } from "@/lib/types";
+import { STATUS_LABELS, type ServiceRequest, type StatusKey } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { PageHeading } from "@/components/page-heading";
 import { useViewOnly } from "@/lib/access";
 import { ViewOnlyNotice } from "@/components/view-only-notice";
+import { DeadlineBadge } from "@/components/deadline-badge";
+import { requestSituation } from "@/lib/request-situation";
 
 export const Route = createFileRoute("/munkater")({
   head: () => ({
@@ -65,6 +67,14 @@ const OPEN: StatusKey[] = [
 
 function Workbench() {
   const store = useStore();
+  const situationOf = (r: ServiceRequest) =>
+    requestSituation(r, {
+      planItems: store.planItems,
+      planApprovals: store.planApprovals ?? [],
+      handovers: store.handovers ?? [],
+      users: store.users,
+      settings: store.processSettings,
+    });
   const viewOnly = useViewOnly("munkater");
   const [q, setQ] = useState("");
   const [domain, setDomain] = useState("mind");
@@ -261,7 +271,11 @@ function Workbench() {
                       </Select>
                     </TableCell>
                     <TableCell className="text-sm whitespace-nowrap">
-                      {r.dueDate ?? "—"}
+                      {r.domain === "hardver" && situationOf(r).deadline ? (
+                        <DeadlineBadge deadline={situationOf(r).deadline} compact />
+                      ) : (
+                        (r.dueDate ?? "—")
+                      )}
                       {r.slaRisk && (
                         <span className="block text-xs font-medium text-destructive">
                           SLA-kockázat

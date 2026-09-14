@@ -397,6 +397,8 @@ export interface ProcurementPlanItem {
   /** a beszerző továbbadta az IT eszközmenedzsernek tervezésre */
   handedToPlannerBy?: string | undefined;
   handedToPlannerAt?: string | undefined;
+  /** A beszerző által rögzített várható érkezés (ISO) – a beszerzési lépés határideje (D6/D12). */
+  expectedArrival?: string | undefined;
 }
 
 /** Terv-jóváhagyási ciklus: azonnali, negyedéves és éves beszerzési terv. */
@@ -552,7 +554,8 @@ export interface AssetAuditEvent {
     | "kozlemeny"
     | "termekkor"
     | "termek"
-    | "jogosultsag";
+    | "jogosultsag"
+    | "beallitas";
   entityId: string;
   action: string;
   detail: string;
