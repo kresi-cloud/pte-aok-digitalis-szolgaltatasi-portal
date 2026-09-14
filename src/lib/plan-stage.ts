@@ -1,6 +1,10 @@
 import type { PlanApproval, PlanApprovalStatus, ProcurementPlanItem } from "./asset-types";
 import type { AssetHandover, User } from "./types";
-import { handoverConfigured, planApprovalApproved } from "./procurement-rules";
+import {
+  handoverConfigured,
+  oldAssetDecisionComplete,
+  planApprovalApproved,
+} from "./procurement-rules";
 import { PROCESS_STEPS, STEP } from "./process-steps";
 import { responsibleForRole } from "./process-roles";
 import { todayIso } from "./clock";
@@ -99,11 +103,26 @@ export function planItemStage(
         overdue,
       };
     }
-    if (handoverConfigured(handover)) {
+    if (handover.status === "kifogasolva") {
       return {
         ...step(STEP.eszkozatadas),
-        label: "Konfigurálva – átadásra kész",
-        nextAction: "Eszköz átadása az igénylőnek",
+        label: "Átvételi kifogás – a kari IT referens kezeli",
+        nextAction: "Kifogás kezelése és ismételt átadás",
+        ...responsibleForRole(users, "it_referens"),
+        done: false,
+        overdue,
+      };
+    }
+    if (handoverConfigured(handover)) {
+      const oldAssetPending = !oldAssetDecisionComplete(handover);
+      return {
+        ...step(STEP.eszkozatadas),
+        label: oldAssetPending
+          ? "Konfigurálva – a régi eszköz sorsa rögzítendő"
+          : "Konfigurálva – átadásra kész",
+        nextAction: oldAssetPending
+          ? "Régi eszköz sorsának rögzítése és eszköz átadása az igénylőnek"
+          : "Eszköz átadása az igénylőnek",
         ...responsibleForRole(users, "it_referens"),
         done: false,
         overdue,

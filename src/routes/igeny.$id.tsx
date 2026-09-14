@@ -1,4 +1,8 @@
-import { ClarificationButton, RejectRequestButton } from "@/components/decision-dialogs";
+import {
+  ClarificationButton,
+  ObjectionButton,
+  RejectRequestButton,
+} from "@/components/decision-dialogs";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -445,15 +449,36 @@ function RequestDetail() {
                 Az átvétel visszaigazolásával az eszköz bekerül a személyi leltárába.
               </p>
             </div>
-            <Button
-              size="sm"
-              onClick={() => {
-                store.confirmHandoverReceipt(handover.id);
-                toast.success("Átvétel visszaigazolva – az eszköz bekerült a leltárába");
-              }}
-            >
-              Átvétel visszaigazolása
-            </Button>
+            <div className="flex flex-wrap gap-2">
+              <ObjectionButton
+                handoverId={handover.id}
+                deviceName={handover.deviceName}
+                onConfirm={(reason) => {
+                  const err = store.objectHandoverReceipt(handover.id, reason);
+                  if (err) toast.error(err);
+                  else toast.success("Kifogás rögzítve – az eszköz visszakerült a referenshez");
+                }}
+              />
+              <Button
+                size="sm"
+                onClick={() => {
+                  store.confirmHandoverReceipt(handover.id);
+                  toast.success("Átvétel visszaigazolva – az eszköz bekerült a leltárába");
+                }}
+              >
+                Átvétel visszaigazolása
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {isRequester && handover?.status === "kifogasolva" && (
+          <div className="mt-4 rounded-md border-l-4 border-l-warning border border-border bg-secondary/40 p-4">
+            <p className="text-sm font-semibold">Kifogásolt átvétel: {handover.deviceName}</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Kifogás: {handover.objections?.at(-1)?.reason ?? "—"} · A kari IT referens kezeli,
+              majd az eszközt ismét átadja Önnek.
+            </p>
           </div>
         )}
 

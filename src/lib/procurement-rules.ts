@@ -63,6 +63,23 @@ export function handoverConfigured(handover: AssetHandover | undefined): boolean
   );
 }
 
+/** Minimális indoklás-hossz a kifogásnál, a kezelésénél és a „marad” döntésnél. */
+export const MIN_REASON_LENGTH = 5;
+
+/** D13: van-e lecserélt régi eszköz, amelynek sorsáról az átadáskor dönteni kell. */
+export function handoverNeedsOldAssetDecision(handover: AssetHandover | undefined): boolean {
+  return Boolean(handover?.replacedAssetId);
+}
+
+/** D13: a régi eszköz sorsa rögzítve-e (a „marad” döntés csak indoklással érvényes). */
+export function oldAssetDecisionComplete(handover: AssetHandover | undefined): boolean {
+  if (!handover || !handoverNeedsOldAssetDecision(handover)) return true;
+  const d = handover.oldAssetDisposition;
+  if (!d) return false;
+  if (d === "marad") return (handover.oldAssetNote ?? "").trim().length >= MIN_REASON_LENGTH;
+  return true;
+}
+
 /** 7. lépés – eszközátadás az igénylőnek, csak befejezett konfigurálás után. */
 export function canHandOverToUser(handover: AssetHandover | undefined, role: RoleKey): RuleResult {
   if (!handover) return no("Az átadási rekord nem található.");
@@ -70,10 +87,49 @@ export function canHandOverToUser(handover: AssetHandover | undefined, role: Rol
     return no("Az átadást a kari IT referens végzi – Ön betekintő jogosultsággal nézi az ügyet.");
   if (handover.status === "atadva") return no("Az eszköz már át lett adva, átvételre vár.");
   if (handover.status === "atvetel_igazolva") return no("Az átvétel már visszaigazolva.");
+  if (handover.status === "kifogasolva")
+    return no("Az igénylő átvételi kifogást jelzett – előbb a kifogás kezelését kell rögzíteni.");
   if (!handoverConfigured(handover))
     return no(
       "A konfigurálás még nem teljes: modell, gyári szám, leltárkód, minden kötelező checklist-lépés és legalább egy fénykép szükséges.",
     );
+  if (!oldAssetDecisionComplete(handover))
+    return no(
+      "Csere esetén az átadás előtt rögzíteni kell a régi eszköz sorsát (raktár, selejtezés vagy indoklással az igénylőnél marad).",
+    );
+  return ok;
+}
+
+/** 8. lépés – átvételi kifogás: csak a címzett, csak átadott eszközre, indoklással (D4). */
+export function canObjectReceipt(
+  handover: AssetHandover | undefined,
+  role: RoleKey,
+  userId: string,
+  reason: string,
+): RuleResult {
+  if (!handover) return no("Az átadási rekord nem található.");
+  if (handover.status === "atvetel_igazolva") return no("Az átvétel már visszaigazolva.");
+  if (handover.status === "kifogasolva")
+    return no("A kifogás már rögzítve, a kari IT referens kezeli.");
+  if (handover.status !== "atadva") return no("Kifogást csak átadott eszközre lehet jelezni.");
+  if (handover.recipientId !== userId) return no("Kifogást az eszköz címzettje jelezhet.");
+  if (reason.trim().length < MIN_REASON_LENGTH)
+    return no(`A kifogás indoklása kötelező (legalább ${MIN_REASON_LENGTH} karakter).`);
+  return ok;
+}
+
+/** A kifogás kezelése: csak a kari IT referens, csak kifogásolt eszközre, indoklással (D4). */
+export function canResolveObjection(
+  handover: AssetHandover | undefined,
+  role: RoleKey,
+  resolution: string,
+): RuleResult {
+  if (!handover) return no("Az átadási rekord nem található.");
+  if (role !== "it_referens")
+    return no("A kifogást a kari IT referens kezeli – Ön betekintő jogosultsággal nézi az ügyet.");
+  if (handover.status !== "kifogasolva") return no("Ehhez az eszközhöz nincs nyitott kifogás.");
+  if (resolution.trim().length < MIN_REASON_LENGTH)
+    return no(`A kezelés leírása kötelező (legalább ${MIN_REASON_LENGTH} karakter).`);
   return ok;
 }
 
@@ -85,6 +141,8 @@ export function canConfirmReceipt(
 ): RuleResult {
   if (!handover) return no("Az átadási rekord nem található.");
   if (handover.status === "atvetel_igazolva") return no("Az átvétel már visszaigazolva.");
+  if (handover.status === "kifogasolva")
+    return no("Az eszközre kifogást jelzett – a kari IT referens kezeli, majd újra átadja.");
   if (handover.status !== "atadva")
     return no("Az átvétel csak a kari IT referens általi átadás után igazolható vissza.");
   if (handover.recipientId !== userId)

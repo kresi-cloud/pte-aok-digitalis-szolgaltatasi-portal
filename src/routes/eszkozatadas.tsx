@@ -29,10 +29,18 @@ import {
   ATTACHMENT_KIND_LABELS,
   HANDOVER_CHECKLIST,
   HANDOVER_STATUS_LABELS,
+  OLD_ASSET_DISPOSITION_LABELS,
   type AssetHandover,
   type HandoverAttachment,
   type HandoverAttachmentKind,
+  type OldAssetDisposition,
 } from "@/lib/types";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import {
+  MIN_REASON_LENGTH,
+  handoverNeedsOldAssetDecision,
+  oldAssetDecisionComplete,
+} from "@/lib/procurement-rules";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Paperclip, Trash2 } from "lucide-react";
 import { PageHeading } from "@/components/page-heading";
@@ -123,6 +131,17 @@ function HandoverCard({ handover, canAct }: { handover: AssetHandover; canAct: b
   const [note, setNote] = useState(handover.note ?? "");
   const [attachKind, setAttachKind] = useState<HandoverAttachmentKind>("fenykep");
   const [uploading, setUploading] = useState(false);
+  const [resolution, setResolution] = useState("");
+  const [oldAssetNote, setOldAssetNote] = useState(handover.oldAssetNote ?? "");
+
+  // D13: csere esetén a régi eszköz sorsa az átadás előfeltétele.
+  const oldAsset = handover.replacedAssetId
+    ? store.assets.find((a) => a.id === handover.replacedAssetId)
+    : undefined;
+  const needsOldAssetDecision = handoverNeedsOldAssetDecision(handover);
+  const oldAssetDone = oldAssetDecisionComplete(handover);
+  const objected = handover.status === "kifogasolva";
+  const lastObjection = handover.objections?.at(-1);
 
   const checklist = handover.checklist ?? {};
   const attachments = handover.attachments ?? [];
@@ -191,6 +210,7 @@ function HandoverCard({ handover, canAct }: { handover: AssetHandover; canAct: b
             uploadedAt: todayIso(),
           },
         ];
+    if (needsOldAssetDecision && !handover.oldAssetDisposition) setOldAssetNote("");
     store.updateHandover(
       handover.id,
       {
@@ -201,6 +221,9 @@ function HandoverCard({ handover, canAct }: { handover: AssetHandover; canAct: b
         note: demoNote,
         checklist: fullChecklist,
         attachments: withPhoto,
+        ...(needsOldAssetDecision && !handover.oldAssetDisposition
+          ? { oldAssetDisposition: "raktar" as const }
+          : {}),
       },
       "Fiktív átadási adatok kitöltve (vezetőségi demó)",
     );
@@ -234,10 +257,66 @@ function HandoverCard({ handover, canAct }: { handover: AssetHandover; canAct: b
             </Link>
           )}
         </div>
-        <span className="rounded-sm bg-secondary px-2 py-1 text-xs font-semibold">
+        <span
+          className={
+            objected
+              ? "rounded-sm bg-warning/20 px-2 py-1 text-xs font-semibold text-warning-foreground"
+              : "rounded-sm bg-secondary px-2 py-1 text-xs font-semibold"
+          }
+        >
           {HANDOVER_STATUS_LABELS[handover.status]}
         </span>
       </header>
+
+      {objected && lastObjection && (
+        <section
+          className="space-y-3 rounded-md border border-warning/50 bg-warning/10 p-4"
+          aria-labelledby={`objection-${handover.id}`}
+        >
+          <h4 id={`objection-${handover.id}`} className="text-sm font-semibold">
+            Átvételi kifogás az igénylőtől
+          </h4>
+          <p className="text-sm">
+            {lookup.user(lastObjection.byId)?.name ?? lastObjection.byId} · {lastObjection.at}:{" "}
+            <span className="font-medium">„{lastObjection.reason}”</span>
+          </p>
+          {canAct ? (
+            <div className="space-y-2">
+              <Label htmlFor={`resolution-${handover.id}`}>
+                A kifogás kezelése (javítás, csere, pótlás) *
+              </Label>
+              <Textarea
+                id={`resolution-${handover.id}`}
+                rows={2}
+                value={resolution}
+                onChange={(e) => setResolution(e.target.value)}
+                placeholder="Például: a hiányzó dokkolót pótoltuk, az eszköz újra tesztelve."
+              />
+              <div className="flex flex-wrap items-center gap-3">
+                <Button
+                  size="sm"
+                  disabled={resolution.trim().length < MIN_REASON_LENGTH}
+                  onClick={() => {
+                    const err = store.resolveHandoverObjection(handover.id, resolution.trim());
+                    if (err) toast.error(err);
+                    else {
+                      setResolution("");
+                      toast.success("Kifogás kezelve – az eszköz ismét átadható");
+                    }
+                  }}
+                >
+                  Kifogás kezelve – újra átadásra kész
+                </Button>
+                <span className="text-xs text-muted-foreground">
+                  A kezelés leírása kötelező; utána az eszköz ismét átadható az igénylőnek.
+                </span>
+              </div>
+            </div>
+          ) : (
+            <p className="text-xs text-muted-foreground">A kari IT referens kezeli.</p>
+          )}
+        </section>
+      )}
 
       {canAct && !done && (
         <div className="grid gap-3 sm:grid-cols-2">
@@ -365,6 +444,94 @@ function HandoverCard({ handover, canAct }: { handover: AssetHandover; canAct: b
               </li>
             ))}
           </ul>
+        </section>
+      )}
+
+      {needsOldAssetDecision && (
+        <section
+          className="space-y-3 rounded-md border border-border p-4"
+          aria-labelledby={`old-asset-${handover.id}`}
+        >
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h4 id={`old-asset-${handover.id}`} className="text-sm font-semibold">
+              Lecserélt régi eszköz sorsa
+              <span className="text-destructive"> *</span>
+            </h4>
+            <span
+              className={
+                oldAssetDone
+                  ? "text-xs font-semibold text-emerald-700"
+                  : "text-xs font-semibold text-amber-700"
+              }
+            >
+              {oldAssetDone ? "Rögzítve" : "Döntés szükséges az átadáshoz"}
+            </span>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            {oldAsset
+              ? `${oldAsset.purpose} · leltári szám: ${oldAsset.inventoryNo}${oldAsset.serial ? ` · gyári szám: ${oldAsset.serial}` : ""}`
+              : `Leltári azonosító: ${handover.replacedAssetId}`}
+            . Az átadás csak a régi eszköz sorsának rögzítése után zárható le.
+          </p>
+          {canAct && !done ? (
+            <>
+              <RadioGroup
+                value={handover.oldAssetDisposition ?? ""}
+                onValueChange={(v) =>
+                  store.updateHandover(
+                    handover.id,
+                    { oldAssetDisposition: v as OldAssetDisposition },
+                    `Régi eszköz sorsa: ${OLD_ASSET_DISPOSITION_LABELS[v as OldAssetDisposition]}`,
+                  )
+                }
+                className="grid gap-2 sm:grid-cols-3"
+              >
+                {(Object.keys(OLD_ASSET_DISPOSITION_LABELS) as OldAssetDisposition[]).map((k) => (
+                  <label
+                    key={k}
+                    htmlFor={`old-${handover.id}-${k}`}
+                    className="flex cursor-pointer items-start gap-2 rounded-md border border-border p-2 text-xs"
+                  >
+                    <RadioGroupItem id={`old-${handover.id}-${k}`} value={k} className="mt-0.5" />
+                    <span className="font-medium">{OLD_ASSET_DISPOSITION_LABELS[k]}</span>
+                  </label>
+                ))}
+              </RadioGroup>
+              <div className="space-y-1.5">
+                <Label htmlFor={`old-note-${handover.id}`}>
+                  Indoklás / megjegyzés
+                  {handover.oldAssetDisposition === "marad" && (
+                    <span className="text-destructive"> *</span>
+                  )}
+                </Label>
+                <Textarea
+                  id={`old-note-${handover.id}`}
+                  rows={2}
+                  value={oldAssetNote}
+                  onChange={(e) => setOldAssetNote(e.target.value)}
+                  onBlur={() =>
+                    (handover.oldAssetNote ?? "") !== oldAssetNote &&
+                    store.updateHandover(
+                      handover.id,
+                      { oldAssetNote: oldAssetNote || undefined },
+                      "Régi eszköz sorsának indoklása rögzítve",
+                    )
+                  }
+                  placeholder={
+                    handover.oldAssetDisposition === "marad"
+                      ? "Kötelező: miért marad a régi eszköz az igénylőnél (pl. másodlagos munkaállomás)?"
+                      : "Például: a régi eszköz még oktatási célra használható, raktárba került."
+                  }
+                />
+              </div>
+            </>
+          ) : (
+            <p className="text-xs">
+              {handover.oldAssetDisposition
+                ? `${OLD_ASSET_DISPOSITION_LABELS[handover.oldAssetDisposition]}${handover.oldAssetNote ? ` – ${handover.oldAssetNote}` : ""}`
+                : "Még nincs rögzítve."}
+            </p>
+          )}
         </section>
       )}
 
@@ -541,21 +708,46 @@ function HandoverCard({ handover, canAct }: { handover: AssetHandover; canAct: b
           </Button>
           <Button
             size="sm"
-            disabled={!serial || !inventoryNo || !productId || !requiredDone || !hasPhoto}
+            disabled={
+              objected ||
+              !serial ||
+              !inventoryNo ||
+              !productId ||
+              !requiredDone ||
+              !hasPhoto ||
+              !oldAssetDone
+            }
             onClick={() => {
-              save("Átadási adatok rögzítve");
+              save("Átadási adatok rögzítve", {
+                oldAssetNote: needsOldAssetDecision ? oldAssetNote || undefined : undefined,
+              });
               store.handOverToUser(handover.id, note || undefined);
               toast.success("Eszköz átadva az igénylőnek");
             }}
           >
-            Eszköz átadása az igénylőnek
+            {(handover.objections ?? []).length > 0
+              ? "Eszköz ismételt átadása az igénylőnek"
+              : "Eszköz átadása az igénylőnek"}
           </Button>
-          {(!serial || !inventoryNo || !productId || !requiredDone || !hasPhoto) && (
+          {objected ? (
             <span className="self-center text-xs text-muted-foreground">
-              Az átadáshoz kötelező: modell, gyári szám, leltárkód, minden kötelező checklist-lépés
-              {!requiredDone ? ` (hiányzik: ${missingRequired.length})` : ""} és legalább egy
-              fénykép csatolása.
+              Az átadás előtt a kifogás kezelését kell rögzíteni.
             </span>
+          ) : (
+            (!serial ||
+              !inventoryNo ||
+              !productId ||
+              !requiredDone ||
+              !hasPhoto ||
+              !oldAssetDone) && (
+              <span className="self-center text-xs text-muted-foreground">
+                Az átadáshoz kötelező: modell, gyári szám, leltárkód, minden kötelező
+                checklist-lépés
+                {!requiredDone ? ` (hiányzik: ${missingRequired.length})` : ""}, legalább egy
+                fénykép csatolása
+                {needsOldAssetDecision ? " és a régi eszköz sorsának rögzítése" : ""}.
+              </span>
+            )
           )}
         </div>
       )}
@@ -609,11 +801,15 @@ function HandoverWorkspace() {
       />
       {viewOnly && <ViewOnlyNotice />}
 
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatTile label="Átadásra váró eszköz" value={String(open.length)} />
         <StatTile
           label="Átadva, visszaigazolásra vár"
           value={String(mine.filter((h) => h.status === "atadva").length)}
+        />
+        <StatTile
+          label="Átvételi kifogás"
+          value={String(mine.filter((h) => h.status === "kifogasolva").length)}
         />
         <StatTile label="Lezárt átadás" value={String(closed.length)} />
       </div>

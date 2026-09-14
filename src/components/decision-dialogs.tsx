@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { MessageCircleQuestion, X } from "lucide-react";
+import { MessageCircleQuestion, ShieldAlert, X } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -135,6 +135,73 @@ export function ClarificationButton({
               }}
             >
               Pontosítás kérése
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
+  );
+}
+
+/** Átvételi kifogás kötelező indoklással (D4) – az eszköz visszakerül a kari IT referenshez. */
+export function ObjectionButton({
+  handoverId,
+  deviceName,
+  onConfirm,
+  size = "sm",
+}: {
+  handoverId: string;
+  deviceName: string;
+  onConfirm: (reason: string) => void;
+  size?: "sm" | "default";
+}) {
+  const [open, setOpen] = useState(false);
+  const [reason, setReason] = useState("");
+  const valid = reason.trim().length >= MIN;
+  return (
+    <>
+      <Button size={size} variant="outline" onClick={() => setOpen(true)}>
+        <ShieldAlert className="size-4" /> Kifogást jelzek
+      </Button>
+      <AlertDialog
+        open={open}
+        onOpenChange={(v) => {
+          setOpen(v);
+          if (!v) setReason("");
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Kifogást jelez az átvételkor?</AlertDialogTitle>
+            <AlertDialogDescription>
+              A(z) {deviceName} eszköz visszakerül a kari IT referenshez, aki a kifogást kezeli
+              (javítás, csere, hiányzó tartozék pótlása), majd ismét átadja. Az indoklást a referens
+              és a vezetői nézet is látja.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor={`objection-${handoverId}`}>A kifogás indoklása *</Label>
+            <Textarea
+              id={`objection-${handoverId}`}
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              placeholder="Például: a dokkoló hiányzik a csomagból, vagy a kijelző sérült."
+              rows={3}
+            />
+            {!valid && reason.length > 0 && (
+              <p className="text-xs text-muted-foreground">Legalább {MIN} karakter szükséges.</p>
+            )}
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Mégsem</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={!valid}
+              onClick={() => {
+                onConfirm(reason.trim());
+                setReason("");
+              }}
+            >
+              Kifogás rögzítése
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

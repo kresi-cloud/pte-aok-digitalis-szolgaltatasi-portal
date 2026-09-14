@@ -37,6 +37,7 @@ import { locationsForUser } from "@/lib/asset-logic";
 import { HANDOVER_STATUS_LABELS, INVENTORY_STATUS_LABELS, type InventoryItem } from "@/lib/types";
 import { MyAssets, MyLicences, SharedAssets } from "@/components/personal-assets";
 import { PageHeading } from "@/components/page-heading";
+import { ObjectionButton } from "@/components/decision-dialogs";
 
 export const Route = createFileRoute("/leltar")({
   head: () => ({
@@ -124,6 +125,9 @@ function Inventory() {
   const pendingHandovers = (store.handovers ?? []).filter(
     (h) => h.recipientId === currentUser.id && h.status === "atadva",
   );
+  const objectedHandovers = (store.handovers ?? []).filter(
+    (h) => h.recipientId === currentUser.id && h.status === "kifogasolva",
+  );
   const incomingHandovers = (store.handovers ?? []).filter(
     (h) =>
       h.recipientId === currentUser.id &&
@@ -192,15 +196,43 @@ function Inventory() {
                   {h.installedOs ? ` · ${h.installedOs}` : ""}
                 </p>
               </div>
-              <Button
-                size="sm"
-                onClick={() => {
-                  store.confirmHandoverReceipt(h.id);
-                  toast.success("Átvétel visszaigazolva – az eszköz bekerült a leltárába");
-                }}
-              >
-                Átvétel visszaigazolása
-              </Button>
+              <div className="flex flex-wrap gap-2">
+                <ObjectionButton
+                  handoverId={h.id}
+                  deviceName={h.deviceName}
+                  onConfirm={(reason) => {
+                    const err = store.objectHandoverReceipt(h.id, reason);
+                    if (err) toast.error(err);
+                    else toast.success("Kifogás rögzítve – az eszköz visszakerült a referenshez");
+                  }}
+                />
+                <Button
+                  size="sm"
+                  onClick={() => {
+                    store.confirmHandoverReceipt(h.id);
+                    toast.success("Átvétel visszaigazolva – az eszköz bekerült a leltárába");
+                  }}
+                >
+                  Átvétel visszaigazolása
+                </Button>
+              </div>
+            </div>
+          ))}
+        </section>
+      )}
+
+      {objectedHandovers.length > 0 && (
+        <section className="card-surface space-y-3 border-l-4 border-l-warning p-5">
+          <h2 className="font-display text-base font-semibold">Kifogásolt átvétel</h2>
+          <p className="text-sm text-muted-foreground">
+            A jelzett kifogást a kari IT referens kezeli, majd az eszközt ismét átadja Önnek.
+          </p>
+          {objectedHandovers.map((h) => (
+            <div key={h.id} className="rounded-md border border-border p-3">
+              <p className="text-sm font-semibold">{h.deviceName}</p>
+              <p className="text-xs text-muted-foreground">
+                Kifogás: {h.objections?.at(-1)?.reason ?? "—"}
+              </p>
             </div>
           ))}
         </section>

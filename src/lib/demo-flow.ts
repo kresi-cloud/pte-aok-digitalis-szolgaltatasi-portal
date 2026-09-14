@@ -1,7 +1,11 @@
 import type { PlanApproval, ProcurementPlanItem } from "./asset-types";
 import type { AssetHandover, RoleKey, ServiceRequest, User } from "./types";
 import { planApprovalForItem } from "./withdraw";
-import { handoverConfigured } from "./procurement-rules";
+import {
+  handoverConfigured,
+  handoverNeedsOldAssetDecision,
+  oldAssetDecisionComplete,
+} from "./procurement-rules";
 import { PROCESS_STEP_COUNT } from "./process-steps";
 import { normalizeLegacyPlanStatus } from "./plan-stage";
 
@@ -159,24 +163,43 @@ export function demoCurrentStep(ctx: DemoFlowContext): DemoStep {
       index: 8,
       state: "Az eszköz átadva, átvételi visszaigazolásra vár.",
       waitingOn: `${nameOf(users, DEMO_REQUESTER_ID, "Az igénylő")} – igénylő`,
-      action: "Átvétel visszaigazolása és ügy lezárása",
+      action: "Átvétel visszaigazolása (vagy kifogás jelzése) és ügy lezárása",
       actorId: DEMO_REQUESTER_ID,
       role: "igenylo",
       route: "/igeny/$id",
     };
   }
 
+  if (handover?.status === "kifogasolva") {
+    return {
+      ...base,
+      index: 7,
+      state: "Az igénylő átvételi kifogást jelzett, a kari IT referens kezeli.",
+      waitingOn: `${users.find((u) => u.id === (handover.referentId ?? referentId))?.name ?? "Kari IT referens"} – kari IT referens`,
+      action: "Kifogás kezelése és ismételt átadás",
+      actorId: handover.referentId ?? referentId,
+      role: "it_referens",
+      route: "/eszkozatadas",
+    };
+  }
+
   if (handover) {
     const configured = handoverConfigured(handover);
+    const oldAssetPending =
+      handoverNeedsOldAssetDecision(handover) && !oldAssetDecisionComplete(handover);
     return {
       ...base,
       index: configured ? 7 : 6,
       state: configured
-        ? "Az eszköz konfigurálva, átadásra kész."
+        ? oldAssetPending
+          ? "Az eszköz konfigurálva – a régi eszköz sorsa még nincs rögzítve."
+          : "Az eszköz konfigurálva, átadásra kész."
         : "Az eszköz beérkezett, konfigurálás folyamatban.",
       waitingOn: `${users.find((u) => u.id === (handover.referentId ?? referentId))?.name ?? "Kari IT referens"} – kari IT referens`,
       action: configured
-        ? "Eszköz átadása az igénylőnek"
+        ? oldAssetPending
+          ? "Régi eszköz sorsának rögzítése és eszköz átadása az igénylőnek"
+          : "Eszköz átadása az igénylőnek"
         : "Telepítés, checklist, gyári szám, leltárkód és fénykép rögzítése",
       actorId: handover.referentId ?? referentId,
       role: "it_referens",

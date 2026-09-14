@@ -474,6 +474,58 @@ export const EN_OVERRIDES: Record<string, string> = {
   Beszerző: "Procurer",
   Dékán: "Dean",
   "Superuser (jogosultságkezelő)": "Superuser (permission manager)",
+  "Átvételi kifogás – a kari IT referens kezeli":
+    "Acceptance objection – handled by the faculty IT liaison",
+  "Kifogást jelzek": "Raise an objection",
+  "Kifogást jelez az átvételkor?": "Raise an objection at acceptance?",
+  "A kifogás indoklása *": "Reason for the objection *",
+  "Kifogás rögzítése": "Record objection",
+  "Kifogásolt átvétel": "Objected acceptance",
+  "Átvételi kifogás az igénylőtől": "Acceptance objection from the requester",
+  "A kifogás kezelése (javítás, csere, pótlás) *":
+    "Handling of the objection (repair, replacement, missing items) *",
+  "Kifogás kezelve – újra átadásra kész": "Objection handled – ready for handover again",
+  "A kezelés leírása kötelező; utána az eszköz ismét átadható az igénylőnek.":
+    "A description of the handling is required; afterwards the device can be handed over again.",
+  "A kari IT referens kezeli.": "Handled by the faculty IT liaison.",
+  "Az átadás előtt a kifogás kezelését kell rögzíteni.":
+    "The handling of the objection must be recorded before handover.",
+  "Eszköz ismételt átadása az igénylőnek": "Hand the device over to the requester again",
+  "Lecserélt régi eszköz sorsa": "Fate of the replaced old device",
+  Rögzítve: "Recorded",
+  "Döntés szükséges az átadáshoz": "Decision required for handover",
+  "Visszavétel a kari raktárba": "Return to the faculty store",
+  "Selejtezésre jelölés": "Mark for scrapping",
+  "Az igénylőnél marad (indoklással)": "Stays with the requester (with justification)",
+  "Indoklás / megjegyzés": "Justification / note",
+  "Még nincs rögzítve.": "Not recorded yet.",
+  "Átvételi kifogás": "Acceptance objection",
+  "A jelzett kifogást a kari IT referens kezeli, majd az eszközt ismét átadja Önnek.":
+    "The faculty IT liaison handles the objection and then hands the device over to you again.",
+  "Kifogás kezelése és ismételt átadás": "Handle the objection and hand over again",
+  "Az igénylő átvételi kifogást jelzett, a kari IT referens kezeli.":
+    "The requester raised an acceptance objection; the faculty IT liaison is handling it.",
+  "Átvétel visszaigazolása (vagy kifogás jelzése) és ügy lezárása":
+    "Confirm acceptance (or raise an objection) and close the case",
+  "Régi eszköz sorsának rögzítése és eszköz átadása az igénylőnek":
+    "Record the fate of the old device and hand it over to the requester",
+  "Az eszköz konfigurálva – a régi eszköz sorsa még nincs rögzítve.":
+    "The device is configured – the fate of the old device is not recorded yet.",
+  "Konfigurálva – a régi eszköz sorsa rögzítendő":
+    "Configured – the fate of the old device must be recorded",
+  "A kifogás kezelve, az eszköz ismételt átadásra kész.":
+    "The objection has been handled; the device is ready for handover again.",
+  "Kifogás kezelése": "Objection handling",
+  "Lecserélt eszköz sorsa rögzítve": "Fate of the replaced device recorded",
+  "Átvételi kifogás rögzítve": "Acceptance objection recorded",
+  "Átvételi kifogás kezelve": "Acceptance objection handled",
+  "Kifogás kezelve – az eszköz ismét átadásra kész":
+    "Objection handled – the device is ready for handover again",
+  "Átvételi kifogás – az eszköz visszakerült a kari IT referenshez":
+    "Acceptance objection – the device went back to the faculty IT liaison",
+  "Eszköz a kifogás kezelése után ismét átadva az igénylőnek":
+    "Device handed over to the requester again after handling the objection",
+  Mégsem: "Cancel",
 };
 
 export function progressLabel(code: string): string {

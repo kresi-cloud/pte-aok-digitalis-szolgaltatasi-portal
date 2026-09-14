@@ -528,14 +528,39 @@ export interface Announcement {
 
 /** Eszközátadás: a beszerzett eszköz útja a beérkezéstől az igénylői átvételig. */
 export type HandoverStatus =
-  "beerkezett" | "elokeszites_alatt" | "atadasra_kesz" | "atadva" | "atvetel_igazolva";
+  | "beerkezett"
+  | "elokeszites_alatt"
+  | "atadasra_kesz"
+  | "atadva"
+  | "kifogasolva"
+  | "atvetel_igazolva";
 
 export const HANDOVER_STATUS_LABELS: Record<HandoverStatus, string> = {
   beerkezett: "Beérkezett a beszerzésből",
   elokeszites_alatt: "Telepítés és beállítás alatt",
   atadasra_kesz: "Átadásra kész",
   atadva: "Átadva – átvételi visszaigazolásra vár",
+  kifogasolva: "Átvételi kifogás – a kari IT referens kezeli",
   atvetel_igazolva: "Átvétel visszaigazolva",
+};
+
+/** Az igénylő átvételi kifogása (D4): indoklással, a referens kezelésének nyomával. */
+export interface HandoverObjection {
+  at: string;
+  byId: string;
+  reason: string;
+  resolvedAt?: string | undefined;
+  resolvedBy?: string | undefined;
+  resolution?: string | undefined;
+}
+
+/** A lecserélt régi eszköz sorsa az átadáskor (D13). */
+export type OldAssetDisposition = "raktar" | "selejt" | "marad";
+
+export const OLD_ASSET_DISPOSITION_LABELS: Record<OldAssetDisposition, string> = {
+  raktar: "Visszavétel a kari raktárba",
+  selejt: "Selejtezésre jelölés",
+  marad: "Az igénylőnél marad (indoklással)",
 };
 
 export interface HandoverEvent {
@@ -578,6 +603,14 @@ export interface AssetHandover {
   checklist?: Record<string, boolean> | undefined;
   /** csatolt fényképek és dokumentumok (átvételi jegyzőkönyv, számla, fotó) */
   attachments?: HandoverAttachment[] | undefined;
+  /** az igénylő átvételi kifogásai időrendben (D4) */
+  objections?: HandoverObjection[] | undefined;
+  /** csere esetén a lecserélt régi eszköz leltári azonosítója (D13) */
+  replacedAssetId?: string | undefined;
+  /** a régi eszköz sorsa – átadás előtt kötelező, ha van lecserélt eszköz (D13) */
+  oldAssetDisposition?: OldAssetDisposition | undefined;
+  /** a régi eszköz sorsának indoklása (a „marad” döntésnél kötelező) */
+  oldAssetNote?: string | undefined;
 }
 
 /** Kari IT referens telepítési checklist lépése. */
