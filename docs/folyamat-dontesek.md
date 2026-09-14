@@ -210,3 +210,14 @@ Minden tétel: a kérdés, a döntés, a következmény a prototípusra.
   fut a küszöbellenőrzés; helyettesítő nélkül a tétel és az igény „Beszerzés meghiúsult”
   állapotba kerül (lezárt, megszakadt folyamat), az igénylő új igényt adhat be. Beérkezett
   darab után akadály már nem jelezhető.
+
+### 5. csomag – D9, D10 (kész)
+
+- Ütemezés-eltérés: az igénylő kért ütemezése (azonnali / évszámos negyedév) és a tervsor
+  besorolása összevetve; eltérő bontásnál vagy célnegyedévnél a beszerzői munkatér indoklást
+  kér (dialógus, tömeges átütemezésnél mező), enélkül a módosítás nem rögzül. Az eltérés a
+  tervsoron és az igényen látszik, az igénylő értesítést kap; egyezésnél az eltérés törlődik.
+- Tételszintű kiemelés: a gazdasági vezető a csomag jóváhagyásakor egyes tételeket indoklással
+  kiemelhet; a csomag jóváhagyva, a kiemelt tételek beszerzése áll. Az IT eszközmenedzser
+  átdolgozás után leírással újra beküldi; a gazdasági vezető jóváhagyja vagy ismét kiemeli
+  (újabb kör, indoklással). Minden lépésnél értesítés az igénylőnek, audit a tervsoron.

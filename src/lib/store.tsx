@@ -75,6 +75,13 @@ import {
 } from "./deadlines";
 import { requestSituation } from "./request-situation";
 import {
+  canDecideHold,
+  canResubmitHold,
+  nextHoldRound,
+  scheduleChangeAllowed,
+  scheduleCheck,
+} from "./schedule-rules";
+import {
   budgetCheck,
   canDecideBudgetReview,
   canReportProcurementBlock,
@@ -303,14 +310,31 @@ interface StoreValue extends PersistedState {
   /** Elfogadott igényhez utólag beszerzési tervsor létrehozása. */
   createPlanItemFromRequest: (requestId: string) => void;
   updatePlanItem: (id: string, patch: Partial<ProcurementPlanItem>) => void;
+  /**
+   * Átütemezés. Ha az új ütemezés eltér az igénylő kérésétől, az indoklás kötelező (D9);
+   * tiltott esetben a visszatérési érték a hibaüzenet.
+   */
   reschedulePlanItem: (
     id: string,
     planYear: number,
     quarter: ProcurementPlanItem["quarter"],
     comment?: string,
-  ) => void;
+  ) => string | null;
   removePlanItem: (id: string) => void;
-  setPlanItemTiming: (id: string, timing: "azonnali" | "negyedeves") => void;
+  /** Bontás (azonnali / negyedéves); eltérésnél az indoklás kötelező (D9). */
+  setPlanItemTiming: (
+    id: string,
+    timing: "azonnali" | "negyedeves",
+    reason?: string,
+  ) => string | null;
+  /** IT eszközmenedzser: a kiemelt tétel átdolgozva, újbóli beküldés a gazdasági vezetőnek (D10). */
+  resubmitFlaggedItem: (planItemId: string, comment: string) => string | null;
+  /** Gazdasági vezető: döntés a kiemelt tételről – jóváhagyás vagy ismételt kiemelés (D10). */
+  decideFlaggedItem: (
+    planItemId: string,
+    decision: "jovahagyva" | "elutasitva",
+    comment?: string,
+  ) => string | null;
   handPlanItemToPlanner: (id: string) => void;
   createScrapProposal: (input: {
     year: number;
@@ -363,10 +387,12 @@ interface StoreValue extends PersistedState {
   objectHandoverReceipt: (id: string, reason: string) => string | null;
   /** Kari IT referens: a kifogás kezelése leírással – az eszköz újra átadásra kész (D4). */
   resolveHandoverObjection: (id: string, resolution: string) => string | null;
+  /** Gazdasági vezető: a csomag döntése; jóváhagyásnál egyes tételek kiemelhetők (D10). */
   decidePlanApproval: (
     id: string,
     decision: "jovahagyva" | "visszakuldve",
     comment?: string,
+    flagged?: { itemId: string; reason: string }[],
   ) => void;
 
   /** Admin: új felhasználó létrehozása a jogosultságkezelésben. */
@@ -816,6 +842,84 @@ function applyBudgetCheck(
       },
       ...s.assetAudit,
     ],
+  };
+}
+
+/** D9: eltérő ütemezés rögzítése indoklással, az igénylő értesítésével; egyezésnél törlés. */
+function applyScheduleDeviation(
+  s: PersistedState,
+  itemId: string,
+  reason: string | undefined,
+  actorId: string,
+): PersistedState {
+  const item = s.planItems.find((p) => p.id === itemId);
+  if (!item) return s;
+  const request = item.sourceRequestId
+    ? s.requests.find((r) => r.id === item.sourceRequestId)
+    : undefined;
+  const check = scheduleCheck(request, item);
+  const now = todayIso();
+  if (!check.deviates) {
+    if (!item.scheduleDeviation) return s;
+    return {
+      ...s,
+      planItems: s.planItems.map((p) =>
+        p.id === itemId ? { ...p, scheduleDeviation: undefined } : p,
+      ),
+    };
+  }
+  const text = (reason ?? "").trim();
+  const same =
+    item.scheduleDeviation?.actual === check.actual && item.scheduleDeviation?.reason === text;
+  if (same) return s;
+  return {
+    ...s,
+    planItems: s.planItems.map((p) =>
+      p.id === itemId
+        ? {
+            ...p,
+            scheduleDeviation: {
+              at: now,
+              byId: actorId,
+              requested: check.requested ?? "",
+              actual: check.actual,
+              reason: text,
+            },
+          }
+        : p,
+    ),
+    requests: request
+      ? s.requests.map((r) =>
+          r.id === request.id
+            ? {
+                ...r,
+                updatedAt: now,
+                audit: [
+                  ...r.audit,
+                  {
+                    id: `a-${Date.now()}-sd`,
+                    at: now,
+                    actorId,
+                    action: "Ütemezés eltér a kérttől",
+                    detail: `${check.requestedLabel} → ${check.actualLabel} · ${text}`,
+                  },
+                ],
+              }
+            : r,
+        )
+      : s.requests,
+    notifications: request
+      ? [
+          {
+            id: `n-${Date.now()}-sd`,
+            at: now,
+            read: false,
+            requestId: request.id,
+            text: `${request.title}: az IT eszközmenedzser a kért ütemezéstől (${check.requestedLabel}) eltérően sorolta be: ${check.actualLabel}. Indoklás: ${text}`,
+          },
+          ...s.notifications,
+        ]
+      : s.notifications,
   };
 }
 
@@ -1778,10 +1882,20 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             )
           : next;
       }),
-    reschedulePlanItem: (id, planYear, quarter, comment) =>
+    reschedulePlanItem: (id, planYear, quarter, comment) => {
+      const cur = state.planItems.find((p) => p.id === id);
+      if (!cur) return "A beszerzési tétel nem található.";
+      const req = cur.sourceRequestId
+        ? state.requests.find((r) => r.id === cur.sourceRequestId)
+        : undefined;
+      const err = scheduleChangeAllowed(
+        scheduleCheck(req, { timing: "negyedeves", planYear, quarter }),
+        comment,
+      );
+      if (err) return err;
       setState((s) => {
         const prev = s.planItems.find((p) => p.id === id);
-        return {
+        const next: PersistedState = {
           ...s,
           planItems: s.planItems.map((p) =>
             p.id === id
@@ -1802,13 +1916,16 @@ export function StoreProvider({ children }: { children: ReactNode }) {
               actorId: currentUser.id,
               entity: "beszerzes",
               entityId: id,
-              action: "Beszerzési tétel átütemezése (gazdasági vezető)",
+              action: "Beszerzési tétel átütemezése",
               detail: `${prev ? `${prev.planYear} ${prev.quarter}` : "?"} → ${planYear} ${quarter}${comment?.trim() ? ` · ${comment.trim()}` : ""}`,
             },
             ...s.assetAudit,
           ],
         };
-      }),
+        return applyScheduleDeviation(next, id, comment, currentUser.id);
+      });
+      return null;
+    },
     removePlanItem: (id) =>
       setState((s) => ({
         ...s,
@@ -1966,23 +2083,39 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           ...s.assetAudit,
         ],
       })),
-    setPlanItemTiming: (id, timing) =>
-      setState((s) => ({
-        ...s,
-        planItems: s.planItems.map((p) => (p.id === id ? { ...p, timing } : p)),
-        assetAudit: [
+    setPlanItemTiming: (id, timing, reason) => {
+      const cur = state.planItems.find((p) => p.id === id);
+      if (!cur) return "A beszerzési tétel nem található.";
+      const req = cur.sourceRequestId
+        ? state.requests.find((r) => r.id === cur.sourceRequestId)
+        : undefined;
+      const err = scheduleChangeAllowed(scheduleCheck(req, { ...cur, timing }), reason);
+      if (err) return err;
+      setState((s) =>
+        applyScheduleDeviation(
           {
-            id: `aud-${Date.now()}`,
-            at: today(),
-            actorId: currentUser.id,
-            entity: "beszerzes",
-            entityId: id,
-            action: "Beszerzési bontás módosítása",
-            detail: timing === "azonnali" ? "Azonnali beszerzés" : "Negyedéves terv",
+            ...s,
+            planItems: s.planItems.map((p) => (p.id === id ? { ...p, timing } : p)),
+            assetAudit: [
+              {
+                id: `aud-${Date.now()}`,
+                at: today(),
+                actorId: currentUser.id,
+                entity: "beszerzes",
+                entityId: id,
+                action: "Beszerzési bontás módosítása",
+                detail: timing === "azonnali" ? "Azonnali beszerzés" : "Negyedéves terv",
+              },
+              ...s.assetAudit,
+            ],
           },
-          ...s.assetAudit,
-        ],
-      })),
+          id,
+          reason,
+          currentUser.id,
+        ),
+      );
+      return null;
+    },
     nudgePlanSubmission: (id) =>
       setState((s) => ({
         ...s,
@@ -2173,11 +2306,49 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           ],
         };
       }),
-    decidePlanApproval: (id, decision, comment) =>
+    decidePlanApproval: (id, decision, comment, flagged = []) =>
       setState((s) => {
         const target = (s.planApprovals ?? []).find((p) => p.id === id);
+        const flaggedIds = new Set(decision === "jovahagyva" ? flagged.map((f) => f.itemId) : []);
+        const flagReason = new Map(flagged.map((f) => [f.itemId, f.reason.trim()]));
+        const flaggedItems = s.planItems.filter((p) => flaggedIds.has(p.id));
         return {
           ...s,
+          // D10: a kiemelt tételek külön kört futnak, a többi jóváhagyva a beszerzőhöz kerül.
+          planItems: s.planItems.map((p) =>
+            flaggedIds.has(p.id)
+              ? {
+                  ...p,
+                  financeHold: {
+                    at: today(),
+                    byId: currentUser.id,
+                    reason: flagReason.get(p.id) ?? "",
+                    status: "kiemelve" as const,
+                    round: nextHoldRound(p.financeHold),
+                  },
+                }
+              : p,
+          ),
+          requests: s.requests.map((r) => {
+            const fi = flaggedItems.find((p) => p.sourceRequestId === r.id);
+            return fi
+              ? {
+                  ...r,
+                  updatedAt: today(),
+                  nextStep: `A gazdasági vezető kiemelte a tételt: ${flagReason.get(fi.id) ?? ""} – az IT eszközmenedzser átdolgozza, majd újra beküldi.`,
+                  audit: [
+                    ...r.audit,
+                    {
+                      id: `a-${Date.now()}-${fi.id}`,
+                      at: today(),
+                      actorId: currentUser.id,
+                      action: "Tétel kiemelése (gazdasági vezető)",
+                      detail: flagReason.get(fi.id) ?? "",
+                    },
+                  ],
+                }
+              : r;
+          }),
           planApprovals: (s.planApprovals ?? []).map((p) =>
             p.id === id
               ? {
@@ -2202,13 +2373,22 @@ export function StoreProvider({ children }: { children: ReactNode }) {
               : p,
           ),
           notifications: [
+            ...flaggedItems.map((p, i) => ({
+              id: `n-${Date.now()}-fh${i}`,
+              at: today(),
+              read: false,
+              requestId: p.sourceRequestId,
+              text: `${p.deviceName ?? standardLabel(p.standardKey)}: a gazdasági vezető kiemelte a tételt („${flagReason.get(p.id) ?? ""}”) – a csomag többi tétele jóváhagyva, ez a tétel átdolgozás után külön kört fut.`,
+            })),
             {
               id: `n-${Date.now()}`,
               at: today(),
               text: target
                 ? `${target.planYear}. évi ${target.quarter ? `${target.quarter} negyedéves` : target.scope === "azonnali" ? "azonnali" : "éves"} beszerzési terv: ${
                     decision === "jovahagyva"
-                      ? "a gazdasági vezetői jóváhagyás megtörtént, indítható a beszerzés"
+                      ? flaggedItems.length > 0
+                        ? `a gazdasági vezetői jóváhagyás megtörtént ${flaggedItems.length} tétel kiemelésével, a többi indítható`
+                        : "a gazdasági vezetői jóváhagyás megtörtént, indítható a beszerzés"
                       : "átdolgozásra visszaküldve"
                   }.`
                 : "Beszerzési terv döntés rögzítve.",
@@ -2659,6 +2839,150 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           ],
         };
       }),
+    resubmitFlaggedItem: (planItemId, comment) => {
+      const item = state.planItems.find((p) => p.id === planItemId);
+      if (!item) return "A beszerzési tétel nem található.";
+      const rule = canResubmitHold(item, state.activeRole, comment);
+      if (!rule.allowed) return rule.reason ?? "A művelet jelenleg nem végezhető el.";
+      const text = comment.trim();
+      setState((s) => ({
+        ...s,
+        planItems: s.planItems.map((p) =>
+          p.id === planItemId && p.financeHold
+            ? {
+                ...p,
+                financeHold: {
+                  ...p.financeHold,
+                  status: "atdolgozva" as const,
+                  reworkComment: text,
+                  reworkAt: today(),
+                },
+              }
+            : p,
+        ),
+        requests: s.requests.map((r) =>
+          r.id === item.sourceRequestId
+            ? {
+                ...r,
+                updatedAt: today(),
+                nextStep: "A kiemelt tétel átdolgozva, a gazdasági vezető döntésére vár.",
+                audit: [
+                  ...r.audit,
+                  {
+                    id: `a-${Date.now()}`,
+                    at: today(),
+                    actorId: currentUser.id,
+                    action: "Kiemelt tétel újbóli beküldése",
+                    detail: text,
+                  },
+                ],
+              }
+            : r,
+        ),
+        notifications: [
+          {
+            id: `n-${Date.now()}`,
+            at: today(),
+            read: false,
+            requestId: item.sourceRequestId,
+            text: `${item.deviceName ?? standardLabel(item.standardKey)}: a kiemelt tétel átdolgozva („${text}”) – a gazdasági vezető dönt.`,
+          },
+          ...s.notifications,
+        ],
+        assetAudit: [
+          {
+            id: `aud-${Date.now()}`,
+            at: today(),
+            actorId: currentUser.id,
+            entity: "beszerzes",
+            entityId: planItemId,
+            action: "Kiemelt tétel újbóli beküldése",
+            detail: text,
+          },
+          ...s.assetAudit,
+        ],
+      }));
+      return null;
+    },
+    decideFlaggedItem: (planItemId, decision, comment) => {
+      const item = state.planItems.find((p) => p.id === planItemId);
+      if (!item) return "A beszerzési tétel nem található.";
+      const rule = canDecideHold(item, state.activeRole, decision, comment ?? "");
+      if (!rule.allowed) return rule.reason ?? "A művelet jelenleg nem végezhető el.";
+      const text = comment?.trim() || undefined;
+      const approved = decision === "jovahagyva";
+      setState((s) => ({
+        ...s,
+        planItems: s.planItems.map((p) =>
+          p.id === planItemId && p.financeHold
+            ? {
+                ...p,
+                financeHold: approved
+                  ? {
+                      ...p.financeHold,
+                      status: "jovahagyva" as const,
+                      decidedBy: currentUser.id,
+                      decidedAt: today(),
+                      decisionComment: text,
+                    }
+                  : {
+                      at: today(),
+                      byId: currentUser.id,
+                      reason: text ?? p.financeHold.reason,
+                      status: "kiemelve" as const,
+                      round: p.financeHold.round + 1,
+                    },
+              }
+            : p,
+        ),
+        requests: s.requests.map((r) =>
+          r.id === item.sourceRequestId
+            ? {
+                ...r,
+                updatedAt: today(),
+                nextStep: approved
+                  ? "A kiemelt tétel jóváhagyva, a beszerzés indítható."
+                  : `A gazdasági vezető ismét kiemelte a tételt: ${text ?? ""} – az IT eszközmenedzser átdolgozza.`,
+                audit: [
+                  ...r.audit,
+                  {
+                    id: `a-${Date.now()}`,
+                    at: today(),
+                    actorId: currentUser.id,
+                    action: approved ? "Kiemelt tétel jóváhagyása" : "Tétel ismételt kiemelése",
+                    detail: text ?? "",
+                  },
+                ],
+              }
+            : r,
+        ),
+        notifications: [
+          {
+            id: `n-${Date.now()}`,
+            at: today(),
+            read: false,
+            requestId: item.sourceRequestId,
+            text: approved
+              ? `${item.deviceName ?? standardLabel(item.standardKey)}: a kiemelt tétel jóváhagyva, a beszerzés indítható.`
+              : `${item.deviceName ?? standardLabel(item.standardKey)}: a gazdasági vezető ismét kiemelte a tételt („${text ?? ""}”).`,
+          },
+          ...s.notifications,
+        ],
+        assetAudit: [
+          {
+            id: `aud-${Date.now()}`,
+            at: today(),
+            actorId: currentUser.id,
+            entity: "beszerzes",
+            entityId: planItemId,
+            action: approved ? "Kiemelt tétel jóváhagyása" : "Tétel ismételt kiemelése",
+            detail: text ?? "",
+          },
+          ...s.assetAudit,
+        ],
+      }));
+      return null;
+    },
     decideBudgetReview: (planItemId, reviewId, decision, comment) => {
       const item = state.planItems.find((p) => p.id === planItemId);
       const request = item?.sourceRequestId

@@ -96,6 +96,26 @@ export function planItemStage(
       overdue: false,
     };
   }
+  if (item.financeHold?.status === "kiemelve" && !handover) {
+    return {
+      ...step(STEP.it_besorolas),
+      label: `Kiemelt tétel (${item.financeHold.round}. kör) – átdolgozás az eszközmenedzsernél`,
+      nextAction: "Átdolgozás a gazdasági vezető indoklása szerint és újbóli beküldés",
+      ...responsibleForRole(users, "eszkozmenedzser"),
+      done: false,
+      overdue,
+    };
+  }
+  if (item.financeHold?.status === "atdolgozva" && !handover) {
+    return {
+      ...step(STEP.gazdasagi_jovahagyas),
+      label: "Kiemelt tétel átdolgozva – gazdasági döntésre vár",
+      nextAction: "A kiemelt tétel jóváhagyása vagy ismételt kiemelése",
+      ...responsibleForRole(users, "gazdasagi_vezeto"),
+      done: false,
+      overdue,
+    };
+  }
   const review = pendingBudgetReview(item);
   if (review && !handover) {
     return {

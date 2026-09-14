@@ -40,6 +40,13 @@ import { BlockButton, DeliveryButton, StartOrderButton } from "@/components/proc
 import { BudgetBadge } from "@/components/budget-badge";
 import { budgetCheck } from "@/lib/budget-rules";
 import { deliveredQuantity, handoverForItem, remainingQuantity } from "@/lib/procurement-rules";
+import {
+  ReflagButton,
+  ResubmitHoldButton,
+  ScheduleReasonDialog,
+} from "@/components/schedule-dialogs";
+import { scheduleCheck } from "@/lib/schedule-rules";
+import { Input } from "@/components/ui/input";
 
 export const Route = createFileRoute("/beszerzesek")({
   head: () => ({
@@ -160,6 +167,35 @@ function ItemRow({
     (item.status === "beszerzes_alatt" || item.status === "jovahagyva" || next.key === "start") &&
     item.status !== "meghiusult" &&
     !hasHandover;
+  // D9: az igénylő kérésétől eltérő ütemezés indoklást kér.
+  const [pendingSchedule, setPendingSchedule] = useState<
+    | { kind: "timing"; timing: "azonnali" | "negyedeves"; check: ReturnType<typeof scheduleCheck> }
+    | { kind: "block"; planYear: number; quarter: Quarter; check: ReturnType<typeof scheduleCheck> }
+    | null
+  >(null);
+  const applySchedule = (change: NonNullable<typeof pendingSchedule>, reason?: string) => {
+    const error =
+      change.kind === "timing"
+        ? store.setPlanItemTiming(item.id, change.timing, reason)
+        : store.reschedulePlanItem(item.id, change.planYear, change.quarter, reason);
+    if (error) {
+      toast.error(error);
+      return;
+    }
+    toast.success(
+      change.kind === "timing"
+        ? change.timing === "azonnali"
+          ? "Azonnali beszerzés"
+          : "Negyedéves tervbe sorolva"
+        : `Átütemezve: ${change.planYear}. ${QUARTER_LABELS[change.quarter]}`,
+    );
+  };
+  const requestSchedule = (change: NonNullable<typeof pendingSchedule>) => {
+    if (change.check.deviates) setPendingSchedule(change);
+    else applySchedule(change);
+  };
+  const scheduleNow = sourceRequest ? scheduleCheck(sourceRequest, item) : undefined;
+  const hold = item.financeHold;
   const sourceSituation = sourceRequest
     ? requestSituation(sourceRequest, {
         planItems: store.planItems,
@@ -213,6 +249,37 @@ function ItemRow({
               : ""}
           </span>
         )}
+        {scheduleNow?.deviates && item.scheduleDeviation && (
+          <span className="mt-1 block text-xs text-muted-foreground">
+            {`Ütemezés eltér a kérttől: ${scheduleNow.requestedLabel} → ${scheduleNow.actualLabel} · ${item.scheduleDeviation.reason}`}
+          </span>
+        )}
+        {hold && (hold.status === "kiemelve" || hold.status === "atdolgozva") && (
+          <span className="mt-1 block text-xs">
+            <span className="inline-flex rounded-full border border-warning/50 bg-warning/15 px-2 py-0.5 text-[11px] font-medium text-warning-foreground">
+              {hold.status === "kiemelve"
+                ? `Kiemelve (${hold.round}. kör) – átdolgozás`
+                : `Átdolgozva – gazdasági döntésre vár`}
+            </span>{" "}
+            <span className="text-muted-foreground">
+              {hold.status === "kiemelve"
+                ? `${lookup.user(hold.byId)?.name ?? "Gazdasági vezető"}: ${hold.reason}`
+                : `Átdolgozás: ${hold.reworkComment ?? ""}`}
+            </span>
+          </span>
+        )}
+        {pendingSchedule && (
+          <ScheduleReasonDialog
+            open
+            requestedLabel={pendingSchedule.check.requestedLabel}
+            actualLabel={pendingSchedule.check.actualLabel}
+            onConfirm={(reason) => {
+              applySchedule(pendingSchedule, reason);
+              setPendingSchedule(null);
+            }}
+            onCancel={() => setPendingSchedule(null)}
+          />
+        )}
         {item.substitution && (
           <span className="mt-1 block text-xs text-muted-foreground">
             {`Helyettesítő modell: ${item.substitution.fromDeviceName} → ${item.substitution.toDeviceName} (${item.substitution.toUnitGross.toLocaleString("hu-HU")} Ft/db) · ${item.substitution.reason}`}
@@ -243,6 +310,38 @@ function ItemRow({
             <DeadlineBadge deadline={sourceSituation?.deadline} compact />
           </span>
         )}
+        {hold?.status === "kiemelve" && store.activeRole === "eszkozmenedzser" && (
+          <span className="mt-2 block">
+            <ResubmitHoldButton
+              onConfirm={(comment) => {
+                const err = store.resubmitFlaggedItem(item.id, comment);
+                if (err) toast.error(err);
+                else toast.success("A kiemelt tétel újra beküldve a gazdasági vezetőnek");
+              }}
+            />
+          </span>
+        )}
+        {hold?.status === "atdolgozva" && store.activeRole === "gazdasagi_vezeto" && (
+          <span className="mt-2 flex flex-wrap gap-2">
+            <Button
+              size="sm"
+              onClick={() => {
+                const err = store.decideFlaggedItem(item.id, "jovahagyva");
+                if (err) toast.error(err);
+                else toast.success("A kiemelt tétel jóváhagyva – a beszerzés indítható");
+              }}
+            >
+              Kiemelt tétel jóváhagyása
+            </Button>
+            <ReflagButton
+              onConfirm={(reason) => {
+                const err = store.decideFlaggedItem(item.id, "elutasitva", reason);
+                if (err) toast.error(err);
+                else toast("A tétel ismét kiemelve – az eszközmenedzser átdolgozza");
+              }}
+            />
+          </span>
+        )}
         {stage.overdue && (
           <span className="ml-2 inline-flex rounded-full bg-destructive/10 px-2 py-0.5 text-[11px] font-medium text-destructive">
             Késedelmes
@@ -262,10 +361,12 @@ function ItemRow({
             <Select
               value={isImmediate ? "azonnali" : "negyedeves"}
               onValueChange={(v) => {
-                store.setPlanItemTiming(item.id, v as "azonnali" | "negyedeves");
-                toast.success(
-                  v === "azonnali" ? "Azonnali beszerzés" : "Negyedéves tervbe sorolva",
-                );
+                const timing = v as "azonnali" | "negyedeves";
+                requestSchedule({
+                  kind: "timing",
+                  timing,
+                  check: scheduleCheck(sourceRequest, { ...item, timing }),
+                });
               }}
             >
               <SelectTrigger className="w-[170px]" aria-label="Bontás">
@@ -285,8 +386,16 @@ function ItemRow({
               onValueChange={(v) => {
                 const block = BLOCKS.find((b) => b.value === v);
                 if (!block) return;
-                store.reschedulePlanItem(item.id, block.planYear, block.quarter);
-                toast.success(`Átütemezve: ${block.label}`);
+                requestSchedule({
+                  kind: "block",
+                  planYear: block.planYear,
+                  quarter: block.quarter,
+                  check: scheduleCheck(sourceRequest, {
+                    timing: "negyedeves",
+                    planYear: block.planYear,
+                    quarter: block.quarter,
+                  }),
+                });
               }}
             >
               <SelectTrigger className="w-[170px]" aria-label="Célnegyedév">
@@ -448,6 +557,10 @@ function ApprovalCard({ approval }: { approval: PlanApproval }) {
   );
   const total = items.reduce((s, i) => s + itemCost(i).withContingency, 0);
   const status = normalizeLegacyPlanStatus(approval.status);
+  // D10: jóváhagyáskor egyes tételek kiemelhetők indoklással.
+  const [flags, setFlags] = useState<Record<string, string>>({});
+  const flagged = Object.entries(flags).filter(([id]) => items.some((i) => i.id === id));
+  const flagsValid = flagged.every(([, r]) => r.trim().length >= 5);
 
   const STEPS: { key: string; label: string }[] = [
     { key: "tervezes", label: "Eszközmenedzseri tervezés" },
@@ -579,15 +692,73 @@ function ApprovalCard({ approval }: { approval: PlanApproval }) {
               <p id="plan-decision-hint" className="text-xs text-muted-foreground">
                 Visszaküldéshez írja le, mit kell átdolgozni – az eszközmenedzser ezt látja.
               </p>
+              {items.length > 0 && (
+                <div className="space-y-2 rounded-md border border-border p-3">
+                  <p className="text-xs font-semibold">
+                    Tételek kiemelése (opcionális) – a kiemelt tétel külön kört fut, a többi
+                    jóváhagyva a beszerzőhöz kerül
+                  </p>
+                  <ul className="space-y-2">
+                    {items.map((i) => {
+                      const on = i.id in flags;
+                      return (
+                        <li key={i.id} className="space-y-1">
+                          <label className="flex cursor-pointer items-center gap-2 text-xs">
+                            <Checkbox
+                              checked={on}
+                              onCheckedChange={(v) =>
+                                setFlags((f) => {
+                                  const next = { ...f };
+                                  if (v === true) next[i.id] = next[i.id] ?? "";
+                                  else delete next[i.id];
+                                  return next;
+                                })
+                              }
+                              aria-label={`Kiemelés: ${i.deviceName ?? standardLabel(i.standardKey)}`}
+                            />
+                            <span>
+                              {i.deviceName ?? standardLabel(i.standardKey)} · {i.quantity} db ·{" "}
+                              {huf(itemCost(i).withContingency)}
+                              {i.sourceRequestId ? ` · ${i.sourceRequestId}` : ""}
+                            </span>
+                          </label>
+                          {on && (
+                            <Textarea
+                              rows={2}
+                              value={flags[i.id] ?? ""}
+                              onChange={(e) => setFlags((f) => ({ ...f, [i.id]: e.target.value }))}
+                              placeholder="A kiemelés indoklása (kötelező, legalább 5 karakter)"
+                              aria-label={`Kiemelés indoklása: ${i.deviceName ?? standardLabel(i.standardKey)}`}
+                            />
+                          )}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              )}
               <div className="flex flex-wrap gap-2">
                 <Button
                   size="sm"
+                  disabled={!flagsValid}
                   onClick={() => {
-                    store.decidePlanApproval(approval.id, "jovahagyva", comment || undefined);
-                    toast.success("Terv jóváhagyva – visszakerült a beszerzőhöz");
+                    store.decidePlanApproval(
+                      approval.id,
+                      "jovahagyva",
+                      comment || undefined,
+                      flagged.map(([itemId, reason]) => ({ itemId, reason })),
+                    );
+                    setFlags({});
+                    toast.success(
+                      flagged.length > 0
+                        ? `Terv jóváhagyva ${flagged.length} tétel kiemelésével – a többi a beszerzőnél`
+                        : "Terv jóváhagyva – visszakerült a beszerzőhöz",
+                    );
                   }}
                 >
-                  Jóváhagyom
+                  {flagged.length > 0
+                    ? `Jóváhagyom (${flagged.length} tétel kiemelve)`
+                    : "Jóváhagyom"}
                 </Button>
                 <Button
                   size="sm"
@@ -633,6 +804,7 @@ function BuyerWorkspace() {
     store.activeRole === "gazdasagi_vezeto" || store.activeRole === "eszkozmenedzser";
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [bulkBlock, setBulkBlock] = useState<string>("");
+  const [bulkReason, setBulkReason] = useState("");
 
   const yearItems = useMemo(
     () => store.planItems.filter((p) => p.planYear === NEXT_FINANCIAL_YEAR),
@@ -723,24 +895,42 @@ function BuyerWorkspace() {
                   ))}
                 </SelectContent>
               </Select>
+              <Input
+                type="text"
+                value={bulkReason}
+                onChange={(e) => setBulkReason(e.target.value)}
+                placeholder="Indoklás – kötelező, ha eltér az igénylő kérésétől"
+                aria-label="Tömeges átütemezés indoklása"
+                className="w-72"
+              />
               <Button
                 size="sm"
                 disabled={selectedIds.length === 0 || !bulkBlock}
                 onClick={() => {
+                  const errors: string[] = [];
+                  const reason = bulkReason.trim() || undefined;
                   if (bulkBlock === "azonnali") {
-                    selectedIds.forEach((id) => store.setPlanItemTiming(id, "azonnali"));
-                    toast.success(`${selectedIds.length} tétel azonnali beszerzésbe sorolva`);
-                    setSelectedIds([]);
+                    selectedIds.forEach((id) => {
+                      const e = store.setPlanItemTiming(id, "azonnali", reason);
+                      if (e) errors.push(e);
+                    });
+                  } else {
+                    const block = BLOCKS.find((b) => b.value === bulkBlock);
+                    if (!block) return;
+                    selectedIds.forEach((id) => {
+                      const e1 = store.setPlanItemTiming(id, "negyedeves", reason);
+                      const e2 =
+                        e1 ?? store.reschedulePlanItem(id, block.planYear, block.quarter, reason);
+                      if (e2) errors.push(e2);
+                    });
+                  }
+                  if (errors.length) {
+                    toast.error(errors[0]!);
                     return;
                   }
-                  const block = BLOCKS.find((b) => b.value === bulkBlock);
-                  if (!block) return;
-                  selectedIds.forEach((id) => {
-                    store.setPlanItemTiming(id, "negyedeves");
-                    store.reschedulePlanItem(id, block.planYear, block.quarter);
-                  });
-                  toast.success(`${selectedIds.length} tétel átütemezve: ${block.label}`);
+                  toast.success(`${selectedIds.length} tétel átütemezve`);
                   setSelectedIds([]);
+                  setBulkReason("");
                 }}
               >
                 Áthelyezés

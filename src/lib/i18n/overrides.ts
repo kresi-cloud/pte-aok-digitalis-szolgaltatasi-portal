@@ -474,6 +474,46 @@ export const EN_OVERRIDES: Record<string, string> = {
   Beszerző: "Procurer",
   Dékán: "Dean",
   "Superuser (jogosultságkezelő)": "Superuser (permission manager)",
+  átdolgozás: "rework",
+  Átdolgozva: "Reworked",
+  "újbóli beküldés": "resubmit",
+  "gazdasági döntésre vár": "awaiting finance decision",
+  "az IT eszközmenedzser átdolgozza, majd újra beküldi. A csomag többi tétele már fut.":
+    "the IT asset manager reworks and resubmits it. The other items of the package are already running.",
+  "Azonnali beszerzés (indoklás szükséges)": "Immediate procurement (justification required)",
+  "Azonnali beszerzés": "Immediate procurement",
+  "Ütemezés eltér az igénylő kérésétől": "Scheduling differs from the requester's wish",
+  "Az eltérés indoklása *": "Justification of the deviation *",
+  "Ütemezés rögzítése indoklással": "Record scheduling with justification",
+  "Kiemelt tétel újbóli beküldése": "Resubmit the flagged item",
+  "Átdolgozás leírása *": "Description of the rework *",
+  "Újbóli beküldés": "Resubmit",
+  "Átdolgozva – újbóli beküldés": "Reworked – resubmit",
+  "Ismét kiemelem": "Flag again",
+  "Ismételt kiemelés": "Flag again",
+  "Kiemelt tétel jóváhagyása": "Flagged item approved",
+  "Tételek kiemelése (opcionális) – a kiemelt tétel külön kört fut, a többi jóváhagyva a beszerzőhöz kerül":
+    "Flag items (optional) – a flagged item runs a separate round, the rest go approved to the procurer",
+  "A kiemelés indoklása (kötelező, legalább 5 karakter)":
+    "Justification of the flag (required, at least 5 characters)",
+  "Indoklás – kötelező, ha eltér az igénylő kérésétől":
+    "Justification – required if it differs from the requester's wish",
+  "Átdolgozva – gazdasági döntésre vár": "Reworked – awaiting finance decision",
+  "Kiemelt tétel átdolgozva – gazdasági döntésre vár":
+    "Flagged item reworked – awaiting finance decision",
+  "A kiemelt tétel jóváhagyása vagy ismételt kiemelése":
+    "Approve the flagged item or flag it again",
+  "Átdolgozás a gazdasági vezető indoklása szerint és újbóli beküldés":
+    "Rework according to the finance director's justification and resubmit",
+  "Átdolgozás és a kiemelt tétel újbóli beküldése": "Rework and resubmit the flagged item",
+  "A kiemelt tétel átdolgozva, a gazdasági vezető döntésére vár.":
+    "The flagged item has been reworked and awaits the finance director's decision.",
+  "Ütemezés:": "Scheduling:",
+  "Gazdasági jóváhagyás:": "Financial approval:",
+  "Ütemezés eltér a kérttől": "Scheduling differs from the request",
+  "Tétel kiemelése (gazdasági vezető)": "Item flagged (finance director)",
+  "Tétel ismételt kiemelése": "Item flagged again",
+  "Beszerzési tétel átütemezése": "Procurement item rescheduled",
   "jóváhagyásra vár": "awaiting approval",
   elutasítva: "rejected",
   "Egyedi bruttó egységár": "Custom gross unit price",

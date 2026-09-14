@@ -78,6 +78,39 @@ const PATTERNS: { re: RegExp; to: (m: RegExpExecArray) => string }[] = [
     to: (m) => `waiting ${m[1]} working days (${m[2]} working days late)`,
   },
   { re: /^átl\. (\d+) mn$/, to: (m) => `avg. ${m[1]} wd` },
+  // ütemezés-eltérés és kiemelés (D9/D10)
+  { re: /^Kiemelve \((\d+)\. kör\) – átdolgozás$/, to: (m) => `Flagged (round ${m[1]}) – rework` },
+  { re: /^Kiemelve \((\d+)\. kör\)$/, to: (m) => `Flagged (round ${m[1]})` },
+  {
+    re: /^Kiemelt tétel \((\d+)\. kör\) – átdolgozás az eszközmenedzsernél$/,
+    to: (m) => `Flagged item (round ${m[1]}) – rework at the asset manager`,
+  },
+  { re: /^Jóváhagyom \((\d+) tétel kiemelve\)$/, to: (m) => `Approve (${m[1]} items flagged)` },
+  {
+    re: /^Ütemezés eltér a kérttől: (.+) → (.+)$/,
+    to: (m) =>
+      `Scheduling differs from the request: ${DICT[m[1]!] ?? m[1]} → ${DICT[m[2]!] ?? m[2]}`,
+  },
+  { re: /^Átdolgozás: (.+)$/, to: (m) => `Rework: ${m[1]}` },
+  { re: /^Indoklás: (.+)$/, to: (m) => `Justification: ${m[1]}` },
+  {
+    re: /^az IT eszközmenedzser a kért ütemezéstől \((.+)\) eltérően sorolta be: (.+)\.$/,
+    to: (m) =>
+      `the IT asset manager scheduled it differently from the requested timing (${DICT[m[1]!] ?? m[1]}): ${DICT[m[2]!] ?? m[2]}.`,
+  },
+  {
+    re: /^a gazdasági vezető kiemelte a tételt \((\d+)\. kör\): (.+)$/,
+    to: (m) => `the finance director flagged the item (round ${m[1]}): ${m[2]}`,
+  },
+  {
+    re: /^a kiemelt tétel átdolgozva \((.*)\), a gazdasági vezető döntésére vár\.$/,
+    to: (m) =>
+      `the flagged item has been reworked (${m[1]}) and awaits the finance director's decision.`,
+  },
+  {
+    re: /^(.+): a kiemelt tétel újra beküldve$/,
+    to: (m) => `${m[1]}: flagged item resubmitted`,
+  },
   // költségkeret-küszöb és akadály (D1/D5/D11)
   {
     re: /^Kerettúllépés \+(\d+)% – jóváhagyásra vár$/,

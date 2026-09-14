@@ -2,6 +2,7 @@ import type { PlanApproval, ProcurementPlanItem } from "./asset-types";
 import type { AssetHandover, RoleKey } from "./types";
 import { HANDOVER_CHECKLIST } from "./types";
 import { planApprovalForItem } from "./withdraw";
+import { financeHoldReason } from "./schedule-rules";
 
 /**
  * A beszerzési tételek állapotátmeneteinek közös, tiszta szabályai.
@@ -219,6 +220,8 @@ export function canStartProcurement(
     );
   const hold = budgetHoldReason(item);
   if (hold) return no(hold);
+  const fh = financeHoldReason(item);
+  if (fh) return no(fh);
   return ok;
 }
 

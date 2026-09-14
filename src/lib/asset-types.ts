@@ -427,6 +427,37 @@ export interface ProcurementPlanItem {
   substitution?: ProcurementSubstitution | undefined;
   /** Beszerzés meghiúsulása (D11): nincs helyettesítő. */
   failure?: { at: string; byId: string; reason: string } | undefined;
+  /** Az igénylő kért ütemezésétől eltérő besorolás indoklása (D9). */
+  scheduleDeviation?: ScheduleDeviation | undefined;
+  /** A gazdasági vezető által kiemelt tétel külön köre (D10). */
+  financeHold?: FinanceHold | undefined;
+}
+
+/** Ütemezés-eltérés az igénylő kérésétől (D9). */
+export interface ScheduleDeviation {
+  at: string;
+  byId: string;
+  requested: string;
+  actual: string;
+  reason: string;
+}
+
+export type FinanceHoldStatus = "kiemelve" | "atdolgozva" | "jovahagyva" | "elutasitva";
+
+/** Tételszintű kiemelés a gazdasági jóváhagyásnál (D10): külön kör az eszközmenedzserrel. */
+export interface FinanceHold {
+  at: string;
+  byId: string;
+  reason: string;
+  status: FinanceHoldStatus;
+  /** az eszközmenedzser átdolgozási megjegyzése az újbóli beküldéskor */
+  reworkComment?: string | undefined;
+  reworkAt?: string | undefined;
+  decidedBy?: string | undefined;
+  decidedAt?: string | undefined;
+  decisionComment?: string | undefined;
+  /** hányadik kör */
+  round: number;
 }
 
 export type BudgetReviewStatus = "fuggoben" | "jovahagyva" | "elutasitva" | "megoldva";

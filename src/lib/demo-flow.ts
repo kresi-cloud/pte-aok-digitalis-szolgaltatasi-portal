@@ -145,6 +145,30 @@ export function demoCurrentStep(ctx: DemoFlowContext): DemoStep {
     (ctx.handovers ?? []).filter((h) => h.planItemId === item.id || h.requestId === request.id),
   );
 
+  if (item.financeHold?.status === "kiemelve" && !handover) {
+    return {
+      ...base,
+      index: 3,
+      state: `A gazdasági vezető kiemelte a tételt: ${item.financeHold.reason}`,
+      waitingOn: `${users.find((u) => u.id === plannerId)?.name ?? "IT eszközmenedzser"} – IT eszközmenedzser`,
+      action: "Átdolgozás és a kiemelt tétel újbóli beküldése",
+      actorId: plannerId,
+      role: "eszkozmenedzser",
+      route: "/beszerzesek",
+    };
+  }
+  if (item.financeHold?.status === "atdolgozva" && !handover) {
+    return {
+      ...base,
+      index: 4,
+      state: "A kiemelt tétel átdolgozva, a gazdasági vezető döntésére vár.",
+      waitingOn: `${users.find((u) => u.id === financeId)?.name ?? "Gazdasági vezető"} – gazdasági vezető`,
+      action: "A kiemelt tétel jóváhagyása vagy ismételt kiemelése",
+      actorId: financeId,
+      role: "gazdasagi_vezeto",
+      route: "/beszerzesek",
+    };
+  }
   const review = pendingBudgetReview(item);
   if (review && !handover) {
     const approverId =

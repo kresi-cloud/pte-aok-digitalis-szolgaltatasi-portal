@@ -59,6 +59,7 @@ import { deliveredQuantity, primaryHandover } from "@/lib/procurement-rules";
 import { formatHuDate } from "@/lib/clock";
 import { BudgetBadge } from "@/components/budget-badge";
 import { budgetCheck } from "@/lib/budget-rules";
+import { timingLabel } from "@/lib/schedule-rules";
 
 export const Route = createFileRoute("/igeny/$id")({
   head: ({ params }) => ({
@@ -531,6 +532,25 @@ function RequestDetail() {
           </p>
         )}
 
+        {planItem?.scheduleDeviation && (
+          <div className="mt-3 rounded-md border border-border bg-secondary/40 px-4 py-3 text-sm">
+            <span className="font-medium">Ütemezés: </span>
+            {`az IT eszközmenedzser a kért ütemezéstől (${requestedTimingLabel(planItem.scheduleDeviation.requested)}) eltérően sorolta be: ${timingLabel(planItem.scheduleDeviation.actual)}.`}
+            <p className="mt-1 text-xs text-muted-foreground">
+              {`Indoklás: ${planItem.scheduleDeviation.reason}`}
+            </p>
+          </div>
+        )}
+        {planItem?.financeHold &&
+          (planItem.financeHold.status === "kiemelve" ||
+            planItem.financeHold.status === "atdolgozva") && (
+            <div className="mt-3 rounded-md border border-warning/50 bg-warning/10 px-4 py-3 text-sm">
+              <span className="font-medium">Gazdasági jóváhagyás: </span>
+              {planItem.financeHold.status === "kiemelve"
+                ? `a gazdasági vezető kiemelte a tételt (${planItem.financeHold.round}. kör): ${planItem.financeHold.reason} – az IT eszközmenedzser átdolgozza, majd újra beküldi. A csomag többi tétele már fut.`
+                : `a kiemelt tétel átdolgozva (${planItem.financeHold.reworkComment ?? ""}), a gazdasági vezető döntésére vár.`}
+            </div>
+          )}
         {planItem && budgetState && budgetState.budgetGross > 0 && (
           <div
             className={`mt-3 rounded-md border px-4 py-3 text-sm ${budgetState.exceeded ? "border-destructive/40 bg-destructive/5" : "border-border bg-secondary/40"}`}
