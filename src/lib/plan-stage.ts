@@ -4,6 +4,7 @@ import {
   handoverConfigured,
   oldAssetDecisionComplete,
   planApprovalApproved,
+  remainingQuantity,
 } from "./procurement-rules";
 import { PROCESS_STEPS, STEP } from "./process-steps";
 import { responsibleForRole } from "./process-roles";
@@ -77,8 +78,12 @@ export function planItemStage(
 ): PlanItemStage {
   const approved = planApprovalApproved(approval);
   const status = approval ? normalizeLegacyPlanStatus(approval.status) : undefined;
-  const completed = handover?.status === "atvetel_igazolva" || item.status === "teljesult";
+  const remaining = remainingQuantity(item, handover ? 1 : 0);
+  const completed =
+    item.status === "teljesult" || (handover?.status === "atvetel_igazolva" && remaining === 0);
   const overdue = isOverdue(item, todayIso(), completed);
+  const delivered = (item.quantity || 1) - remaining;
+  const pieces = (item.quantity || 1) > 1 ? ` (${delivered}/${item.quantity} db beérkezett)` : "";
 
   if (completed) {
     return {
@@ -88,6 +93,17 @@ export function planItemStage(
       waitingOn: "Nincs nyitott teendő.",
       done: true,
       overdue: false,
+    };
+  }
+  if (handover?.status === "atvetel_igazolva" && remaining > 0) {
+    // Részteljesítés: az eddig beérkezett darabok átvéve, a többi beérkezésre vár.
+    return {
+      ...step(STEP.beszerzes),
+      label: `Részteljesítés – ${delivered}/${item.quantity} db átvéve, a többi beszerzés alatt`,
+      nextAction: "A további darabok beérkezésének rögzítése",
+      ...responsibleForRole(users, "beszerzo"),
+      done: false,
+      overdue,
     };
   }
   if (handover) {
@@ -136,7 +152,7 @@ export function planItemStage(
     );
     return {
       ...step(STEP.konfiguralas),
-      label: started ? "Konfigurálás alatt" : "Beérkezett – konfigurálásra vár",
+      label: (started ? "Konfigurálás alatt" : "Beérkezett – konfigurálásra vár") + pieces,
       nextAction: "Telepítés, checklist, gyári szám, leltárkód és fénykép rögzítése",
       ...responsibleForRole(users, "it_referens"),
       done: false,

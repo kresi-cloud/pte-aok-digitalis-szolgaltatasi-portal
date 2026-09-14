@@ -177,3 +177,19 @@ Minden tétel: a kérdés, a döntés, a következmény a prototípusra.
   várakozás és a lejárt ügyek listája látható. Nincs átvétel: a felelős marad.
 - Az átvétel visszaigazolásának elmaradásakor a beállított munkanap után a rendszer zárja le
   az ügyet („u-system” szereplővel, naplózva); kifogásolt eszköznél nem fut automatikus lezárás.
+
+### 3. csomag – D2, D12, D16 (kész)
+
+- Darabszám: személyi használatú eszköznél mindig 1; nem személyi igénynél kötelező, egész,
+  legalább 1 – a lépés nem folytatható nélküle.
+- Rendelési rekord a beszerzés indításakor: szállító, rendelésszám, várható érkezés
+  kötelező; tényleges nettó egységár opcionális (bruttó 27% áfával számolva). A várható érkezés
+  a beszerzési lépés határideje, az igénylő értesítést kap és az igényén látja.
+- Beérkezés darabszámmal: több darabnál részteljesítés; a hátralévő darabok beszerzés alatt
+  maradnak, a beszerző gombja mutatja az arányt (N/M db).
+- Leltárba vétel beérkezéskor: minden beérkezett darab azonnal kataszter-tételt és sorszámozott
+  PTE leltári számot kap „raktáron” állapottal (Kari IT raktár helyszín, felelős a referens);
+  az átadáskor a személyhez, egységhez és munkahelyéhez kerül, a gyári számmal.
+- Darabonként egy átadási rekord (N/M. darab); az ügy és a tervsor csak akkor zárul, ha minden
+  darab beérkezett és átvétele visszaigazolva. A folyamatjelző a legkevésbé előrehaladott darabot
+  mutatja.

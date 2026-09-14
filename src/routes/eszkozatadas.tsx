@@ -248,7 +248,14 @@ function HandoverCard({ handover, canAct }: { handover: AssetHandover; canAct: b
       )}
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h3 className="font-display text-base font-semibold">{handover.deviceName}</h3>
+          <h3 className="font-display text-base font-semibold">
+            {`${handover.deviceName}${handover.pieceCount && handover.pieceCount > 1 ? ` – ${handover.pieceIndex}/${handover.pieceCount}. darab` : ""}`}
+          </h3>
+          {handover.assetId && (
+            <p className="text-xs text-muted-foreground">
+              {`Leltárba véve beérkezéskor: ${handover.inventoryNo ?? "—"} (raktáron) – átadáskor kerül az igénylőhöz.`}
+            </p>
+          )}
           <p className="text-xs text-muted-foreground">
             Átvevő: {lookup.user(handover.recipientId)?.name ?? handover.recipientId} ·{" "}
             {lookup.unit(handover.orgUnitId)}

@@ -28,8 +28,12 @@ export function locationsForUser(userId?: string) {
   const user = USERS.find((u) => u.id === userId);
   if (!user) return ASSET_LOCATIONS;
   const own = ASSET_LOCATIONS.filter((l) => l.primaryUserIds?.includes(user.id));
-  const unit = ASSET_LOCATIONS.filter((l) => l.orgUnitId === user.orgUnitId && !own.includes(l));
-  const rest = ASSET_LOCATIONS.filter((l) => !own.includes(l) && !unit.includes(l));
+  const unit = ASSET_LOCATIONS.filter(
+    (l) => l.orgUnitId === user.orgUnitId && l.kind !== "raktar" && !own.includes(l),
+  );
+  const rest = ASSET_LOCATIONS.filter(
+    (l) => l.kind !== "raktar" && !own.includes(l) && !unit.includes(l),
+  );
   return [...own, ...unit, ...rest];
 }
 

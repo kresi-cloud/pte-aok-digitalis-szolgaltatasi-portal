@@ -58,6 +58,11 @@ import {
   canObjectReceipt,
   canResolveObjection,
   canStartProcurement,
+  handoversForItem,
+  itemFullyReceived,
+  remainingQuantity,
+  validateDeliveryQuantity,
+  validateOrderInput,
 } from "./procurement-rules";
 import { OLD_ASSET_DISPOSITION_LABELS } from "./types";
 import {
@@ -103,7 +108,7 @@ import {
   NEXT_FINANCIAL_YEAR,
   PERSONAL_LICENCES,
 } from "./asset-data";
-import { assetLookup, huf, lifecycleStatus, yearsSince } from "./asset-logic";
+import { assetLookup, huf, lifecycleStatus, locationsForUser, yearsSince } from "./asset-logic";
 import { needsProcurement, planItemFromRequest } from "./request-procurement";
 import { canWithdrawRequest, planApprovalForItem } from "./withdraw";
 import { buildPlanApprovals } from "./plan-approvals";
@@ -323,9 +328,9 @@ interface StoreValue extends PersistedState {
    * Beszerző: a tervsor eszköze fizikailag beérkezett – átadási folyamat indul.
    * Tiltott átmenetnél az állapot változatlan marad, a visszatérési érték a hibaüzenet.
    */
-  markPlanItemDelivered: (planItemId: string) => string | null;
-  /** Beszerző: egyetlen tétel beszerzésének indítása jóváhagyott terv alapján. */
-  startItemProcurement: (planItemId: string) => string | null;
+  markPlanItemDelivered: (planItemId: string, input: DeliveryInput) => string | null;
+  /** Beszerző: egyetlen tétel beszerzésének indítása jóváhagyott terv alapján, rendelési rekorddal (D12). */
+  startItemProcurement: (planItemId: string, order: OrderInput) => string | null;
   /** Kari IT referens: telepítési és azonosító adatok rögzítése. */
   updateHandover: (id: string, patch: Partial<AssetHandover>, label?: string) => void;
   /** Kari IT referens: eszköz átadása az igénylőnek. */
@@ -483,13 +488,17 @@ function confirmReceiptState(
   // Az átvett eszköz az intézményi eszközkataszterbe is bekerül,
   // különben a „Rám rendelt eszközök” nézetben nem jelenne meg.
   const planItem = s.planItems.find((p) => p.id === h.planItemId);
-  const location =
-    ASSET_LOCATIONS.find(
-      (l) => (!h.building || l.building === h.building) && (!h.room || l.room === h.room),
-    ) ??
-    ASSET_LOCATIONS.find((l) => l.orgUnitId === h.orgUnitId) ??
-    ASSET_LOCATIONS[0]!;
-  const alreadyRegistered = s.assets.some((a) => a.note?.includes(h.id));
+  // D12/D16: a tétel és az igény csak akkor zárul, ha minden darab beérkezett és átvéve.
+  const confirmedNow = (s.handovers ?? []).map((x) =>
+    x.id === id ? { ...x, status: "atvetel_igazolva" as const } : x,
+  );
+  const allPiecesDone = planItem ? itemFullyReceived(planItem, confirmedNow) : true;
+  const pieceInfo =
+    h.pieceCount && h.pieceCount > 1 ? ` (${h.pieceIndex ?? "?"}/${h.pieceCount}. darab)` : "";
+  const location = resolveAssetLocation(h) ?? ASSET_LOCATIONS[0]!;
+  const alreadyRegistered =
+    Boolean(h.assetId && s.assets.some((a) => a.id === h.assetId)) ||
+    s.assets.some((a) => a.note?.includes(h.id));
   const assetId = `as-${Date.now()}`;
   const newAsset: Asset = {
     id: assetId,
@@ -534,9 +543,21 @@ function confirmReceiptState(
             : i,
         )
       : [item, ...s.inventory],
-    assets: alreadyRegistered ? s.assets : [newAsset, ...s.assets],
+    assets: alreadyRegistered
+      ? s.assets.map((a) =>
+          h.assetId && a.id === h.assetId
+            ? {
+                ...a,
+                holding: "hasznalatban" as const,
+                assignedUserId: h.recipientId,
+                serial: h.serial ?? a.serial,
+                inventoryNo: h.inventoryNo ?? a.inventoryNo,
+              }
+            : a,
+        )
+      : [newAsset, ...s.assets],
     planItems: s.planItems.map((p) =>
-      planItem && p.id === planItem.id ? { ...p, status: "teljesult" } : p,
+      planItem && p.id === planItem.id && allPiecesDone ? { ...p, status: "teljesult" } : p,
     ),
 
     handovers: (s.handovers ?? []).map((x) =>
@@ -564,11 +585,13 @@ function confirmReceiptState(
       r.id === h.requestId
         ? {
             ...r,
-            status: "lezarva",
+            status: allPiecesDone ? "lezarva" : "megvalositas",
             updatedAt: today(),
-            nextStep: auto
-              ? "Az átvétel visszaigazolása a határidőn belül elmaradt, az ügy automatikusan lezárult."
-              : "Az eszköz átadva és átvéve, az igény lezárult.",
+            nextStep: !allPiecesDone
+              ? `${h.deviceName}${pieceInfo} átvéve – a további darabok beszerzés vagy átadás alatt.`
+              : auto
+                ? "Az átvétel visszaigazolása a határidőn belül elmaradt, az ügy automatikusan lezárult."
+                : "Az eszköz átadva és átvéve, az igény lezárult.",
             audit: [
               ...r.audit,
               {
@@ -609,6 +632,49 @@ function confirmReceiptState(
       ...s.assetAudit,
     ],
   };
+}
+
+/** A beszerző rendelési adatai a beszerzés indításakor (D12). */
+export interface OrderInput {
+  supplier: string;
+  orderNumber: string;
+  expectedArrival: string;
+  actualUnitNet?: number | undefined;
+  actualUnitGross?: number | undefined;
+  note?: string | undefined;
+}
+
+/** Beérkezés rögzítése darabszámmal (rész- vagy teljes teljesítés, D12). */
+export interface DeliveryInput {
+  quantity: number;
+  note?: string | undefined;
+}
+
+/** Következő szabad PTE leltári szám a kataszter alapján (D16). */
+function nextInventoryNo(assets: Asset[], offset = 0): string {
+  const max = assets.reduce((m, a) => {
+    const n = /^PTE-AOK-IT-(\d+)$/.exec(a.inventoryNo)?.[1];
+    return n ? Math.max(m, Number(n)) : m;
+  }, 0);
+  return `PTE-AOK-IT-${String(max + 1 + offset).padStart(6, "0")}`;
+}
+
+/**
+ * Az átadott eszköz helyszíne a kataszterben: a rögzített épület/helyiség, különben az
+ * átvevő saját munkahelye, különben az egység első helyisége – raktár sosem.
+ */
+function resolveAssetLocation(h: AssetHandover) {
+  const usable = ASSET_LOCATIONS.filter((l) => l.kind !== "raktar");
+  if (h.building || h.room) {
+    const exact = usable.find(
+      (l) => (!h.building || l.building === h.building) && (!h.room || l.room === h.room),
+    );
+    if (exact) return exact;
+  }
+  return (
+    locationsForUser(h.recipientId).find((l) => l.kind !== "raktar") ??
+    usable.find((l) => l.orgUnitId === h.orgUnitId)
+  );
 }
 
 export function StoreProvider({ children }: { children: ReactNode }) {
@@ -1906,9 +1972,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         };
         return {
           ...s,
-          planItems: s.planItems.map((p) =>
-            inScope(p) && p.status !== "teljesult" ? { ...p, status: "beszerzes_alatt" } : p,
-          ),
+          // D12: a tételek beszerzése egyenként, rendelési rekorddal indul; a csomag
+          // indítása csak a végrehajtási szakaszt nyitja meg.
+          planItems: s.planItems,
           planApprovals: (s.planApprovals ?? []).map((p) =>
             p.id === id
               ? {
@@ -2002,7 +2068,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         };
       }),
 
-    startItemProcurement: (planItemId) => {
+    startItemProcurement: (planItemId, orderInput) => {
       const item = state.planItems.find((p) => p.id === planItemId);
       if (!item) return "A beszerzési tétel nem található.";
       const rule = canStartProcurement(
@@ -2011,11 +2077,36 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         state.activeRole,
       );
       if (!rule.allowed) return rule.reason ?? "A művelet jelenleg nem végezhető el.";
+      const orderRule = validateOrderInput(orderInput);
+      if (!orderRule.allowed) return orderRule.reason ?? "A rendelési adatok hiányosak.";
+      const order = {
+        supplier: orderInput.supplier.trim(),
+        orderNumber: orderInput.orderNumber.trim(),
+        orderedAt: today(),
+        expectedArrival: orderInput.expectedArrival,
+        actualUnitNet: orderInput.actualUnitNet,
+        actualUnitGross: orderInput.actualUnitGross,
+        note: orderInput.note?.trim() || undefined,
+      };
       setState((s) => ({
         ...s,
         planItems: s.planItems.map((p) =>
-          p.id === planItemId ? { ...p, status: "beszerzes_alatt" } : p,
+          p.id === planItemId
+            ? { ...p, status: "beszerzes_alatt", order, expectedArrival: order.expectedArrival }
+            : p,
         ),
+        notifications: item.sourceRequestId
+          ? [
+              {
+                id: `n-${Date.now()}`,
+                at: today(),
+                read: false,
+                requestId: item.sourceRequestId,
+                text: `${item.deviceName ?? standardLabel(item.standardKey)}: a beszerzés elindult – szállító: ${order.supplier}, rendelésszám: ${order.orderNumber}, várható érkezés: ${formatHuDate(order.expectedArrival)}.`,
+              },
+              ...s.notifications,
+            ]
+          : s.notifications,
         assetAudit: [
           {
             id: `aud-${Date.now()}`,
@@ -2023,8 +2114,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             actorId: currentUser.id,
             entity: "beszerzes",
             entityId: planItemId,
-            action: "Beszerzés indítva",
-            detail: item.deviceName ?? item.standardKey,
+            action: "Beszerzés indítva – rendelés rögzítve",
+            detail: `${item.deviceName ?? standardLabel(item.standardKey)} · ${order.supplier} · ${order.orderNumber} · várható érkezés: ${order.expectedArrival}${order.actualUnitGross ? ` · bruttó egységár: ${order.actualUnitGross.toLocaleString("hu-HU")} Ft` : ""}`,
           },
           ...s.assetAudit,
         ],
@@ -2032,7 +2123,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       return null;
     },
 
-    markPlanItemDelivered: (planItemId) => {
+    markPlanItemDelivered: (planItemId, input) => {
       const current = state.planItems.find((p) => p.id === planItemId);
       if (!current) return "A beszerzési tétel nem található.";
       const rule = canMarkDelivered(
@@ -2041,60 +2132,155 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         state.activeRole,
       );
       if (!rule.allowed) return rule.reason ?? "A művelet jelenleg nem végezhető el.";
+      const qtyRule = validateDeliveryQuantity(current, input.quantity);
+      if (!qtyRule.allowed) return qtyRule.reason ?? "Érvénytelen darabszám.";
       setState((s) => {
-        if ((s.handovers ?? []).some((h) => h.planItemId === planItemId)) return s;
         const item = s.planItems.find((p) => p.id === planItemId);
-        if (!item) return s;
+        if (
+          !item ||
+          remainingQuantity(item, handoversForItem(item, s.handovers ?? []).length) < input.quantity
+        )
+          return s;
         const request = item.sourceRequestId
           ? s.requests.find((r) => r.id === item.sourceRequestId)
           : undefined;
         const recipientId = request?.requesterId ?? currentUser.id;
         const orgUnitId = request?.orgUnitId ?? item.orgUnitId;
         const referentId = resolveItReferent(effectiveUsers, orgUnitId);
+        const deviceName = item.deviceName ?? standardLabel(item.standardKey);
+        const modelKey = item.modelKey ?? modelKeyForStandard(item.standardKey) ?? "";
+        const productId = item.productId ?? request?.productId;
+        const alreadyDelivered = handoversForItem(item, s.handovers ?? []).length;
+        const total = item.quantity || 1;
+        const unitGross = item.order?.actualUnitGross ?? item.unitPriceOverride ?? 0;
+        const stamp = Date.now();
+        const deliveryId = `dl-${stamp}`;
 
-        const id = `ho-${Date.now()}`;
-        const handover: AssetHandover = {
-          id,
-          planItemId,
-          requestId: item.sourceRequestId,
-          recipientId,
-          orgUnitId,
-          referentId,
-          deviceName: item.deviceName ?? standardLabel(item.standardKey),
-          productId: item.productId ?? request?.productId,
-          modelKey: item.modelKey ?? modelKeyForStandard(item.standardKey),
-          replacedAssetId: request?.replacedAssetId ?? item.replacedAssetIds?.[0],
-          status: "beerkezett",
-          createdAt: today(),
-          history: [
-            { at: today(), actorId: currentUser.id, action: "Eszköz beérkezett a beszerzésből" },
-          ],
-        };
+        // D16: minden beérkezett darab azonnal leltári számot kap, raktári állapottal.
+        const newAssets: Asset[] = [];
+        const newHandovers: AssetHandover[] = [];
+        for (let i = 0; i < input.quantity; i += 1) {
+          const pieceIndex = alreadyDelivered + i + 1;
+          const assetId = `as-${stamp}-${pieceIndex}`;
+          const inventoryNo = nextInventoryNo([...s.assets, ...newAssets]);
+          newAssets.push({
+            id: assetId,
+            inventoryNo,
+            deviceId: assetId,
+            categoryKey: item.categoryKey,
+            modelKey,
+            productId,
+            serial: "",
+            usage: "szemelyi",
+            custodianUserId: referentId,
+            inventoryResponsibleId: referentId ?? currentUser.id,
+            orgUnitId: item.orgUnitId,
+            locationId: "loc-it-raktar",
+            holding: "raktar",
+            purpose: deviceName,
+            purchaseDate: today(),
+            commissionDate: today(),
+            purchaseValue: unitGross,
+            fundingSourceId: item.fundingSourceId,
+            costCenter: item.orgUnitId,
+            warrantyEnd: `${new Date().getUTCFullYear() + 3}-12-31`,
+            condition: "kifogastalan",
+            active: true,
+            reportedIssues: 0,
+            repairCount: 0,
+            businessCritical: false,
+            note: `Beérkezés a beszerzésből (${planItemId}${item.order ? ` · ${item.order.supplier} · ${item.order.orderNumber}` : ""}) – ${pieceIndex}/${total}. darab, raktáron`,
+          });
+          newHandovers.push({
+            id: `ho-${stamp}-${pieceIndex}`,
+            planItemId,
+            requestId: item.sourceRequestId,
+            recipientId,
+            orgUnitId,
+            referentId,
+            deviceName,
+            productId,
+            modelKey: modelKey || undefined,
+            inventoryNo,
+            assetId,
+            pieceIndex,
+            pieceCount: total,
+            replacedAssetId:
+              pieceIndex === 1
+                ? (request?.replacedAssetId ?? item.replacedAssetIds?.[0])
+                : undefined,
+            status: "beerkezett",
+            createdAt: today(),
+            history: [
+              {
+                at: today(),
+                actorId: currentUser.id,
+                action:
+                  total > 1
+                    ? `Eszköz beérkezett a beszerzésből (${pieceIndex}/${total}. darab) – leltárba véve, raktáron`
+                    : "Eszköz beérkezett a beszerzésből – leltárba véve, raktáron",
+                comment: input.note?.trim() || undefined,
+              },
+            ],
+          });
+        }
+        const delivered = alreadyDelivered + input.quantity;
+        const partial = delivered < total;
         return {
           ...s,
-          handovers: [handover, ...(s.handovers ?? [])],
+          assets: [...newAssets, ...s.assets],
+          handovers: [...newHandovers, ...(s.handovers ?? [])],
           planItems: s.planItems.map((p) =>
-            p.id === planItemId ? { ...p, status: "beszerzes_alatt" } : p,
+            p.id === planItemId
+              ? {
+                  ...p,
+                  status: "beszerzes_alatt",
+                  deliveries: [
+                    ...(p.deliveries ?? []),
+                    {
+                      id: deliveryId,
+                      at: today(),
+                      actorId: currentUser.id,
+                      quantity: input.quantity,
+                      note: input.note?.trim() || undefined,
+                      assetIds: newAssets.map((a) => a.id),
+                    },
+                  ],
+                }
+              : p,
           ),
           notifications: [
             {
-              id: `n-${Date.now()}`,
+              id: `n-${stamp}`,
               at: today(),
               read: false,
               requestId: item.sourceRequestId,
-              text: `${handover.deviceName} beérkezett – a kari IT referens telepítésre és átadásra átvette.`,
+              text: partial
+                ? `${deviceName}: ${delivered}/${total} db beérkezett (részteljesítés) – a kari IT referens telepítésre átvette, a többi darab beszerzés alatt.`
+                : total > 1
+                  ? `${deviceName}: mind a ${total} db beérkezett – a kari IT referens telepítésre és átadásra átvette.`
+                  : `${deviceName} beérkezett – a kari IT referens telepítésre és átadásra átvette.`,
             },
             ...s.notifications,
           ],
           assetAudit: [
+            ...newAssets.map((a, i) => ({
+              id: `aud-${stamp}-a${i}`,
+              at: today(),
+              actorId: currentUser.id,
+              entity: "asset" as const,
+              entityId: a.id,
+              action: "Leltárba vétel beérkezéskor (raktáron)",
+              detail: `${a.purpose} · ${a.inventoryNo}`,
+            })),
             {
-              id: `aud-${Date.now()}`,
+              id: `aud-${stamp}`,
               at: today(),
               actorId: currentUser.id,
               entity: "beszerzes",
               entityId: planItemId,
-              action: "Beszerzett eszköz beérkezése rögzítve",
-              detail: handover.deviceName,
+              action: partial ? "Részteljesítés rögzítve" : "Beszerzett eszköz beérkezése rögzítve",
+              detail: `${deviceName} · ${input.quantity} db (${delivered}/${total})${input.note ? ` · ${input.note.trim()}` : ""}`,
             },
             ...s.assetAudit,
           ],
@@ -2194,9 +2380,31 @@ export function StoreProvider({ children }: { children: ReactNode }) {
               })
             : s.assets;
         const repeated = (h.objections ?? []).length > 0;
+        // D16: átadáskor a beérkezéskor leltárba vett eszköz a személyhez kerül.
+        const recipientLoc = resolveAssetLocation(h);
+        const assetsWithHandover = h.assetId
+          ? assets.map((a) =>
+              a.id === h.assetId
+                ? {
+                    ...a,
+                    holding: "hasznalatban" as const,
+                    assignedUserId: h.recipientId,
+                    custodianUserId: undefined,
+                    inventoryResponsibleId: h.referentId ?? currentUser.id,
+                    orgUnitId: h.orgUnitId,
+                    locationId: recipientLoc?.id ?? a.locationId,
+                    serial: h.serial ?? a.serial,
+                    deviceId: h.serial ?? a.deviceId,
+                    inventoryNo: h.inventoryNo ?? a.inventoryNo,
+                    commissionDate: today(),
+                    note: `${a.note ?? ""}${a.note ? " · " : ""}Átadva: ${lookup.user(h.recipientId)?.name ?? h.recipientId}`,
+                  }
+                : a,
+            )
+          : assets;
         return {
           ...s,
-          assets,
+          assets: assetsWithHandover,
           inventory: alreadyInInventory ? s.inventory : [item, ...s.inventory],
           handovers: (s.handovers ?? []).map((x) =>
             x.id === id

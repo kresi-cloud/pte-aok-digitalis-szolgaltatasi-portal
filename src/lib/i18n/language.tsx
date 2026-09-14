@@ -78,6 +78,59 @@ const PATTERNS: { re: RegExp; to: (m: RegExpExecArray) => string }[] = [
     to: (m) => `waiting ${m[1]} working days (${m[2]} working days late)`,
   },
   { re: /^átl\. (\d+) mn$/, to: (m) => `avg. ${m[1]} wd` },
+  // rendelés és részteljesítés (D12/D16) – a „ · ” és „ – ” elválasztók mentén darabolt részek
+  { re: /^Rendelés: (.+)$/, to: (m) => `Order: ${m[1]}` },
+  { re: /^rendelésszám: (.+)$/, to: (m) => `order number: ${m[1]}` },
+  { re: /^várható érkezés: (.+)$/, to: (m) => `expected arrival: ${huDate(m[1]!)}` },
+  { re: /^bruttó egységár: (.+)$/, to: (m) => `gross unit price: ${m[1]}` },
+  {
+    re: /^Leltárba véve beérkezéskor: (.+) \(raktáron\)$/,
+    to: (m) => `Taken into inventory on arrival: ${m[1]} (in stock)`,
+  },
+  {
+    re: /^Beérkezett: (\d+)\/(\d+) db \((.*)\)$/,
+    to: (m) => `Received: ${m[1]}/${m[2]} pcs (${m[3]!.replace(/ db/g, " pcs")})`,
+  },
+  { re: /^(\d+)\/(\d+)\. darab$/, to: (m) => `piece ${m[1]}/${m[2]}` },
+  {
+    re: /^Eszköz beérkezett a beszerzésből \((\d+)\/(\d+)\. darab\)$/,
+    to: (m) => `Device arrived from procurement (piece ${m[1]}/${m[2]})`,
+  },
+  {
+    re: /^Átvételre váró eszköz: (.+)$/,
+    to: (m) => `Device awaiting acceptance: ${m[1]}`,
+  },
+  {
+    re: /^Beérkezett – átadásra \((\d+)\/(\d+) db\)$/,
+    to: (m) => `Received – for handover (${m[1]}/${m[2]} pcs)`,
+  },
+  {
+    re: /^(.+) – (\d+)\/(\d+)\. darab$/,
+    to: (m) => `${DICT[m[1]!] ?? m[1]} – piece ${m[2]}/${m[3]}`,
+  },
+  {
+    re: /^Leltárba véve beérkezéskor: (.+) \(raktáron\) – átadáskor kerül az igénylőhöz\.$/,
+    to: (m) =>
+      `Taken into inventory on arrival: ${m[1]} (in stock) – assigned to the requester at handover.`,
+  },
+  {
+    re: /^Rendelés: (.+) · rendelésszám: (.+) · várható érkezés: (.+)$/,
+    to: (m) => `Order: ${m[1]} · order number: ${m[2]} · expected arrival: ${huDate(m[3]!)}`,
+  },
+  {
+    re: /^Beérkezett: (\d+)\/(\d+) db – minden beérkezett darab leltári számot kapott, a kari IT referens készíti elő az átadásra\.$/,
+    to: (m) =>
+      `Received: ${m[1]}/${m[2]} pcs – every received piece got an inventory number; the faculty IT liaison is preparing the handover.`,
+  },
+  { re: /^Beérkezett: (\d+)\/(\d+) db$/, to: (m) => `Received: ${m[1]}/${m[2]} pcs` },
+  {
+    re: /^Részteljesítés – (\d+)\/(\d+) db átvéve, a többi beszerzés alatt$/,
+    to: (m) => `Partial delivery – ${m[1]}/${m[2]} pcs accepted, the rest under procurement`,
+  },
+  {
+    re: /^Rendelés: (.+) · (.+) · várható érkezés: (\S+)$/,
+    to: (m) => `Order: ${m[1]} · ${m[2]} · expected arrival: ${m[3]}`,
+  },
   { re: /^(\d+) lejárt$/, to: (m) => `${m[1]} overdue` },
   {
     re: /^Ha (\d+) munkanapon belül nem igazolja vissza és kifogást sem jelez, az ügy automatikusan lezárul\.$/,

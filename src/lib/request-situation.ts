@@ -12,6 +12,7 @@ import {
   type DeadlineInfo,
   type ProcessSettings,
 } from "./deadlines";
+import { primaryHandover, remainingQuantity } from "./procurement-rules";
 
 /**
  * Az ügy jelenlegi helyzetének egységes összefoglalója.
@@ -74,9 +75,10 @@ function byRole(users: User[], role: RoleKey): User | undefined {
 export function requestSituation(request: ServiceRequest, ctx: SituationContext): RequestSituation {
   const users = ctx.users;
   const planItem = ctx.planItems.find((p) => p.sourceRequestId === request.id);
-  const handover = (ctx.handovers ?? []).find(
+  const relatedHandovers = (ctx.handovers ?? []).filter(
     (h) => h.requestId === request.id || (planItem && h.planItemId === planItem.id),
   );
+  const handover = primaryHandover(relatedHandovers);
   const approval = planItem ? planApprovalForItem(planItem, ctx.planApprovals ?? []) : undefined;
   const pending = request.approvals.filter((a) => a.decision === "fuggoben");
   const approvalsDone = request.approvals.filter((a) => a.decision === "jovahagyva").length;
@@ -94,7 +96,10 @@ export function requestSituation(request: ServiceRequest, ctx: SituationContext)
   let overdue = false;
   const terminated = request.status === "elutasitva" || request.status === "visszavonva";
   const closed =
-    terminated || handover?.status === "atvetel_igazolva" || request.status === "lezarva";
+    terminated ||
+    request.status === "lezarva" ||
+    (handover?.status === "atvetel_igazolva" &&
+      (!planItem || remainingQuantity(planItem, relatedHandovers.length) === 0));
 
   if (terminated) {
     // Zsákutca-ág: a folyamatjelző a beküldésig elért lépésnél megszakad,

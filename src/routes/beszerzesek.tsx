@@ -36,6 +36,8 @@ import { ProductCatalogAdmin } from "@/components/product-catalog-admin";
 import { StatTile } from "@/components/asset-bits";
 import { DeadlineBadge } from "@/components/deadline-badge";
 import { requestSituation } from "@/lib/request-situation";
+import { DeliveryButton, StartOrderButton } from "@/components/procurement-dialogs";
+import { deliveredQuantity, handoverForItem, remainingQuantity } from "@/lib/procurement-rules";
 
 export const Route = createFileRoute("/beszerzesek")({
   head: () => ({
@@ -128,7 +130,7 @@ function ItemRow({
   const stage = planItemStage(
     item,
     planApprovalForItem(item, store.planApprovals ?? []),
-    (store.handovers ?? []).find((h) => h.planItemId === item.id),
+    handoverForItem(item, store.handovers ?? []),
     store.users,
   );
   const next = getProcurementNextAction(
@@ -182,6 +184,19 @@ function ItemRow({
         {item.rescheduledAt && (
           <span className="mt-1 block text-xs text-muted-foreground">
             Gazdasági vezető által átütemezve: {item.rescheduledAt}
+          </span>
+        )}
+        {item.order && (
+          <span className="mt-1 block text-xs text-muted-foreground">
+            {`Rendelés: ${item.order.supplier} · ${item.order.orderNumber} · várható érkezés: ${item.order.expectedArrival}`}
+            {item.order.actualUnitGross
+              ? ` · bruttó egységár: ${item.order.actualUnitGross.toLocaleString("hu-HU")} Ft`
+              : ""}
+          </span>
+        )}
+        {(item.deliveries ?? []).length > 0 && (
+          <span className="mt-1 block text-xs text-muted-foreground">
+            {`Beérkezett: ${deliveredQuantity(item)}/${item.quantity || 1} db (${(item.deliveries ?? []).map((d) => `${d.at}: ${d.quantity} db`).join(", ")})`}
           </span>
         )}
       </td>
@@ -264,27 +279,37 @@ function ItemRow({
         <td className="px-3 py-3">
           <div className="flex flex-wrap gap-2">
             {next.key && next.allowed && canAct ? (
-              <Button
-                size="sm"
-                variant={next.key === "deliver" ? "default" : "outline"}
-                onClick={() => {
-                  const error =
-                    next.key === "start"
-                      ? store.startItemProcurement(item.id)
-                      : store.markPlanItemDelivered(item.id);
-                  if (error) {
-                    toast.error(error);
-                    return;
-                  }
-                  toast.success(
-                    next.key === "start"
-                      ? "Beszerzés elindítva"
-                      : "Beérkezés rögzítve – átadva a kari IT referensnek",
-                  );
-                }}
-              >
-                {next.label}
-              </Button>
+              next.key === "start" ? (
+                <StartOrderButton
+                  item={item}
+                  defaultLeadWorkdays={store.processSettings.deadlines.beszerzes}
+                  onConfirm={(order) => {
+                    const error = store.startItemProcurement(item.id, order);
+                    if (error) {
+                      toast.error(error);
+                      return;
+                    }
+                    toast.success("Beszerzés elindítva – rendelés rögzítve");
+                  }}
+                />
+              ) : (
+                <DeliveryButton
+                  item={item}
+                  label={next.label}
+                  onConfirm={(input) => {
+                    const error = store.markPlanItemDelivered(item.id, input);
+                    if (error) {
+                      toast.error(error);
+                      return;
+                    }
+                    toast.success(
+                      remainingQuantity(item) - input.quantity > 0
+                        ? "Részteljesítés rögzítve – a beérkezett darabok a kari IT referensnél"
+                        : "Beérkezés rögzítve – átadva a kari IT referensnek",
+                    );
+                  }}
+                />
+              )
             ) : (
               <span className="self-center text-xs text-muted-foreground">
                 {next.hint ||
@@ -530,7 +555,9 @@ function ApprovalCard({ approval }: { approval: PlanApproval }) {
               size="sm"
               onClick={() => {
                 store.startPlanExecution(approval.id);
-                toast.success("Beszerzési folyamat elindítva");
+                toast.success(
+                  "Beszerzési folyamat elindítva – a tételeket rendelési adatokkal indítsa",
+                );
               }}
             >
               Beszerzési folyamat indítása

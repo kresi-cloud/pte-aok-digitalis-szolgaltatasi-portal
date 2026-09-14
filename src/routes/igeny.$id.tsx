@@ -55,6 +55,8 @@ import { WithdrawRequestButton } from "@/components/withdraw-request-button";
 import { planApprovalForItem, withdrawBlockReason } from "@/lib/withdraw";
 import { cn } from "@/lib/utils";
 import { ViewOnlyNotice } from "@/components/view-only-notice";
+import { deliveredQuantity, primaryHandover } from "@/lib/procurement-rules";
+import { formatHuDate } from "@/lib/clock";
 
 export const Route = createFileRoute("/igeny/$id")({
   head: ({ params }) => ({
@@ -135,9 +137,10 @@ function RequestDetail() {
   const currentIndex = TIMELINE.indexOf(request.status);
 
   /** A beszerzési szakasz állapota: tervsor → tervjóváhagyás → beszerzés → átadás. */
-  const handover = (store.handovers ?? []).find(
+  const relatedHandovers = (store.handovers ?? []).filter(
     (h) => h.requestId === request.id || (planItem && h.planItemId === planItem.id),
   );
+  const handover = primaryHandover(relatedHandovers);
   const planApproval = planItem
     ? planApprovalForItem(planItem, store.planApprovals ?? [])
     : undefined;
@@ -436,51 +439,65 @@ function RequestDetail() {
           {request.nextStep}
         </p>
 
-        {isRequester && handover?.status === "atadva" && (
-          <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-md border-l-4 border-l-primary border border-border bg-secondary/40 p-4">
-            <div>
-              <p className="text-sm font-semibold">Átvételre váró eszköz: {handover.deviceName}</p>
-              <p className="text-xs text-muted-foreground">
-                {handover.serial ? `Gyári szám: ${handover.serial}` : ""}
-                {handover.serial && handover.inventoryNo ? " · " : ""}
-                {handover.inventoryNo ? `PTE leltárkód: ${handover.inventoryNo}` : ""}
-              </p>
-              <p className="mt-1 text-xs text-muted-foreground">
-                Az átvétel visszaigazolásával az eszköz bekerül a személyi leltárába.
-              </p>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <ObjectionButton
-                handoverId={handover.id}
-                deviceName={handover.deviceName}
-                onConfirm={(reason) => {
-                  const err = store.objectHandoverReceipt(handover.id, reason);
-                  if (err) toast.error(err);
-                  else toast.success("Kifogás rögzítve – az eszköz visszakerült a referenshez");
-                }}
-              />
-              <Button
-                size="sm"
-                onClick={() => {
-                  store.confirmHandoverReceipt(handover.id);
-                  toast.success("Átvétel visszaigazolva – az eszköz bekerült a leltárába");
-                }}
+        {isRequester &&
+          relatedHandovers
+            .filter((h) => h.status === "atadva")
+            .map((h) => (
+              <div
+                key={h.id}
+                className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-md border-l-4 border-l-primary border border-border bg-secondary/40 p-4"
               >
-                Átvétel visszaigazolása
-              </Button>
-            </div>
-          </div>
-        )}
+                <div>
+                  <p className="text-sm font-semibold">
+                    {`Átvételre váró eszköz: ${h.deviceName}${h.pieceCount && h.pieceCount > 1 ? ` – ${h.pieceIndex}/${h.pieceCount}. darab` : ""}`}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {h.serial ? `Gyári szám: ${h.serial}` : ""}
+                    {h.serial && h.inventoryNo ? " · " : ""}
+                    {h.inventoryNo ? `PTE leltárkód: ${h.inventoryNo}` : ""}
+                  </p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Az átvétel visszaigazolásával az eszköz bekerül a személyi leltárába.
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <ObjectionButton
+                    handoverId={h.id}
+                    deviceName={h.deviceName}
+                    onConfirm={(reason) => {
+                      const err = store.objectHandoverReceipt(h.id, reason);
+                      if (err) toast.error(err);
+                      else toast.success("Kifogás rögzítve – az eszköz visszakerült a referenshez");
+                    }}
+                  />
+                  <Button
+                    size="sm"
+                    onClick={() => {
+                      store.confirmHandoverReceipt(h.id);
+                      toast.success("Átvétel visszaigazolva – az eszköz bekerült a leltárába");
+                    }}
+                  >
+                    Átvétel visszaigazolása
+                  </Button>
+                </div>
+              </div>
+            ))}
 
-        {isRequester && handover?.status === "kifogasolva" && (
-          <div className="mt-4 rounded-md border-l-4 border-l-warning border border-border bg-secondary/40 p-4">
-            <p className="text-sm font-semibold">Kifogásolt átvétel: {handover.deviceName}</p>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Kifogás: {handover.objections?.at(-1)?.reason ?? "—"} · A kari IT referens kezeli,
-              majd az eszközt ismét átadja Önnek.
-            </p>
-          </div>
-        )}
+        {isRequester &&
+          relatedHandovers
+            .filter((h) => h.status === "kifogasolva")
+            .map((h) => (
+              <div
+                key={h.id}
+                className="mt-4 rounded-md border-l-4 border-l-warning border border-border bg-secondary/40 p-4"
+              >
+                <p className="text-sm font-semibold">Kifogásolt átvétel: {h.deviceName}</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Kifogás: {h.objections?.at(-1)?.reason ?? "—"} · A kari IT referens kezeli, majd
+                  az eszközt ismét átadja Önnek.
+                </p>
+              </div>
+            ))}
 
         {isRequester && request.status !== "piszkozat" && (
           <div className="mt-4 flex flex-wrap items-center gap-3 rounded-md border border-border bg-secondary/40 p-4">
@@ -507,6 +524,20 @@ function RequestDetail() {
               </Link>
             )}
           </p>
+        )}
+
+        {planItem?.order && (
+          <div className="mt-3 rounded-md border border-border bg-secondary/40 px-4 py-3 text-sm">
+            <p>
+              <span className="font-medium">Rendelés: </span>
+              {`${planItem.order.supplier} · rendelésszám: ${planItem.order.orderNumber} · várható érkezés: ${formatHuDate(planItem.order.expectedArrival)}`}
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {(planItem.deliveries ?? []).length > 0
+                ? `Beérkezett: ${deliveredQuantity(planItem)}/${planItem.quantity || 1} db – minden beérkezett darab leltári számot kapott, a kari IT referens készíti elő az átadásra.`
+                : "Beérkezésre vár – a várható érkezés a beszerzési lépés határideje."}
+            </p>
+          </div>
         )}
 
         {pendingApproval && isPrimaryApprover && similarAssets.length > 0 && (

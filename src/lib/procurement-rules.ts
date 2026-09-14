@@ -32,12 +32,60 @@ export function planApprovalApproved(approval: PlanApproval | undefined): boolea
   return !!approval && ["jovahagyva", "vegrehajtas", "lezarva"].includes(approval.status as string);
 }
 
-/** A tételhez tartozó átadási rekord (ha már létrejött). */
+/** Az átadási állapotok sorrendje – a „legkevésbé előrehaladott” darab kiválasztásához. */
+const HANDOVER_ORDER: Record<string, number> = {
+  kifogasolva: 0,
+  beerkezett: 1,
+  elokeszites_alatt: 2,
+  atadasra_kesz: 3,
+  atadva: 4,
+  atvetel_igazolva: 5,
+};
+
+/** A tételhez tartozó összes átadási rekord (több darabnál darabonként egy). */
+export function handoversForItem(
+  item: ProcurementPlanItem,
+  handovers: AssetHandover[],
+): AssetHandover[] {
+  return (handovers ?? []).filter((h) => h.planItemId === item.id);
+}
+
+/**
+ * A tétel „vezető” átadási rekordja: a legkevésbé előrehaladott darab, hogy az
+ * ügy addig nyitott maradjon, amíg minden darab át nem került az igénylőhöz.
+ */
 export function handoverForItem(
   item: ProcurementPlanItem,
   handovers: AssetHandover[],
 ): AssetHandover | undefined {
-  return (handovers ?? []).find((h) => h.planItemId === item.id);
+  return primaryHandover(handoversForItem(item, handovers));
+}
+
+export function primaryHandover(list: AssetHandover[]): AssetHandover | undefined {
+  return [...list].sort(
+    (a, b) => (HANDOVER_ORDER[a.status] ?? 9) - (HANDOVER_ORDER[b.status] ?? 9),
+  )[0];
+}
+
+/** Eddig beérkezett darabszám (D12). */
+export function deliveredQuantity(item: ProcurementPlanItem): number {
+  return (item.deliveries ?? []).reduce((n, d) => n + d.quantity, 0);
+}
+
+/**
+ * Hátralévő darabszám. Örökölt adatnál (átadási rekord beérkezés-bejegyzés nélkül)
+ * az átadási rekordok száma is beérkezésnek számít.
+ */
+export function remainingQuantity(item: ProcurementPlanItem, handoverCount = 0): number {
+  const delivered = Math.max(deliveredQuantity(item), handoverCount);
+  return Math.max(0, (item.quantity || 1) - delivered);
+}
+
+/** Minden darab beérkezett és minden darab átvétele visszaigazolva (D12/D16). */
+export function itemFullyReceived(item: ProcurementPlanItem, handovers: AssetHandover[]): boolean {
+  const list = handoversForItem(item, handovers);
+  if (remainingQuantity(item, list.length) > 0) return false;
+  return list.length >= (item.quantity || 1) && list.every((h) => h.status === "atvetel_igazolva");
 }
 
 /**
@@ -180,10 +228,35 @@ export function canMarkDelivered(
 ): RuleResult {
   if (!isProcurementExecutor(role))
     return no("A beérkezést a beszerző rögzíti – Ön betekintő jogosultsággal nézi az ügyet.");
-  if (handoverForItem(item, ctx.handovers ?? []))
-    return no("A tételhez már tartozik átadási rekord a kari IT referensnél.");
+  if (item.status === "teljesult") return no("A tétel már teljesült.");
+  const existing = handoversForItem(item, ctx.handovers ?? []).length;
+  if (existing > 0 && remainingQuantity(item, existing) === 0)
+    return no("Minden darab beérkezett – az átadás a kari IT referensnél folyik.");
   if (item.status !== "beszerzes_alatt")
     return no("Beérkezést csak beszerzés alatt lévő tételnél lehet rögzíteni.");
+  return ok;
+}
+
+/** A rendelési rekord kötelező mezői a beszerzés indításához (D12). */
+export function validateOrderInput(input: {
+  supplier: string;
+  orderNumber: string;
+  expectedArrival: string;
+}): RuleResult {
+  if (input.supplier.trim().length < 2) return no("A szállító megadása kötelező.");
+  if (input.orderNumber.trim().length < 1) return no("A rendelésszám megadása kötelező.");
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(input.expectedArrival))
+    return no("A várható érkezés dátuma kötelező.");
+  return ok;
+}
+
+/** A beérkezett darabszám érvényessége (részteljesítés, D12). */
+export function validateDeliveryQuantity(item: ProcurementPlanItem, quantity: number): RuleResult {
+  const remaining = remainingQuantity(item);
+  if (!Number.isInteger(quantity) || quantity < 1)
+    return no("Legalább 1 darab beérkezése rögzíthető.");
+  if (quantity > remaining)
+    return no(`Legfeljebb ${remaining} darab érkezhet még be ebből a tételből.`);
   return ok;
 }
 
@@ -205,7 +278,10 @@ export function getProcurementNextAction(
   role: RoleKey,
 ): ProcurementNextAction {
   const handover = handoverForItem(item, ctx.handovers ?? []);
-  if (handover)
+  const remaining = remainingQuantity(item, handoversForItem(item, ctx.handovers ?? []).length);
+  if (item.status === "teljesult")
+    return { key: null, label: "", allowed: false, hint: "Teljesült." };
+  if (handover && remaining === 0)
     return {
       key: null,
       label: "",
@@ -215,8 +291,6 @@ export function getProcurementNextAction(
           ? "Lezárva – az eszköz átvétele visszaigazolva."
           : "Átadási folyamatban a kari IT referensnél.",
     };
-  if (item.status === "teljesult")
-    return { key: null, label: "", allowed: false, hint: "Teljesült." };
 
   if (!item.handedToPlannerAt)
     return {
@@ -235,9 +309,13 @@ export function getProcurementNextAction(
     };
   }
   const r = canMarkDelivered(item, ctx, role);
+  const delivered = deliveredQuantity(item);
   return {
     key: "deliver",
-    label: "Beérkezett – átadásra",
+    label:
+      (item.quantity || 1) > 1
+        ? `Beérkezett – átadásra (${delivered}/${item.quantity} db)`
+        : "Beérkezett – átadásra",
     allowed: r.allowed,
     hint: r.reason ?? "",
   };

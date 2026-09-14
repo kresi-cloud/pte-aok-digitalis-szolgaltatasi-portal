@@ -121,12 +121,21 @@ export const PRIORITY_LABELS: Record<ReplacementPriority, string> = {
 export type AssetUsageType = "szemelyi" | "kozos";
 
 /** AssetLocations */
-export type LocationKind = "iroda" | "muhely" | "labor";
+export type LocationKind = "iroda" | "muhely" | "labor" | "raktar";
 
 export const LOCATION_KIND_LABELS: Record<LocationKind, string> = {
   iroda: "Iroda",
   muhely: "Műhely",
   labor: "Labor",
+  raktar: "Raktár",
+};
+
+/** Hol van az eszköz: raktáron (beérkezés után, átadás előtt) vagy használatban (D16). */
+export type AssetHolding = "raktar" | "hasznalatban";
+
+export const ASSET_HOLDING_LABELS: Record<AssetHolding, string> = {
+  raktar: "Raktáron",
+  hasznalatban: "Használatban",
 };
 
 export interface AssetLocation {
@@ -207,6 +216,8 @@ export interface Asset {
   lifecycleEndOverride?: string | undefined;
   lifecycleStatusOverride?: LifecycleStatus | undefined;
   condition: "kifogastalan" | "jo" | "kopott" | "hibas";
+  /** raktáron vagy használatban; hiányzó érték = használatban (örökölt adat) */
+  holding?: AssetHolding | undefined;
   active: boolean;
   reportedIssues: number;
   repairCount: number;
@@ -399,6 +410,34 @@ export interface ProcurementPlanItem {
   handedToPlannerAt?: string | undefined;
   /** A beszerző által rögzített várható érkezés (ISO) – a beszerzési lépés határideje (D6/D12). */
   expectedArrival?: string | undefined;
+  /** Rendelési rekord a beszerzés indításakor (D12). */
+  order?: ProcurementOrder | undefined;
+  /** Beérkezések darabszámmal – több darabnál részteljesítés (D12). */
+  deliveries?: ProcurementDelivery[] | undefined;
+}
+
+/** A beszerző által rögzített rendelés (D12). */
+export interface ProcurementOrder {
+  supplier: string;
+  orderNumber: string;
+  orderedAt: string;
+  expectedArrival: string;
+  /** tényleges nettó egységár (Ft) – a D5 küszöbellenőrzés bemenete */
+  actualUnitNet?: number | undefined;
+  /** tényleges bruttó egységár (Ft) */
+  actualUnitGross?: number | undefined;
+  note?: string | undefined;
+}
+
+/** Egy beérkezés (teljes vagy rész) – darabonként leltárba vett eszközökkel (D12/D16). */
+export interface ProcurementDelivery {
+  id: string;
+  at: string;
+  actorId: string;
+  quantity: number;
+  note?: string | undefined;
+  /** a beérkezéskor létrehozott kataszter-tételek */
+  assetIds: string[];
 }
 
 /** Terv-jóváhagyási ciklus: azonnali, negyedéves és éves beszerzési terv. */

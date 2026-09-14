@@ -194,12 +194,17 @@ function Wizard() {
     !!form.workLocationId &&
     (form.handoverMode !== "eltero" || !!form.handoverLocationId);
 
+  // D2: egy igény = egy termék, kötelező darabszámmal (személyi használatnál mindig 1).
+  const quantityOk = Number.isInteger(Number(form.quantity)) && Number(form.quantity) >= 1;
   const canNext =
     (key === "domain" && !!form.domain) ||
     (key === "category" && !!form.productCategoryId) ||
     (key === "product" && !!form.productId) ||
     (key === "goal" && form.goal.trim().length > 20 && form.title.trim().length > 3) ||
-    (key === "details" && (!(isHw && isPersonalUse) || personalDetailsOk) && timingOk) ||
+    (key === "details" &&
+      (!(isHw && isPersonalUse) || personalDetailsOk) &&
+      (!(isHw && !isPersonalUse) || quantityOk) &&
+      timingOk) ||
     key === "summary";
 
   const locationLabel = (id: string) => {
@@ -629,15 +634,28 @@ function Wizard() {
           {isHw && !isPersonalUse && (
             <>
               <div className="space-y-2">
-                <Label htmlFor="qty">Hány darabra van szükség?</Label>
+                <Label htmlFor="qty">
+                  Hány darabra van szükség? <span className="text-destructive">*</span>
+                </Label>
                 <Input
                   id="qty"
                   type="number"
+                  inputMode="numeric"
                   min={1}
+                  step={1}
+                  required
                   value={form.quantity}
                   onChange={(e) => set({ quantity: e.target.value })}
                   className="max-w-[160px]"
+                  aria-invalid={!quantityOk}
                 />
+                <p className="text-xs text-muted-foreground">
+                  Egy igény egy termékkört és modellt tartalmaz, darabszámmal. Több különböző
+                  eszközhöz külön igényt adjon be.
+                </p>
+                {!quantityOk && (
+                  <p className="text-xs text-destructive">Legalább 1 darab, egész szám.</p>
+                )}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="hw-goal">Mire használná az eszközt?</Label>

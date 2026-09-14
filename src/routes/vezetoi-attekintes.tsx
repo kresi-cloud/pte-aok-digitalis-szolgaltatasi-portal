@@ -34,6 +34,7 @@ import { DOMAINS, ORG_UNITS, PROJECTS, TEAMS, lookup, useStore } from "@/lib/sto
 import { STATUS_LABELS, type ServiceRequest, type StatusKey } from "@/lib/types";
 import { requestSituation } from "@/lib/request-situation";
 import { formatHuDate } from "@/lib/clock";
+import { handoverForItem } from "@/lib/procurement-rules";
 
 export const Route = createFileRoute("/vezetoi-attekintes")({
   head: () => ({
@@ -151,7 +152,7 @@ function LeaderView() {
     }[] = [];
     for (const item of planItems) {
       const approval = planApprovalForItem(item, planApprovals ?? []);
-      const handover = (handovers ?? []).find((h) => h.planItemId === item.id);
+      const handover = handoverForItem(item, handovers ?? []);
       const stage = planItemStage(item, approval, handover, users);
       // Az igényből származó tételeket az ügyek szintjén számoljuk (lent).
       if (!item.sourceRequestId) perStep[stage.stageIndex]!.count += 1;

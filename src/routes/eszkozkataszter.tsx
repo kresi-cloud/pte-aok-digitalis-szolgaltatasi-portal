@@ -110,7 +110,7 @@ function CataloguePage() {
         />
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-6">
         <StatTile
           label="Nyilvántartott eszköz"
           value={filtered.length}
@@ -120,6 +120,11 @@ function CataloguePage() {
           label="Bruttó beszerzési érték"
           value={hufShort(totalValue)}
           hint="Szűrt állományra"
+        />
+        <StatTile
+          label="Raktáron"
+          value={filtered.filter((a) => a.holding === "raktar").length}
+          hint="beérkezett, még át nem adott eszköz"
         />
         <StatTile
           label="Cserére tervezendő"
@@ -617,6 +622,11 @@ export function AssetTable({
                 <td className="px-4 py-3">{lifecycleEnd(a)}</td>
                 <td className="px-4 py-3">
                   <LifecycleBadge status={lifecycleStatus(a)} />
+                  {a.holding === "raktar" && (
+                    <Badge variant="outline" className="ml-1 font-normal">
+                      Raktáron
+                    </Badge>
+                  )}
                 </td>
                 <td className="px-4 py-3">
                   <PriorityBadge priority={replacementPriority(a)} />

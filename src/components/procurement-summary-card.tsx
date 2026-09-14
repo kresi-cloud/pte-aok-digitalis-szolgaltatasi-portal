@@ -6,6 +6,7 @@ import { useStore } from "@/lib/store";
 import { useDemoMode } from "@/lib/demo-mode";
 import { daysBetween } from "@/lib/clock";
 import type { ServiceRequest } from "@/lib/types";
+import { primaryHandover } from "@/lib/procurement-rules";
 
 /** Vezetői eredménykártya a sikeresen lezárt beszerzésről. */
 export function ProcurementSummaryCard({ request }: { request: ServiceRequest }) {
@@ -14,8 +15,10 @@ export function ProcurementSummaryCard({ request }: { request: ServiceRequest })
   const navigate = useNavigate();
 
   const planItem = store.planItems.find((p) => p.sourceRequestId === request.id);
-  const handover = (store.handovers ?? []).find(
-    (h) => h.requestId === request.id || (planItem && h.planItemId === planItem.id),
+  const handover = primaryHandover(
+    (store.handovers ?? []).filter(
+      (h) => h.requestId === request.id || (planItem && h.planItemId === planItem.id),
+    ),
   );
   if (!handover || handover.status !== "atvetel_igazolva") return null;
 

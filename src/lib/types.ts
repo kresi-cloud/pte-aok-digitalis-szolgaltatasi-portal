@@ -607,6 +607,11 @@ export interface AssetHandover {
   objections?: HandoverObjection[] | undefined;
   /** csere esetén a lecserélt régi eszköz leltári azonosítója (D13) */
   replacedAssetId?: string | undefined;
+  /** a beérkezéskor leltárba vett kataszter-tétel (D16) */
+  assetId?: string | undefined;
+  /** több darabos tételnél: hányadik darab (1-alapú) és összesen hány */
+  pieceIndex?: number | undefined;
+  pieceCount?: number | undefined;
   /** a régi eszköz sorsa – átadás előtt kötelező, ha van lecserélt eszköz (D13) */
   oldAssetDisposition?: OldAssetDisposition | undefined;
   /** a régi eszköz sorsának indoklása (a „marad” döntésnél kötelező) */

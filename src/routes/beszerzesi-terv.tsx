@@ -42,6 +42,7 @@ import {
 import { ProcurementBadge, PriorityBadge, StatTile } from "@/components/asset-bits";
 import { planItemStage } from "@/lib/plan-stage";
 import { planApprovalForItem } from "@/lib/withdraw";
+import { handoverForItem } from "@/lib/procurement-rules";
 
 export const Route = createFileRoute("/beszerzesi-terv")({
   head: () => ({
@@ -314,7 +315,7 @@ function PlanItemCard({ item }: { item: ProcurementPlanItem }) {
   const stage = planItemStage(
     item,
     planApprovalForItem(item, store.planApprovals ?? []),
-    (store.handovers ?? []).find((h) => h.planItemId === item.id),
+    handoverForItem(item, store.handovers ?? []),
     store.users,
   );
 

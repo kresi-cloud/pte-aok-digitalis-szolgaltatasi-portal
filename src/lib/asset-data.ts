@@ -131,6 +131,14 @@ export const FUNDING_SOURCES: FundingSource[] = [
 ];
 
 export const ASSET_LOCATIONS: AssetLocation[] = [
+  // Kari IT raktár – a beérkezett, még át nem adott eszközök helye (D16)
+  {
+    id: "loc-it-raktar",
+    building: "Központi épület",
+    room: "Kari IT raktár",
+    kind: "raktar",
+    orgUnitId: "ou-oktatastechnika",
+  },
   // Dékáni Hivatal
   {
     id: "loc-dekani-1",
