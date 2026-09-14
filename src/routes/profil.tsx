@@ -4,6 +4,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { lookup, useStore } from "@/lib/store";
 import { ROLE_LABELS } from "@/lib/types";
+import { DelegationCard } from "@/components/delegation-card";
 
 export const Route = createFileRoute("/profil")({
   head: () => ({
@@ -51,6 +52,8 @@ function Profile() {
       <p className="text-xs text-muted-foreground">
         Ezek az adatok az intézményi azonosítóból származnak, a portálon nem szerkeszthetők.
       </p>
+
+      <DelegationCard userId={currentUser.id} />
 
       <section className="card-surface p-5">
         <h2 className="font-display text-base font-semibold">Értesítési beállítások</h2>

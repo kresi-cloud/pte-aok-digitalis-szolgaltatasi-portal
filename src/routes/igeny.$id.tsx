@@ -56,10 +56,11 @@ import { planApprovalForItem, withdrawBlockReason } from "@/lib/withdraw";
 import { cn } from "@/lib/utils";
 import { ViewOnlyNotice } from "@/components/view-only-notice";
 import { deliveredQuantity, primaryHandover } from "@/lib/procurement-rules";
-import { formatHuDate } from "@/lib/clock";
+import { formatHuDate, todayIso } from "@/lib/clock";
 import { BudgetBadge } from "@/components/budget-badge";
 import { budgetCheck } from "@/lib/budget-rules";
 import { timingLabel } from "@/lib/schedule-rules";
+import { unitBudgetCheck } from "@/lib/unit-budget";
 
 export const Route = createFileRoute("/igeny/$id")({
   head: ({ params }) => ({
@@ -99,6 +100,7 @@ function RequestDetail() {
   const request = store.requests.find((r) => r.id === id);
   const [message, setMessage] = useState("");
   const [internalNote, setInternalNote] = useState("");
+  const [overrunJustification, setOverrunJustification] = useState("");
   const [budget, setBudget] = useState(
     String(store.requests.find((r) => r.id === id)?.estimatedCost || ""),
   );
@@ -123,9 +125,15 @@ function RequestDetail() {
   const fullView = staff || leader;
   const isRequester = request.requesterId === store.currentUser.id;
   const planItem = store.planItems.find((p) => p.sourceRequestId === request.id);
+  const actingIds = new Set([store.currentUser.id, ...store.actingForIds]);
   const pendingApproval = request.approvals.find(
-    (a) => a.decision === "fuggoben" && a.approverId === store.currentUser.id,
+    (a) => a.decision === "fuggoben" && actingIds.has(a.approverId),
   );
+  const asSubstitute = !!pendingApproval && pendingApproval.approverId !== store.currentUser.id;
+  // D15: az egység éves keretének állása a jóváhagyás előtt.
+  const unitBudget = pendingApproval
+    ? unitBudgetCheck(request, store.requests, store.unitBudgets, todayIso())
+    : undefined;
   /** Az igény elsődleges (szervezeti) jóváhagyója rögzíti a költségkeretet. */
   const isPrimaryApprover = !!pendingApproval && request.approvals[0]?.id === pendingApproval.id;
   /** Az igénylő leltárában lévő, a kért termékkörhöz illeszkedő eszközök. */
@@ -532,6 +540,15 @@ function RequestDetail() {
           </p>
         )}
 
+        {request.unitBudgetOverrun && (
+          <div className="mt-3 rounded-md border border-warning/50 bg-warning/10 px-4 py-3 text-sm">
+            <span className="font-medium">Egység-keret túllépése: </span>
+            {`a jóváhagyáskor az egység ${request.unitBudgetOverrun.unitBudget.toLocaleString("hu-HU")} Ft-os éves kerete kimerült (felhasználva ${request.unitBudgetOverrun.usedBefore.toLocaleString("hu-HU")} Ft, ez az igény ${request.unitBudgetOverrun.amount.toLocaleString("hu-HU")} Ft).`}
+            <p className="mt-1 text-xs text-muted-foreground">
+              {`Indoklás: ${request.unitBudgetOverrun.justification}`}
+            </p>
+          </div>
+        )}
         {planItem?.scheduleDeviation && (
           <div className="mt-3 rounded-md border border-border bg-secondary/40 px-4 py-3 text-sm">
             <span className="font-medium">Ütemezés: </span>
@@ -643,15 +660,53 @@ function RequestDetail() {
           </div>
         )}
 
+        {pendingApproval && unitBudget && (
+          <div
+            className={`mt-4 rounded-md border px-4 py-3 text-sm ${unitBudget.exceeded ? "border-warning/50 bg-warning/10" : "border-border bg-secondary/40"}`}
+          >
+            <p>
+              <span className="font-medium">Egység éves IT-kerete: </span>
+              {`${unitBudget.budget.toLocaleString("hu-HU")} Ft · eddig felhasználva ${unitBudget.usedBefore.toLocaleString("hu-HU")} Ft · ez az igény ${unitBudget.amount.toLocaleString("hu-HU")} Ft · ${unitBudget.remainingAfter >= 0 ? `maradna ${unitBudget.remainingAfter.toLocaleString("hu-HU")} Ft` : `túllépés ${(-unitBudget.remainingAfter).toLocaleString("hu-HU")} Ft`}`}
+            </p>
+            {unitBudget.exceeded && (
+              <div className="mt-2 space-y-1.5">
+                <p className="text-xs font-medium text-warning-foreground">
+                  Figyelmeztetés: az egység kerete kimerülne. Jóváhagyás csak indoklással; a
+                  túllépés a gazdasági jóváhagyásnál kiemelten látszik.
+                </p>
+                <Label htmlFor="overrun-justification">Indoklás a kerettúllépéshez *</Label>
+                <Textarea
+                  id="overrun-justification"
+                  rows={2}
+                  value={overrunJustification}
+                  onChange={(e) => setOverrunJustification(e.target.value)}
+                  placeholder="Például: pályázati forrásból pótolható, a cserét nem lehet halasztani."
+                />
+              </div>
+            )}
+          </div>
+        )}
+
         {pendingApproval && (
           <div className="mt-4 flex flex-wrap items-center gap-3 rounded-md border border-info/30 bg-info/5 p-4">
-            <p className="text-sm">Az igény az Ön jóváhagyására vár ({pendingApproval.role}).</p>
-            <div className="ml-auto flex gap-2">
+            <p className="text-sm">
+              {asSubstitute
+                ? `Az igény ${lookup.user(pendingApproval.approverId)?.name ?? ""} jóváhagyására vár – Ön a helyettese (${pendingApproval.role}); a döntés helyettesként naplózódik.`
+                : `Az igény az Ön jóváhagyására vár (${pendingApproval.role}).`}
+            </p>
+            <div className="ml-auto flex flex-wrap gap-2">
               <Button
                 size="sm"
+                disabled={!!unitBudget?.exceeded && overrunJustification.trim().length < 5}
                 onClick={() => {
-                  store.decideApproval(request.id, pendingApproval.id, "jovahagyva", "Támogatom.");
-                  toast.success("Az igényt jóváhagyta.");
+                  const err = store.decideApproval(
+                    request.id,
+                    pendingApproval.id,
+                    "jovahagyva",
+                    unitBudget?.exceeded ? overrunJustification.trim() : "Támogatom.",
+                  );
+                  if (err) toast.error(err);
+                  else toast.success("Az igényt jóváhagyta.");
                 }}
               >
                 <Check className="size-4" /> Jóváhagyás
@@ -659,8 +714,14 @@ function RequestDetail() {
               <RejectRequestButton
                 requestId={request.id}
                 onConfirm={(reason) => {
-                  store.decideApproval(request.id, pendingApproval.id, "elutasitva", reason);
-                  toast.error("Az igényt elutasította.");
+                  const err = store.decideApproval(
+                    request.id,
+                    pendingApproval.id,
+                    "elutasitva",
+                    reason,
+                  );
+                  if (err) toast.error(err);
+                  else toast.error("Az igényt elutasította.");
                 }}
               />
               <ClarificationButton

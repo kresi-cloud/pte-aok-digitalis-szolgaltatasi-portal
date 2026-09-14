@@ -22,6 +22,8 @@ import { DeadlineBadge } from "@/components/deadline-badge";
 import { requestSituation } from "@/lib/request-situation";
 import { RejectBudgetButton } from "@/components/budget-badge";
 import { pendingBudgetReview } from "@/lib/budget-rules";
+import { unitBudgetCheck } from "@/lib/unit-budget";
+import { todayIso } from "@/lib/clock";
 
 export const Route = createFileRoute("/jovahagyasok")({
   head: () => ({
@@ -63,15 +65,19 @@ function ApprovalQueue() {
     });
   const [tab, setTab] = useState<TabKey>("sajat");
 
+  // D8: a helyettesített személy teendői is a sajátok között (naplózott helyettes döntéssel).
+  const actingIds = useMemo(
+    () => new Set([store.currentUser.id, ...store.actingForIds]),
+    [store.currentUser.id, store.actingForIds],
+  );
   const myPending = useMemo(
     () =>
       store.requests.filter(
         (r) =>
-          r.approvals.some(
-            (a) => a.decision === "fuggoben" && a.approverId === store.currentUser.id,
-          ) && !["lezarva", "elutasitva"].includes(r.status),
+          r.approvals.some((a) => a.decision === "fuggoben" && actingIds.has(a.approverId)) &&
+          !["lezarva", "elutasitva"].includes(r.status),
       ),
-    [store.requests, store.currentUser.id],
+    [store.requests, actingIds],
   );
 
   const allPending = useMemo(
@@ -103,23 +109,25 @@ function ApprovalQueue() {
       : undefined;
     if (!review || !request) return [];
     const mine = request.approvals.some(
-      (a) => a.approverId === store.currentUser.id && (a.role === "jovahagyo" || a.step === 1),
+      (a) => actingIds.has(a.approverId) && (a.role === "jovahagyo" || a.step === 1),
     );
     if (!mine && store.activeRole !== "admin") return [];
     return [{ item, review, request }];
   });
 
   const decide = (r: ServiceRequest, decision: "jovahagyva" | "elutasitva", reason?: string) => {
-    const mine = r.approvals.find(
-      (a) => a.decision === "fuggoben" && a.approverId === store.currentUser.id,
-    );
+    const mine = r.approvals.find((a) => a.decision === "fuggoben" && actingIds.has(a.approverId));
     if (!mine) return;
-    store.decideApproval(
+    const err = store.decideApproval(
       r.id,
       mine.id,
       decision,
       decision === "jovahagyva" ? "Támogatom." : (reason ?? "Jelenleg nem támogatott."),
     );
+    if (err) {
+      toast.error(err);
+      return;
+    }
     if (decision === "jovahagyva") toast.success(`${r.id} jóváhagyva.`);
     else toast.error(`${r.id} elutasítva.`);
   };
@@ -265,7 +273,10 @@ function ApprovalQueue() {
               <TableBody>
                 {rows.map((r) => {
                   const pending = r.approvals.filter((a) => a.decision === "fuggoben");
-                  const mine = pending.find((a) => a.approverId === store.currentUser.id);
+                  const mine = pending.find((a) => actingIds.has(a.approverId));
+                  const unit = mine
+                    ? unitBudgetCheck(r, store.requests, store.unitBudgets, todayIso())
+                    : undefined;
                   return (
                     <TableRow key={r.id}>
                       <TableCell className="font-mono text-xs">{r.id}</TableCell>
@@ -294,6 +305,16 @@ function ApprovalQueue() {
                         <span className="mt-1 block">
                           <DeadlineBadge deadline={situationOf(r).deadline} compact />
                         </span>
+                        {unit?.exceeded && (
+                          <span className="mt-1 inline-flex rounded-full border border-warning/50 bg-warning/15 px-2 py-0.5 text-[11px] font-medium text-warning-foreground">
+                            Egység-keret kimerülne – indoklás az igényen
+                          </span>
+                        )}
+                        {mine && mine.approverId !== store.currentUser.id && (
+                          <span className="mt-1 block text-[11px] text-muted-foreground">
+                            {`helyettesként: ${lookup.userName(mine.approverId)}`}
+                          </span>
+                        )}
                       </TableCell>
                       <TableCell className="text-right text-sm">
                         {(r.estimatedCost ?? 0).toLocaleString("hu-HU")} Ft

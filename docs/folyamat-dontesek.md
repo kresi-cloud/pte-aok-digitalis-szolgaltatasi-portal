@@ -221,3 +221,22 @@ Minden tétel: a kérdés, a döntés, a következmény a prototípusra.
   kiemelhet; a csomag jóváhagyva, a kiemelt tételek beszerzése áll. Az IT eszközmenedzser
   átdolgozás után leírással újra beküldi; a gazdasági vezető jóváhagyja vagy ismét kiemeli
   (újabb kör, indoklással). Minden lépésnél értesítés az igénylőnek, audit a tervsoron.
+
+### 6. csomag – D8, D14, D15 (kész)
+
+- Személyre szóló értesítések: minden értesítés címzettje az igénylő és a lépés konkrét felelőse
+  (a helyzet-modellből levezetve, tartósan rögzítve); a fejléc-harang csak a saját (és a
+  helyettesített) tételeket mutatja, a felelősnél a teendővel, lépéssel és határidővel.
+  Ügyhöz nem kötött (tervciklus-) értesítések a beszerzés szereplőinek szólnak; általános
+  „mindenkinek” értesítés nincs.
+- Időszakos helyettesítés: a felhasználó a profilján helyettest és időszakot ad meg (aktív
+  munkatárs, nem saját maga); az admin bárkinek beállíthatja vagy törölheti. Az időszak alatt a
+  szervezeti jóváhagyás és a kerettúllépés döntése a helyettesnél is megjelenik, a döntés
+  „helyettesként (X helyett)” naplózódik; a fejlécben látszik, kit helyettesít. Az egységenkénti
+  fix helyettes jóváhagyó (önjóváhagyás ellen) változatlan. A szerepkör-alapú lépéseknél
+  (eszközmenedzser, gazdasági vezető, beszerző, referens) a helyettesítés nem személyhez kötött.
+- Egység-keret: egységenkénti éves bruttó IT-keret (alapból 5 000 000 Ft, az Adminisztráció →
+  Szervezeti egységek fülön állítható); felhasználás = az egység jóváhagyott vagy folyó
+  eszközigényei az adott évben. Ha az igény kimerítené a keretet, a jóváhagyó figyelmeztetést
+  lát, jóváhagyás csak indoklással; a túllépés az igényen és a beszerzői munkatéren jelvénnyel
+  látszik. Kemény tiltás nincs.

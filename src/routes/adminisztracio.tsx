@@ -44,6 +44,8 @@ import {
   type DeadlineStepKey,
   type ProcessSettings,
 } from "@/lib/deadlines";
+import { DelegationCard } from "@/components/delegation-card";
+import { unitBudgetOf } from "@/lib/unit-budget";
 
 export const Route = createFileRoute("/adminisztracio")({
   head: () => ({
@@ -130,6 +132,7 @@ function Admin() {
                     <TableHead>Szervezeti egység</TableHead>
                     <TableHead>Típus</TableHead>
                     <TableHead>Jóváhagyó</TableHead>
+                    <TableHead>Éves IT-keret (bruttó Ft)</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -140,6 +143,9 @@ function Admin() {
                         {ORG_UNIT_TYPE_LABELS[o.type]}
                       </TableCell>
                       <TableCell>{lookup.userName(o.approverUserId)}</TableCell>
+                      <TableCell>
+                        <UnitBudgetInput orgUnitId={o.id} />
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -311,8 +317,9 @@ function Admin() {
             <AnnouncementsAdmin />
           </TabsContent>
 
-          <TabsContent value="folyamat">
+          <TabsContent value="folyamat" className="space-y-4">
             <ProcessSettingsAdmin />
+            <DelegationsAdmin />
           </TabsContent>
 
           <TabsContent value="ai">
@@ -368,6 +375,87 @@ const defaultExpiry = () => {
   d.setDate(d.getDate() + 14);
   return d.toISOString().slice(0, 10);
 };
+
+/** D15: egységenkénti éves IT-keret – a jóváhagyó figyelmeztetést lát, ha kimerülne. */
+function UnitBudgetInput({ orgUnitId }: { orgUnitId: string }) {
+  const store = useStore();
+  const [value, setValue] = useState(String(unitBudgetOf(store.unitBudgets, orgUnitId)));
+  return (
+    <Input
+      type="number"
+      inputMode="numeric"
+      min={0}
+      step={100000}
+      className="w-40"
+      value={value}
+      aria-label={`Éves IT-keret: ${lookup.unit(orgUnitId)}`}
+      onChange={(e) => setValue(e.target.value)}
+      onBlur={() => {
+        const n = Number(value);
+        if (Number.isFinite(n) && n >= 0 && n !== unitBudgetOf(store.unitBudgets, orgUnitId)) {
+          store.setUnitBudget(orgUnitId, n);
+          toast.success("Egység-keret mentve, naplózva.");
+        }
+      }}
+    />
+  );
+}
+
+/** D8: helyettesítések adminisztrátori áttekintése és felülírása. */
+function DelegationsAdmin() {
+  const store = useStore();
+  const [userId, setUserId] = useState("");
+  return (
+    <div className="space-y-4">
+      <section className="card-surface space-y-3 p-5">
+        <h2 className="font-display text-base font-semibold">Helyettesítések</h2>
+        {store.delegations.length === 0 ? (
+          <p className="text-sm text-muted-foreground">Nincs beállított helyettesítés.</p>
+        ) : (
+          <ul className="space-y-2 text-sm">
+            {store.delegations.map((d) => (
+              <li
+                key={d.id}
+                className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border p-3"
+              >
+                <span>
+                  {`${lookup.user(d.userId)?.name ?? d.userId} → ${lookup.user(d.substituteId)?.name ?? d.substituteId} · ${d.from} – ${d.to}`}
+                </span>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    const err = store.setDelegation(d.userId, null);
+                    if (err) toast.error(err);
+                    else toast.success("Helyettesítés törölve.");
+                  }}
+                >
+                  Törlés
+                </Button>
+              </li>
+            ))}
+          </ul>
+        )}
+        <div className="space-y-1.5">
+          <Label htmlFor="dg-user">Helyettesítés beállítása másnak</Label>
+          <Select value={userId} onValueChange={setUserId}>
+            <SelectTrigger id="dg-user" className="w-full sm:w-96" aria-label="Felhasználó">
+              <SelectValue placeholder="Válasszon felhasználót" />
+            </SelectTrigger>
+            <SelectContent>
+              {store.activeUsers.map((u) => (
+                <SelectItem key={u.id} value={u.id}>
+                  {u.name} – {u.title}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </section>
+      {userId && <DelegationCard key={userId} userId={userId} title="Helyettesítés (admin)" />}
+    </div>
+  );
+}
 
 /** D3/D6/D7: lépésenkénti határidők – szabadon állítható, minden módosítás naplózva. */
 function ProcessSettingsAdmin() {

@@ -252,6 +252,8 @@ export interface Approval {
   decision: "jovahagyva" | "elutasitva" | "fuggoben" | "pontositas";
   decidedAt?: string | undefined;
   comment?: string | undefined;
+  /** aki ténylegesen döntött – helyettesítésnél eltér a kijelölt jóváhagyótól (D8) */
+  decidedById?: string | undefined;
 }
 
 export interface AuditEvent {
@@ -317,6 +319,10 @@ export interface ServiceRequest {
   budget?: string | undefined;
   /** A szervezeti jóváhagyáskor rögzített bruttó költségkeret (D1) – a küszöbellenőrzés alapja. */
   approvedBudgetGross?: number | undefined;
+  /** Egység-keret túllépése a jóváhagyáskor, indoklással (D15). */
+  unitBudgetOverrun?:
+    | { at: string; unitBudget: number; usedBefore: number; amount: number; justification: string }
+    | undefined;
   slaRisk?: boolean | undefined;
   projectId?: string | undefined;
   messages: RequestMessage[];
@@ -456,6 +462,26 @@ export interface AppNotification {
   text: string;
   at: string;
   read: boolean;
+  /** Címzettek (D14): a konkrét felelős(ök) és az igénylő; üres = általános (adminisztrátori). */
+  recipientIds?: string[] | undefined;
+  /** A következő teendő felelőse, ha az értesítés teendőt jelez. */
+  todoActorId?: string | undefined;
+  /** A várt teendő szövege a felelősnek. */
+  todo?: string | undefined;
+  /** A lépés neve és határideje (ISO), ha van. */
+  step?: string | undefined;
+  dueDate?: string | undefined;
+}
+
+/** Időszakos helyettesítés (D8): a felhasználó teendői a helyettesnél jelennek meg. */
+export interface Delegation {
+  id: string;
+  userId: string;
+  substituteId: string;
+  from: string;
+  to: string;
+  createdAt: string;
+  createdBy: string;
 }
 
 export type InventoryKind = "hardver" | "szoftver";

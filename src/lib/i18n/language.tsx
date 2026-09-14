@@ -78,6 +78,21 @@ const PATTERNS: { re: RegExp; to: (m: RegExpExecArray) => string }[] = [
     to: (m) => `waiting ${m[1]} working days (${m[2]} working days late)`,
   },
   { re: /^átl\. (\d+) mn$/, to: (m) => `avg. ${m[1]} wd` },
+  // helyettesítés, értesítés, egység-keret (D8/D14/D15)
+  { re: /^Helyettesít: (.+)$/, to: (m) => `Substituting: ${m[1]}` },
+  { re: /^helyettesként: (.+)$/, to: (m) => `as substitute: ${m[1]}` },
+  { re: /^Teendő: (.+)$/, to: (m) => `To do: ${m[1]}` },
+  { re: /^Beállított helyettes: (.+)$/, to: (m) => `Substitute set: ${m[1]}` },
+  {
+    re: /^(.+) Ft · eddig felhasználva (.+) Ft · ez az igény (.+) Ft · (maradna|túllépés) (.+) Ft$/,
+    to: (m) =>
+      `${m[1]} HUF · used so far ${m[2]} HUF · this request ${m[3]} HUF · ${m[4] === "maradna" ? "would remain" : "overrun"} ${m[5]} HUF`,
+  },
+  {
+    re: /^a jóváhagyáskor az egység (.+) Ft-os éves kerete kimerült \(felhasználva (.+) Ft, ez az igény (.+) Ft\)\.$/,
+    to: (m) =>
+      `at approval the unit's annual budget of ${m[1]} HUF was exhausted (used ${m[2]} HUF, this request ${m[3]} HUF).`,
+  },
   // ütemezés-eltérés és kiemelés (D9/D10)
   { re: /^Kiemelve \((\d+)\. kör\) – átdolgozás$/, to: (m) => `Flagged (round ${m[1]}) – rework` },
   { re: /^Kiemelve \((\d+)\. kör\)$/, to: (m) => `Flagged (round ${m[1]})` },

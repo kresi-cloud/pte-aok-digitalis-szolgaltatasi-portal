@@ -27,6 +27,7 @@ import type {
   Announcement,
   AppNotification,
   AssetHandover,
+  Delegation,
   EmployeeTier,
   InventoryItem,
   Product,
@@ -74,6 +75,14 @@ import {
   type ProcessSettings,
 } from "./deadlines";
 import { requestSituation } from "./request-situation";
+import {
+  actingFor,
+  actsAs,
+  enrichNotification,
+  notificationsFor,
+  validateDelegation,
+} from "./delegation";
+import { MIN_OVERRUN_JUSTIFICATION, unitBudgetCheck } from "./unit-budget";
 import {
   canDecideHold,
   canResubmitHold,
@@ -213,6 +222,10 @@ interface PersistedState {
   processSettings: ProcessSettings;
   /** Már kiküldött határidő-jelzések: „igény:lépés:kezdet” → szint. */
   deadlineNotices: Record<string, DeadlineLevel>;
+  /** Időszakos helyettesítések (D8). */
+  delegations: Delegation[];
+  /** Egységenkénti éves bruttó IT-keret (D15); hiányzó érték = alapérték. */
+  unitBudgets: Record<string, number>;
 }
 
 const initialState: PersistedState = {
@@ -232,6 +245,8 @@ const initialState: PersistedState = {
   planApprovals: buildPlanApprovals(),
   processSettings: DEFAULT_PROCESS_SETTINGS,
   deadlineNotices: {},
+  delegations: [],
+  unitBudgets: {},
   scrapProposals: seedScrapProposals(ASSETS),
   handovers: [],
   currentUserId: "u-kovacs",
@@ -269,13 +284,31 @@ interface StoreValue extends PersistedState {
   requestClarification: (id: string, question: string) => void;
   withdrawRequest: (id: string, reason?: string) => void;
   addMessage: (id: string, body: string, internal: boolean) => void;
+  /**
+   * Szervezeti jóváhagyás. A kijelölt jóváhagyó vagy aktív helyettese dönthet (D8);
+   * egység-keret túllépésénél az indoklás kötelező (D15). Hibánál a visszatérési érték az üzenet.
+   */
   decideApproval: (
     id: string,
     approvalId: string,
     decision: "jovahagyva" | "elutasitva",
     comment?: string,
-  ) => void;
+  ) => string | null;
   markNotificationsRead: () => void;
+  /** A bejelentkezett felhasználónak (és az általa helyettesítetteknek) szóló értesítések (D14). */
+  myNotifications: AppNotification[];
+  /** Időszakos helyettesítések (D8). */
+  delegations: Delegation[];
+  /** Akiket a bejelentkezett felhasználó ma helyettesít. */
+  actingForIds: string[];
+  /** Helyettesítés beállítása (null = törlés); admin bárkinek, más csak magának. */
+  setDelegation: (
+    userId: string,
+    input: { substituteId: string; from: string; to: string } | null,
+  ) => string | null;
+  /** Egységenkénti éves IT-keret (D15). */
+  unitBudgets: Record<string, number>;
+  setUnitBudget: (orgUnitId: string, amount: number) => void;
   rateRequest: (id: string, rating: number) => void;
   addInventoryItem: (
     input: Omit<InventoryItem, "id" | "ownerId" | "status" | "createdAt" | "spec">,
@@ -942,6 +975,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         }
         merged.processSettings = normalizeProcessSettings(saved.processSettings);
         merged.deadlineNotices = saved.deadlineNotices ?? {};
+        merged.delegations = Array.isArray(saved.delegations) ? saved.delegations : [];
+        merged.unitBudgets = saved.unitBudgets ?? {};
         // A megszűnt superuser szerepkör / demó felhasználó kitisztítása a mentett állapotból.
         const legacyRole = (merged.activeRole as string) === "superuser";
         if (legacyRole || merged.currentUserId === "u-superuser") {
@@ -1117,12 +1152,25 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             : `Emlékeztető: „${r.title}” – ${step}, felelős: ${who}. Határidő: ${formatHuDate(d.dueDate)} (${Math.max(0, d.remainingWorkdays)} munkanap van hátra).`,
       });
     }
-    if (Object.keys(newNotices).length === 0 && autoClose.length === 0) return;
+    // D14: minden értesítés a konkrét felelősnek és az igénylőnek szól – a hiányzó
+    // címzettek az ügy helyzetéből egyszer levezetve, tartósan.
+    const needsEnrich = state.notifications.some((n) => !n.recipientIds);
+    if (Object.keys(newNotices).length === 0 && autoClose.length === 0 && !needsEnrich) return;
     setState((s) => {
+      const ctx = {
+        requests: s.requests,
+        planItems: s.planItems,
+        planApprovals: s.planApprovals ?? [],
+        handovers: s.handovers ?? [],
+        users: effectiveUsers,
+        settings,
+      };
       let next: PersistedState = {
         ...s,
         deadlineNotices: { ...(s.deadlineNotices ?? {}), ...newNotices },
-        notifications: [...newNotifications, ...s.notifications],
+        notifications: [...newNotifications, ...s.notifications].map((n) =>
+          n.recipientIds ? n : enrichNotification(n, ctx),
+        ),
       };
       for (const id of autoClose) next = confirmReceiptState(next, id, "u-system", undefined, true);
       return next;
@@ -1135,6 +1183,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     state.handovers,
     state.processSettings,
     state.deadlineNotices,
+    state.notifications,
     effectiveUsers,
   ]);
 
@@ -1505,13 +1554,38 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           ],
         };
       }),
-    decideApproval: (id, approvalId, decision, comment) =>
+    decideApproval: (id, approvalId, decision, comment) => {
+      const req = state.requests.find((r) => r.id === id);
+      const appr = req?.approvals.find((a) => a.id === approvalId);
+      if (!req || !appr) return "A jóváhagyási lépés nem található.";
+      if (appr.decision !== "fuggoben") return "A jóváhagyási lépés már eldőlt.";
+      const acting = actingFor(state.delegations ?? [], currentUser.id, today());
+      const asSubstitute = appr.approverId !== currentUser.id;
+      if (asSubstitute && !acting.includes(appr.approverId) && state.activeRole !== "admin")
+        return "A döntést a kijelölt jóváhagyó vagy aktív helyettese hozhatja meg.";
+      const unitCheck = unitBudgetCheck(req, state.requests, state.unitBudgets ?? {}, today());
+      const justification = (comment ?? "").trim();
+      const isDefault =
+        justification === "Támogatom." || justification.length < MIN_OVERRUN_JUSTIFICATION;
+      if (decision === "jovahagyva" && unitCheck.exceeded && isDefault)
+        return `Az egység éves kerete kimerülne (${unitCheck.budget.toLocaleString("hu-HU")} Ft, felhasználva ${unitCheck.usedBefore.toLocaleString("hu-HU")} Ft, ez az igény ${unitCheck.amount.toLocaleString("hu-HU")} Ft) – a jóváhagyáshoz indoklás kötelező.`;
+      const substituteNote = asSubstitute
+        ? ` (helyettesként, ${lookup.user(appr.approverId)?.name ?? appr.approverId} helyett)`
+        : "";
       setState((s) => {
         let approvedNow = false;
         const requests = s.requests.map((r) => {
           if (r.id !== id) return r;
           const approvals = r.approvals.map((a) =>
-            a.id === approvalId ? { ...a, decision, decidedAt: today(), comment } : a,
+            a.id === approvalId
+              ? {
+                  ...a,
+                  decision,
+                  decidedAt: today(),
+                  comment: comment ? `${comment}${substituteNote}` : comment,
+                  decidedById: currentUser.id,
+                }
+              : a,
           );
           const rejected = decision === "elutasitva";
           const allDone = approvals.every((a) => a.decision === "jovahagyva");
@@ -1522,6 +1596,18 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             // D1: a jóváhagyáskori bruttó keret pillanatképe a későbbi küszöbellenőrzéshez.
             ...(approvedNow && !rejected
               ? { approvedBudgetGross: Math.round(r.estimatedCost ?? 0) }
+              : {}),
+            // D15: egység-keret túllépése indoklással.
+            ...(!rejected && unitCheck.exceeded
+              ? {
+                  unitBudgetOverrun: {
+                    at: today(),
+                    unitBudget: unitCheck.budget,
+                    usedBefore: unitCheck.usedBefore,
+                    amount: unitCheck.amount,
+                    justification,
+                  },
+                }
               : {}),
             status: (rejected ? "elutasitva" : allDone ? "elfogadva" : r.status) as StatusKey,
             nextStep: rejected
@@ -1537,7 +1623,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
                 at: today(),
                 actorId: currentUser.id,
                 action: rejected ? "Elutasítás" : "Jóváhagyás",
-                detail: comment ?? "",
+                detail: `${comment ?? ""}${substituteNote}${
+                  !rejected && unitCheck.exceeded
+                    ? ` · egység-keret túllépése (${unitCheck.budget.toLocaleString("hu-HU")} Ft keret, ${unitCheck.usedBefore.toLocaleString("hu-HU")} Ft felhasználva)`
+                    : ""
+                }`,
               },
             ],
           };
@@ -1560,11 +1650,84 @@ export function StoreProvider({ children }: { children: ReactNode }) {
               ],
             }
           : next;
-      }),
+      });
+      return null;
+    },
     markNotificationsRead: () =>
       setState((s) => ({
         ...s,
         notifications: s.notifications.map((n) => ({ ...n, read: true })),
+      })),
+    myNotifications: notificationsFor(
+      state.notifications,
+      currentUser.id,
+      state.delegations ?? [],
+      today(),
+      state.activeRole === "admin",
+    ),
+    delegations: state.delegations ?? [],
+    actingForIds: actingFor(state.delegations ?? [], currentUser.id, today()),
+    setDelegation: (userId, input) => {
+      if (userId !== currentUser.id && state.activeRole !== "admin")
+        return "Helyettesítést csak saját magának vagy adminisztrátorként állíthat be.";
+      if (input) {
+        const err = validateDelegation(userId, input, effectiveUsers);
+        if (err) return err;
+      }
+      setState((s) => {
+        const rest = (s.delegations ?? []).filter((d) => d.userId !== userId);
+        const next = input
+          ? [
+              ...rest,
+              {
+                id: `dg-${Date.now()}`,
+                userId,
+                substituteId: input.substituteId,
+                from: input.from,
+                to: input.to,
+                createdAt: today(),
+                createdBy: currentUser.id,
+              },
+            ]
+          : rest;
+        return {
+          ...s,
+          delegations: next,
+          assetAudit: [
+            {
+              id: `aud-${Date.now()}`,
+              at: today(),
+              actorId: currentUser.id,
+              entity: "beallitas" as const,
+              entityId: userId,
+              action: input ? "Helyettesítés beállítva" : "Helyettesítés törölve",
+              detail: input
+                ? `${lookup.user(userId)?.name ?? userId} → ${lookup.user(input.substituteId)?.name ?? input.substituteId} · ${input.from} – ${input.to}`
+                : (lookup.user(userId)?.name ?? userId),
+            },
+            ...s.assetAudit,
+          ],
+        };
+      });
+      return null;
+    },
+    unitBudgets: state.unitBudgets ?? {},
+    setUnitBudget: (orgUnitId, amount) =>
+      setState((s) => ({
+        ...s,
+        unitBudgets: { ...(s.unitBudgets ?? {}), [orgUnitId]: Math.max(0, Math.round(amount)) },
+        assetAudit: [
+          {
+            id: `aud-${Date.now()}`,
+            at: today(),
+            actorId: currentUser.id,
+            entity: "beallitas" as const,
+            entityId: orgUnitId,
+            action: "Egység éves IT-kerete módosítva",
+            detail: `${lookup.unit(orgUnitId)}: ${Math.max(0, Math.round(amount)).toLocaleString("hu-HU")} Ft`,
+          },
+          ...s.assetAudit,
+        ],
       })),
     rateRequest: (id, rating) => patchRequest(id, (r) => ({ ...r, rating })),
     addInventoryItem: (input) => {
@@ -2996,6 +3159,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         currentUser.id,
         decision,
         comment ?? "",
+        actingFor(state.delegations ?? [], currentUser.id, today()),
       );
       if (!rule.allowed) return rule.reason ?? "A művelet jelenleg nem végezhető el.";
       const text = comment?.trim() || undefined;

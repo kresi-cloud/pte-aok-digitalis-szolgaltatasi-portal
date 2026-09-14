@@ -295,6 +295,14 @@ function ItemRow({
             <BudgetBadge check={budget} />
           </span>
         )}
+        {sourceRequest?.unitBudgetOverrun && (
+          <span
+            className="mt-1 inline-flex rounded-full border border-warning/50 bg-warning/15 px-2 py-0.5 text-[11px] font-medium text-warning-foreground"
+            title={sourceRequest.unitBudgetOverrun.justification}
+          >
+            Egység-keret túllépése indoklással jóváhagyva
+          </span>
+        )}
         {(item.deliveries ?? []).length > 0 && (
           <span className="mt-1 block text-xs text-muted-foreground">
             {`Beérkezett: ${deliveredQuantity(item)}/${item.quantity || 1} db (${(item.deliveries ?? []).map((d) => `${d.at}: ${d.quantity} db`).join(", ")})`}

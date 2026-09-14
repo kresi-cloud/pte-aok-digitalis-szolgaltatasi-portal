@@ -99,12 +99,15 @@ export function canDecideBudgetReview(
   userId: string,
   decision: "jovahagyva" | "elutasitva",
   comment: string,
+  /** akiket a felhasználó helyettesként képvisel (D8) */
+  actingIds: string[] = [],
 ): { allowed: boolean; reason?: string } {
   if (!request || !review) return { allowed: false, reason: "A felülvizsgálat nem található." };
   if (review.status !== "fuggoben")
     return { allowed: false, reason: "A felülvizsgálat már eldőlt." };
+  const ids = new Set([userId, ...actingIds]);
   const approver = request.approvals.some(
-    (a) => a.approverId === userId && (a.role === "jovahagyo" || a.step === 1),
+    (a) => ids.has(a.approverId) && (a.role === "jovahagyo" || a.step === 1),
   );
   if (role !== "admin" && !(role === "jovahagyo" && approver))
     return {

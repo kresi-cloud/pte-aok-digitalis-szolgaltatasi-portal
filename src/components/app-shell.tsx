@@ -160,7 +160,9 @@ export function AppShell({ children }: { children: ReactNode }) {
   if (!store.hydrated) return <div className="min-h-screen bg-background" aria-busy="true" />;
   if (!store.loggedIn) return <LoginScreen />;
 
-  const unread = store.notifications.filter((n) => !n.read).length;
+  const myNotifications = store.myNotifications;
+  const unread = myNotifications.filter((n) => !n.read).length;
+  const actingSet = new Set([store.currentUser.id, ...store.actingForIds]);
   const user = store.currentUser;
 
   return (
@@ -233,8 +235,13 @@ export function AppShell({ children }: { children: ReactNode }) {
                   <p className="border-b border-border px-4 py-3 text-sm font-semibold">
                     Értesítések
                   </p>
-                  <ul className="max-h-80 divide-y divide-border overflow-auto">
-                    {store.notifications.map((n) => (
+                  <ul className="max-h-80 divide-y divide-border overflow-auto" tabIndex={0}>
+                    {myNotifications.length === 0 && (
+                      <li className="px-4 py-3 text-sm text-muted-foreground">
+                        Nincs Önnek szóló értesítés.
+                      </li>
+                    )}
+                    {myNotifications.map((n) => (
                       <li key={n.id}>
                         <Link
                           to="/igeny/$id"
@@ -242,13 +249,34 @@ export function AppShell({ children }: { children: ReactNode }) {
                           className="block px-4 py-3 text-sm hover:bg-secondary"
                         >
                           <span className="block">{n.text}</span>
-                          <span className="mt-0.5 block text-xs text-muted-foreground">{n.at}</span>
+                          {n.todo && n.todoActorId && actingSet.has(n.todoActorId) && (
+                            <span className="mt-1 block text-xs font-medium text-primary">
+                              {`Teendő: ${n.todo}${n.dueDate ? ` · határidő ${n.dueDate}` : ""}${
+                                n.todoActorId !== store.currentUser.id
+                                  ? ` · helyettesként (${lookup.user(n.todoActorId)?.name ?? ""})`
+                                  : ""
+                              }`}
+                            </span>
+                          )}
+                          <span className="mt-0.5 block text-xs text-muted-foreground">
+                            {n.at}
+                            {n.step ? ` · ${n.step}` : ""}
+                          </span>
                         </Link>
                       </li>
                     ))}
                   </ul>
                 </PopoverContent>
               </Popover>
+
+              {store.actingForIds.length > 0 && (
+                <span
+                  className="hidden rounded-sm border border-white/25 px-2 py-1 text-[11px] text-white/90 md:inline-flex"
+                  title="Időszakos helyettesítés"
+                >
+                  {`Helyettesít: ${store.actingForIds.map((id) => lookup.user(id)?.name ?? id).join(", ")}`}
+                </span>
+              )}
 
               <LanguageSwitcher />
 
