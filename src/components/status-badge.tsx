@@ -13,6 +13,7 @@ import {
   ShieldCheck,
   TestTube,
   Undo2,
+  Ban,
   XCircle,
 } from "lucide-react";
 
@@ -36,6 +37,7 @@ const STATUS_STYLE: Record<StatusKey, { cls: string; Icon: typeof Clock }> = {
   lezarva: { cls: "bg-success/12 text-success border-success/30", Icon: CheckCircle2 },
   elutasitva: { cls: "bg-destructive/10 text-destructive border-destructive/30", Icon: XCircle },
   visszavonva: { cls: "bg-muted text-muted-foreground border-border", Icon: Undo2 },
+  meghiusult: { cls: "bg-destructive/10 text-destructive border-destructive/30", Icon: Ban },
 };
 
 export function StatusBadge({ status, className }: { status: StatusKey; className?: string }) {

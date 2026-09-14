@@ -20,6 +20,8 @@ import { cn } from "@/lib/utils";
 import { PageHeading } from "@/components/page-heading";
 import { DeadlineBadge } from "@/components/deadline-badge";
 import { requestSituation } from "@/lib/request-situation";
+import { RejectBudgetButton } from "@/components/budget-badge";
+import { pendingBudgetReview } from "@/lib/budget-rules";
 
 export const Route = createFileRoute("/jovahagyasok")({
   head: () => ({
@@ -93,6 +95,19 @@ function ApprovalQueue() {
 
   // Igénylő szerepkörben is dönthet, ha személy szerint rá vár jóváhagyás.
   const canApprove = store.activeRole !== "igenylo" || myPending.length > 0;
+  // D1/D5: függő kerettúllépések, ahol a bejelentkezett felhasználó az igény szervezeti jóváhagyója.
+  const budgetReviews = store.planItems.flatMap((item) => {
+    const review = pendingBudgetReview(item);
+    const request = item.sourceRequestId
+      ? store.requests.find((r) => r.id === item.sourceRequestId)
+      : undefined;
+    if (!review || !request) return [];
+    const mine = request.approvals.some(
+      (a) => a.approverId === store.currentUser.id && (a.role === "jovahagyo" || a.step === 1),
+    );
+    if (!mine && store.activeRole !== "admin") return [];
+    return [{ item, review, request }];
+  });
 
   const decide = (r: ServiceRequest, decision: "jovahagyva" | "elutasitva", reason?: string) => {
     const mine = r.approvals.find(
@@ -146,6 +161,72 @@ function ApprovalQueue() {
               </div>
             ))}
           </div>
+
+          {budgetReviews.length > 0 && (
+            <section
+              className="card-surface space-y-3 border-l-4 border-l-warning p-5"
+              aria-labelledby="budget-reviews-heading"
+            >
+              <h2 id="budget-reviews-heading" className="font-display text-base font-semibold">
+                Költségkeret-túllépés – újbóli döntés
+              </h2>
+              <p className="text-sm text-muted-foreground">
+                A tervezett vagy a tényleges ár a jóváhagyott bruttó keretet a küszöbön (
+                {store.processSettings.budgetTolerancePct}%) túl lépi. Jóváhagyással az új összeg
+                lesz a keret; elutasításnál a folyamat megáll, amíg olcsóbb megoldás nem születik.
+              </p>
+              <ul className="space-y-2">
+                {budgetReviews.map(({ item, review, request }) => (
+                  <li
+                    key={review.id}
+                    className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-border p-3"
+                  >
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold">
+                        <Link
+                          to="/igeny/$id"
+                          params={{ id: request.id }}
+                          className="hover:underline"
+                        >
+                          {request.title}
+                        </Link>
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {`${lookup.userName(request.requesterId)} · ${lookup.unit(request.orgUnitId)} · ${item.deviceName ?? item.standardKey} · ${item.quantity} db`}
+                      </p>
+                      <p className="mt-1 text-xs">
+                        {`Jóváhagyott keret: ${review.budgetGross.toLocaleString("hu-HU")} Ft → új összeg: ${review.newGross.toLocaleString("hu-HU")} Ft (+${review.deltaPct}%) · ${review.trigger} · ${review.at}`}
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <RejectBudgetButton
+                        onConfirm={(reason) => {
+                          const err = store.decideBudgetReview(
+                            item.id,
+                            review.id,
+                            "elutasitva",
+                            reason,
+                          );
+                          if (err) toast.error(err);
+                          else toast.success("A kerettúllépés elutasítva – a folyamat megáll.");
+                        }}
+                      />
+                      <Button
+                        size="sm"
+                        onClick={() => {
+                          const err = store.decideBudgetReview(item.id, review.id, "jovahagyva");
+                          if (err) toast.error(err);
+                          else toast.success("A kerettúllépés jóváhagyva – az új összeg a keret.");
+                        }}
+                      >
+                        <Check className="size-4" /> Túllépés jóváhagyása
+                      </Button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
 
           <div
             role="tablist"

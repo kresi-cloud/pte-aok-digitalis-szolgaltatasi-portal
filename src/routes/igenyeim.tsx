@@ -40,10 +40,12 @@ function MyRequests() {
   const filtered = mine
     .filter((r) => {
       if (tab === "aktiv")
-        return !["lezarva", "elutasitva", "piszkozat", "visszavonva"].includes(r.status);
+        return !["lezarva", "elutasitva", "piszkozat", "visszavonva", "meghiusult"].includes(
+          r.status,
+        );
       if (tab === "piszkozat") return r.status === "piszkozat";
       if (tab === "visszavont") return r.status === "visszavonva";
-      if (tab === "lezart") return ["lezarva", "elutasitva"].includes(r.status);
+      if (tab === "lezart") return ["lezarva", "elutasitva", "meghiusult"].includes(r.status);
       return true;
     })
     .filter((r) => (q ? `${r.id} ${r.title}`.toLowerCase().includes(q.toLowerCase()) : true));

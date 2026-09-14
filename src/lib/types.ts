@@ -197,7 +197,8 @@ export type StatusKey =
   | "atadasra_var"
   | "lezarva"
   | "elutasitva"
-  | "visszavonva";
+  | "visszavonva"
+  | "meghiusult";
 
 export const STATUS_ORDER: StatusKey[] = [
   "piszkozat",
@@ -213,6 +214,7 @@ export const STATUS_ORDER: StatusKey[] = [
   "lezarva",
   "elutasitva",
   "visszavonva",
+  "meghiusult",
 ];
 
 export const STATUS_LABELS: Record<StatusKey, string> = {
@@ -229,6 +231,7 @@ export const STATUS_LABELS: Record<StatusKey, string> = {
   lezarva: "Lezárva",
   elutasitva: "Elutasítva",
   visszavonva: "Visszavonva",
+  meghiusult: "Beszerzés meghiúsult",
 };
 
 export type Priority = "alacsony" | "kozepes" | "magas" | "kritikus";
@@ -312,6 +315,8 @@ export interface ServiceRequest {
   integration?: string | undefined;
   recurring?: string | undefined;
   budget?: string | undefined;
+  /** A szervezeti jóváhagyáskor rögzített bruttó költségkeret (D1) – a küszöbellenőrzés alapja. */
+  approvedBudgetGross?: number | undefined;
   slaRisk?: boolean | undefined;
   projectId?: string | undefined;
   messages: RequestMessage[];

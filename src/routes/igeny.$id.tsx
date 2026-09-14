@@ -57,6 +57,8 @@ import { cn } from "@/lib/utils";
 import { ViewOnlyNotice } from "@/components/view-only-notice";
 import { deliveredQuantity, primaryHandover } from "@/lib/procurement-rules";
 import { formatHuDate } from "@/lib/clock";
+import { BudgetBadge } from "@/components/budget-badge";
+import { budgetCheck } from "@/lib/budget-rules";
 
 export const Route = createFileRoute("/igeny/$id")({
   head: ({ params }) => ({
@@ -137,6 +139,9 @@ function RequestDetail() {
   const currentIndex = TIMELINE.indexOf(request.status);
 
   /** A beszerzési szakasz állapota: tervsor → tervjóváhagyás → beszerzés → átadás. */
+  const budgetState = planItem
+    ? budgetCheck(request, planItem, store.processSettings.budgetTolerancePct)
+    : undefined;
   const relatedHandovers = (store.handovers ?? []).filter(
     (h) => h.requestId === request.id || (planItem && h.planItemId === planItem.id),
   );
@@ -232,7 +237,7 @@ function RequestDetail() {
     | { kind: "closed" };
   const roleUser = (role: RoleKey) => store.activeUsers.find((u) => u.roles.includes(role));
   const ownerInfo: OwnerInfo = (() => {
-    if (["lezarva", "elutasitva", "visszavonva"].includes(request.status)) {
+    if (["lezarva", "elutasitva", "visszavonva", "meghiusult"].includes(request.status)) {
       return { kind: "closed" };
     }
     const pending = request.approvals.filter((a) => a.decision === "fuggoben");
@@ -524,6 +529,33 @@ function RequestDetail() {
               </Link>
             )}
           </p>
+        )}
+
+        {planItem && budgetState && budgetState.budgetGross > 0 && (
+          <div
+            className={`mt-3 rounded-md border px-4 py-3 text-sm ${budgetState.exceeded ? "border-destructive/40 bg-destructive/5" : "border-border bg-secondary/40"}`}
+          >
+            <p className="flex flex-wrap items-center gap-2">
+              <span className="font-medium">Költségkeret: </span>
+              {`jóváhagyott ${budgetState.budgetGross.toLocaleString("hu-HU")} Ft · ${planItem.order?.actualUnitGross ? "tényleges" : "tervezett"} ${budgetState.currentGross.toLocaleString("hu-HU")} Ft`}
+              <BudgetBadge check={budgetState} />
+            </p>
+            {budgetState.pending && (
+              <p className="mt-1 text-xs text-muted-foreground">
+                {`A túllépésről (${budgetState.pending.trigger}) a szervezeti jóváhagyó dönt; az igénylő értesítést kapott.`}
+              </p>
+            )}
+            {budgetState.rejected && (
+              <p className="mt-1 text-xs text-destructive">
+                {`A túllépést elutasították${budgetState.rejected.comment ? `: ${budgetState.rejected.comment}` : "."} Olcsóbb modell vagy helyettesítés szükséges.`}
+              </p>
+            )}
+            {planItem.substitution && (
+              <p className="mt-1 text-xs text-muted-foreground">
+                {`Helyettesítő modell: ${planItem.substitution.fromDeviceName} → ${planItem.substitution.toDeviceName} · ${planItem.substitution.reason}`}
+              </p>
+            )}
+          </div>
         )}
 
         {planItem?.order && (

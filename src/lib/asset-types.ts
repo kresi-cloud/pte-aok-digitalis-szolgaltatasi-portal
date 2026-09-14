@@ -357,7 +357,13 @@ export const QUARTER_LABELS: Record<Quarter, string> = {
 };
 
 export type ProcurementStatus =
-  "tervezett" | "jovahagyasra_var" | "jovahagyva" | "beszerzes_alatt" | "teljesult" | "elhalasztva";
+  | "tervezett"
+  | "jovahagyasra_var"
+  | "jovahagyva"
+  | "beszerzes_alatt"
+  | "teljesult"
+  | "elhalasztva"
+  | "meghiusult";
 
 export const PROCUREMENT_STATUS_LABELS: Record<ProcurementStatus, string> = {
   tervezett: "Tervezett",
@@ -366,6 +372,7 @@ export const PROCUREMENT_STATUS_LABELS: Record<ProcurementStatus, string> = {
   beszerzes_alatt: "Beszerzés alatt",
   teljesult: "Teljesült",
   elhalasztva: "Elhalasztva",
+  meghiusult: "Beszerzés meghiúsult",
 };
 
 export interface ProcurementPlanItem {
@@ -414,6 +421,45 @@ export interface ProcurementPlanItem {
   order?: ProcurementOrder | undefined;
   /** Beérkezések darabszámmal – több darabnál részteljesítés (D12). */
   deliveries?: ProcurementDelivery[] | undefined;
+  /** Költségkeret-túllépés felülvizsgálatai időrendben (D1/D5). */
+  budgetReviews?: BudgetReview[] | undefined;
+  /** Beszerzési akadály és helyettesítő modell (D11). */
+  substitution?: ProcurementSubstitution | undefined;
+  /** Beszerzés meghiúsulása (D11): nincs helyettesítő. */
+  failure?: { at: string; byId: string; reason: string } | undefined;
+}
+
+export type BudgetReviewStatus = "fuggoben" | "jovahagyva" | "elutasitva" | "megoldva";
+
+/** Költségkeret-túllépés felülvizsgálata a szervezeti jóváhagyónál (D1/D5). */
+export interface BudgetReview {
+  id: string;
+  /** hol lépett be: tervezés (modell/ár) vagy beszerzés (tényleges ár / helyettesítés) */
+  stage: "tervezes" | "beszerzes";
+  at: string;
+  triggeredBy: string;
+  /** mi váltotta ki (pl. egységár módosítása, helyettesítő modell) */
+  trigger: string;
+  budgetGross: number;
+  newGross: number;
+  deltaPct: number;
+  status: BudgetReviewStatus;
+  decidedBy?: string | undefined;
+  decidedAt?: string | undefined;
+  comment?: string | undefined;
+}
+
+/** A beszerző által rögzített akadály és helyettesítő modell (D11). */
+export interface ProcurementSubstitution {
+  at: string;
+  byId: string;
+  reason: string;
+  fromDeviceName: string;
+  toDeviceName: string;
+  fromProductId?: string | undefined;
+  toProductId?: string | undefined;
+  fromUnitGross: number;
+  toUnitGross: number;
 }
 
 /** A beszerző által rögzített rendelés (D12). */

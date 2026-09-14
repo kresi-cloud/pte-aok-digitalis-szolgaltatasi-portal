@@ -36,7 +36,9 @@ import { ProductCatalogAdmin } from "@/components/product-catalog-admin";
 import { StatTile } from "@/components/asset-bits";
 import { DeadlineBadge } from "@/components/deadline-badge";
 import { requestSituation } from "@/lib/request-situation";
-import { DeliveryButton, StartOrderButton } from "@/components/procurement-dialogs";
+import { BlockButton, DeliveryButton, StartOrderButton } from "@/components/procurement-dialogs";
+import { BudgetBadge } from "@/components/budget-badge";
+import { budgetCheck } from "@/lib/budget-rules";
 import { deliveredQuantity, handoverForItem, remainingQuantity } from "@/lib/procurement-rules";
 
 export const Route = createFileRoute("/beszerzesek")({
@@ -141,6 +143,23 @@ function ItemRow({
   const sourceRequest = item.sourceRequestId
     ? store.requests.find((r) => r.id === item.sourceRequestId)
     : undefined;
+  const budget = sourceRequest
+    ? budgetCheck(sourceRequest, item, store.processSettings.budgetTolerancePct)
+    : undefined;
+  const sameCategoryProducts = (store.products ?? []).filter(
+    (p) =>
+      p.active &&
+      p.id !== item.productId &&
+      (item.productId
+        ? p.categoryId === (store.products ?? []).find((x) => x.id === item.productId)?.categoryId
+        : true),
+  );
+  const canBlock =
+    canAct &&
+    store.activeRole === "beszerzo" &&
+    (item.status === "beszerzes_alatt" || item.status === "jovahagyva" || next.key === "start") &&
+    item.status !== "meghiusult" &&
+    !hasHandover;
   const sourceSituation = sourceRequest
     ? requestSituation(sourceRequest, {
         planItems: store.planItems,
@@ -192,6 +211,21 @@ function ItemRow({
             {item.order.actualUnitGross
               ? ` · bruttó egységár: ${item.order.actualUnitGross.toLocaleString("hu-HU")} Ft`
               : ""}
+          </span>
+        )}
+        {item.substitution && (
+          <span className="mt-1 block text-xs text-muted-foreground">
+            {`Helyettesítő modell: ${item.substitution.fromDeviceName} → ${item.substitution.toDeviceName} (${item.substitution.toUnitGross.toLocaleString("hu-HU")} Ft/db) · ${item.substitution.reason}`}
+          </span>
+        )}
+        {item.failure && (
+          <span className="mt-1 block text-xs font-medium text-destructive">
+            {`Beszerzés meghiúsult: ${item.failure.reason}`}
+          </span>
+        )}
+        {budget && (
+          <span className="mt-1 block">
+            <BudgetBadge check={budget} />
           </span>
         )}
         {(item.deliveries ?? []).length > 0 && (
@@ -283,6 +317,7 @@ function ItemRow({
                 <StartOrderButton
                   item={item}
                   defaultLeadWorkdays={store.processSettings.deadlines.beszerzes}
+                  budget={budget}
                   onConfirm={(order) => {
                     const error = store.startItemProcurement(item.id, order);
                     if (error) {
@@ -317,6 +352,25 @@ function ItemRow({
                     ? "Átadási folyamatban a kari IT referensnél"
                     : "Nincs teendő – a művelet más szerepkörnél van.")}
               </span>
+            )}
+            {canBlock && (
+              <BlockButton
+                item={item}
+                products={sameCategoryProducts}
+                budget={budget}
+                onConfirm={(input) => {
+                  const error = store.reportProcurementBlock(item.id, input);
+                  if (error) {
+                    toast.error(error);
+                    return;
+                  }
+                  toast.success(
+                    input.substitute
+                      ? "Helyettesítő modell rögzítve – az igénylő értesítést kapott"
+                      : "A beszerzés meghiúsulása rögzítve – az ügy lezárult",
+                  );
+                }}
+              />
             )}
           </div>
         </td>

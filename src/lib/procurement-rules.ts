@@ -217,7 +217,20 @@ export function canStartProcurement(
     return no(
       "A tervciklus még nincs jóváhagyva – a gazdasági vezetői jóváhagyás után indítható a beszerzés.",
     );
+  const hold = budgetHoldReason(item);
+  if (hold) return no(hold);
   return ok;
+}
+
+/** D1/D5: függő vagy elutasított keret-felülvizsgálat megállítja a következő lépést. */
+export function budgetHoldReason(item: ProcurementPlanItem): string | undefined {
+  const last = item.budgetReviews?.at(-1);
+  if (!last) return undefined;
+  if (last.status === "fuggoben")
+    return `Költségkeret-túllépés (+${last.deltaPct}%) – a szervezeti jóváhagyó döntésére vár.`;
+  if (last.status === "elutasitva")
+    return `A kerettúllépést a szervezeti jóváhagyó elutasította${last.comment ? `: ${last.comment}` : "."} Olcsóbb modell vagy helyettesítés szükséges.`;
+  return undefined;
 }
 
 /** Beérkezés rögzítése: csak beszerzés alatt lévő, átadás nélküli tételnél. */
@@ -229,6 +242,9 @@ export function canMarkDelivered(
   if (!isProcurementExecutor(role))
     return no("A beérkezést a beszerző rögzíti – Ön betekintő jogosultsággal nézi az ügyet.");
   if (item.status === "teljesult") return no("A tétel már teljesült.");
+  if (item.status === "meghiusult") return no("A beszerzés meghiúsult.");
+  const hold = budgetHoldReason(item);
+  if (hold) return no(hold);
   const existing = handoversForItem(item, ctx.handovers ?? []).length;
   if (existing > 0 && remainingQuantity(item, existing) === 0)
     return no("Minden darab beérkezett – az átadás a kari IT referensnél folyik.");
@@ -281,6 +297,8 @@ export function getProcurementNextAction(
   const remaining = remainingQuantity(item, handoversForItem(item, ctx.handovers ?? []).length);
   if (item.status === "teljesult")
     return { key: null, label: "", allowed: false, hint: "Teljesült." };
+  if (item.status === "meghiusult")
+    return { key: null, label: "", allowed: false, hint: "A beszerzés meghiúsult." };
   if (handover && remaining === 0)
     return {
       key: null,

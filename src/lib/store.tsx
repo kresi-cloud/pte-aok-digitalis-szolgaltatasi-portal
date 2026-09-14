@@ -74,6 +74,12 @@ import {
   type ProcessSettings,
 } from "./deadlines";
 import { requestSituation } from "./request-situation";
+import {
+  budgetCheck,
+  canDecideBudgetReview,
+  canReportProcurementBlock,
+  needsBudgetReview,
+} from "./budget-rules";
 import { PROCESS_STEPS } from "./process-steps";
 import { formatHuDate } from "./clock";
 import { handoverPurposeTitle, productForHandover, specFromProduct } from "./handover-products";
@@ -331,6 +337,15 @@ interface StoreValue extends PersistedState {
   markPlanItemDelivered: (planItemId: string, input: DeliveryInput) => string | null;
   /** Beszerző: egyetlen tétel beszerzésének indítása jóváhagyott terv alapján, rendelési rekorddal (D12). */
   startItemProcurement: (planItemId: string, order: OrderInput) => string | null;
+  /** Szervezeti jóváhagyó: költségkeret-túllépés jóváhagyása vagy elutasítása (D1/D5). */
+  decideBudgetReview: (
+    planItemId: string,
+    reviewId: string,
+    decision: "jovahagyva" | "elutasitva",
+    comment?: string,
+  ) => string | null;
+  /** Beszerző: beszerzési akadály jelzése helyettesítő modellel vagy meghiúsulással (D11). */
+  reportProcurementBlock: (planItemId: string, input: BlockInput) => string | null;
   /** Kari IT referens: telepítési és azonosító adatok rögzítése. */
   updateHandover: (id: string, patch: Partial<AssetHandover>, label?: string) => void;
   /** Kari IT referens: eszköz átadása az igénylőnek. */
@@ -675,6 +690,133 @@ function resolveAssetLocation(h: AssetHandover) {
     locationsForUser(h.recipientId).find((l) => l.kind !== "raktar") ??
     usable.find((l) => l.orgUnitId === h.orgUnitId)
   );
+}
+
+/** Beszerzési akadály (D11): indoklás és opcionális helyettesítő modell. */
+export interface BlockInput {
+  reason: string;
+  substitute?:
+    | {
+        productId?: string | undefined;
+        deviceName: string;
+        modelKey?: string | undefined;
+        unitGross: number;
+      }
+    | undefined;
+}
+
+/**
+ * D1/D5: küszöbellenőrzés egy tervsoron. Túllépésnél felülvizsgálatot nyit a szervezeti
+ * jóváhagyónál és értesíti az igénylőt; ha a túllépés megszűnt, a nyitott kört lezárja.
+ */
+function applyBudgetCheck(
+  s: PersistedState,
+  planItemId: string,
+  stage: "tervezes" | "beszerzes",
+  trigger: string,
+  actorId: string,
+): PersistedState {
+  const item = s.planItems.find((p) => p.id === planItemId);
+  if (!item || !item.sourceRequestId) return s;
+  const request = s.requests.find((r) => r.id === item.sourceRequestId);
+  if (!request) return s;
+  const settings = s.processSettings ?? DEFAULT_PROCESS_SETTINGS;
+  const check = budgetCheck(request, item, settings.budgetTolerancePct);
+  const now = todayIso();
+  if (!check.exceeded) {
+    // Megszűnt túllépés: a függő / elutasított kör megoldva.
+    const open = (item.budgetReviews ?? []).some(
+      (r) => r.status === "fuggoben" || r.status === "elutasitva",
+    );
+    if (!open) return s;
+    return {
+      ...s,
+      planItems: s.planItems.map((p) =>
+        p.id === planItemId
+          ? {
+              ...p,
+              budgetReviews: (p.budgetReviews ?? []).map((r) =>
+                r.status === "fuggoben" || r.status === "elutasitva"
+                  ? { ...r, status: "megoldva" as const, decidedAt: now, comment: r.comment }
+                  : r,
+              ),
+            }
+          : p,
+      ),
+      notifications: [
+        {
+          id: `n-${Date.now()}-bres`,
+          at: now,
+          read: false,
+          requestId: request.id,
+          text: `${request.title}: az összeg (${check.currentGross.toLocaleString("hu-HU")} Ft) ismét a jóváhagyott kereten belül van, a felülvizsgálat lezárult.`,
+        },
+        ...s.notifications,
+      ],
+    };
+  }
+  if (!needsBudgetReview(check, item)) return s;
+  const approverId = request.approvals.find(
+    (a) => a.role === "jovahagyo" || a.step === 1,
+  )?.approverId;
+  const review = {
+    id: `br-${Date.now()}`,
+    stage,
+    at: now,
+    triggeredBy: actorId,
+    trigger,
+    budgetGross: check.budgetGross,
+    newGross: check.currentGross,
+    deltaPct: check.deltaPct,
+    status: "fuggoben" as const,
+  };
+  return {
+    ...s,
+    planItems: s.planItems.map((p) =>
+      p.id === planItemId ? { ...p, budgetReviews: [...(p.budgetReviews ?? []), review] } : p,
+    ),
+    requests: s.requests.map((r) =>
+      r.id === request.id
+        ? {
+            ...r,
+            updatedAt: now,
+            nextStep: `Költségkeret-túllépés (+${check.deltaPct}%): ${check.currentGross.toLocaleString("hu-HU")} Ft a jóváhagyott ${check.budgetGross.toLocaleString("hu-HU")} Ft helyett – a szervezeti jóváhagyó újra dönt.`,
+            audit: [
+              ...r.audit,
+              {
+                id: `a-${Date.now()}-br`,
+                at: now,
+                actorId,
+                action: "Költségkeret-túllépés",
+                detail: `${trigger} · ${check.budgetGross.toLocaleString("hu-HU")} Ft → ${check.currentGross.toLocaleString("hu-HU")} Ft (+${check.deltaPct}%)`,
+              },
+            ],
+          }
+        : r,
+    ),
+    notifications: [
+      {
+        id: `n-${Date.now()}-br`,
+        at: now,
+        read: false,
+        requestId: request.id,
+        text: `${request.title}: a ${stage === "beszerzes" ? "tényleges" : "tervezett"} ár ${check.currentGross.toLocaleString("hu-HU")} Ft, a jóváhagyott keret ${check.budgetGross.toLocaleString("hu-HU")} Ft (+${check.deltaPct}%, küszöb ${settings.budgetTolerancePct}%). ${approverId ? `${lookup.user(approverId)?.name ?? "A szervezeti jóváhagyó"} újra dönt` : "A szervezeti jóváhagyó újra dönt"}; az igénylő tájékoztatást kapott.`,
+      },
+      ...s.notifications,
+    ],
+    assetAudit: [
+      {
+        id: `aud-${Date.now()}-br`,
+        at: now,
+        actorId,
+        entity: "beszerzes" as const,
+        entityId: planItemId,
+        action: "Költségkeret-túllépés – felülvizsgálat nyitva",
+        detail: `${trigger} · +${check.deltaPct}% (${check.currentGross.toLocaleString("hu-HU")} Ft / ${check.budgetGross.toLocaleString("hu-HU")} Ft)`,
+      },
+      ...s.assetAudit,
+    ],
+  };
 }
 
 export function StoreProvider({ children }: { children: ReactNode }) {
@@ -1273,6 +1415,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           return {
             ...r,
             approvals,
+            // D1: a jóváhagyáskori bruttó keret pillanatképe a későbbi küszöbellenőrzéshez.
+            ...(approvedNow && !rejected
+              ? { approvedBudgetGross: Math.round(r.estimatedCost ?? 0) }
+              : {}),
             status: (rejected ? "elutasitva" : allDone ? "elfogadva" : r.status) as StatusKey,
             nextStep: rejected
               ? "Elutasítva."
@@ -1596,22 +1742,42 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       return id;
     },
     updatePlanItem: (id, patch) =>
-      setState((s) => ({
-        ...s,
-        planItems: s.planItems.map((p) => (p.id === id ? { ...p, ...patch } : p)),
-        assetAudit: [
-          {
-            id: `aud-${Date.now()}`,
-            at: today(),
-            actorId: currentUser.id,
-            entity: "beszerzes",
-            entityId: id,
-            action: "Beszerzési terv tétel módosítása",
-            detail: Object.keys(patch).join(", "),
-          },
-          ...s.assetAudit,
-        ],
-      })),
+      setState((s) => {
+        const priceKeys = [
+          "unitPriceOverride",
+          "quantity",
+          "priceChangePct",
+          "inflationPct",
+          "quantityDiscountPct",
+          "productId",
+        ];
+        const touchesPrice = Object.keys(patch).some((k) => priceKeys.includes(k));
+        const next: PersistedState = {
+          ...s,
+          planItems: s.planItems.map((p) => (p.id === id ? { ...p, ...patch } : p)),
+          assetAudit: [
+            {
+              id: `aud-${Date.now()}`,
+              at: today(),
+              actorId: currentUser.id,
+              entity: "beszerzes",
+              entityId: id,
+              action: "Beszerzési terv tétel módosítása",
+              detail: Object.keys(patch).join(", "),
+            },
+            ...s.assetAudit,
+          ],
+        };
+        return touchesPrice
+          ? applyBudgetCheck(
+              next,
+              id,
+              "tervezes",
+              "Tervsor módosítása (ár/darabszám)",
+              currentUser.id,
+            )
+          : next;
+      }),
     reschedulePlanItem: (id, planYear, quarter, comment) =>
       setState((s) => {
         const prev = s.planItems.find((p) => p.id === id);
@@ -2088,38 +2254,46 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         actualUnitGross: orderInput.actualUnitGross,
         note: orderInput.note?.trim() || undefined,
       };
-      setState((s) => ({
-        ...s,
-        planItems: s.planItems.map((p) =>
-          p.id === planItemId
-            ? { ...p, status: "beszerzes_alatt", order, expectedArrival: order.expectedArrival }
-            : p,
-        ),
-        notifications: item.sourceRequestId
-          ? [
-              {
-                id: `n-${Date.now()}`,
-                at: today(),
-                read: false,
-                requestId: item.sourceRequestId,
-                text: `${item.deviceName ?? standardLabel(item.standardKey)}: a beszerzés elindult – szállító: ${order.supplier}, rendelésszám: ${order.orderNumber}, várható érkezés: ${formatHuDate(order.expectedArrival)}.`,
-              },
-              ...s.notifications,
-            ]
-          : s.notifications,
-        assetAudit: [
+      setState((s) =>
+        applyBudgetCheck(
           {
-            id: `aud-${Date.now()}`,
-            at: today(),
-            actorId: currentUser.id,
-            entity: "beszerzes",
-            entityId: planItemId,
-            action: "Beszerzés indítva – rendelés rögzítve",
-            detail: `${item.deviceName ?? standardLabel(item.standardKey)} · ${order.supplier} · ${order.orderNumber} · várható érkezés: ${order.expectedArrival}${order.actualUnitGross ? ` · bruttó egységár: ${order.actualUnitGross.toLocaleString("hu-HU")} Ft` : ""}`,
+            ...s,
+            planItems: s.planItems.map((p) =>
+              p.id === planItemId
+                ? { ...p, status: "beszerzes_alatt", order, expectedArrival: order.expectedArrival }
+                : p,
+            ),
+            notifications: item.sourceRequestId
+              ? [
+                  {
+                    id: `n-${Date.now()}`,
+                    at: today(),
+                    read: false,
+                    requestId: item.sourceRequestId,
+                    text: `${item.deviceName ?? standardLabel(item.standardKey)}: a beszerzés elindult – szállító: ${order.supplier}, rendelésszám: ${order.orderNumber}, várható érkezés: ${formatHuDate(order.expectedArrival)}.`,
+                  },
+                  ...s.notifications,
+                ]
+              : s.notifications,
+            assetAudit: [
+              {
+                id: `aud-${Date.now()}`,
+                at: today(),
+                actorId: currentUser.id,
+                entity: "beszerzes",
+                entityId: planItemId,
+                action: "Beszerzés indítva – rendelés rögzítve",
+                detail: `${item.deviceName ?? standardLabel(item.standardKey)} · ${order.supplier} · ${order.orderNumber} · várható érkezés: ${order.expectedArrival}${order.actualUnitGross ? ` · bruttó egységár: ${order.actualUnitGross.toLocaleString("hu-HU")} Ft` : ""}`,
+              },
+              ...s.assetAudit,
+            ],
           },
-          ...s.assetAudit,
-        ],
-      }));
+          planItemId,
+          "beszerzes",
+          "Tényleges ár a rendelésben",
+          currentUser.id,
+        ),
+      );
       return null;
     },
 
@@ -2485,6 +2659,256 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           ],
         };
       }),
+    decideBudgetReview: (planItemId, reviewId, decision, comment) => {
+      const item = state.planItems.find((p) => p.id === planItemId);
+      const request = item?.sourceRequestId
+        ? state.requests.find((r) => r.id === item.sourceRequestId)
+        : undefined;
+      const review = item?.budgetReviews?.find((r) => r.id === reviewId);
+      const rule = canDecideBudgetReview(
+        request,
+        review,
+        state.activeRole,
+        currentUser.id,
+        decision,
+        comment ?? "",
+      );
+      if (!rule.allowed) return rule.reason ?? "A művelet jelenleg nem végezhető el.";
+      const text = comment?.trim() || undefined;
+      setState((s) => {
+        const cur = s.planItems.find((p) => p.id === planItemId);
+        const rv = cur?.budgetReviews?.find((r) => r.id === reviewId);
+        if (!cur || !rv || rv.status !== "fuggoben" || !cur.sourceRequestId) return s;
+        const approved = decision === "jovahagyva";
+        return {
+          ...s,
+          planItems: s.planItems.map((p) =>
+            p.id === planItemId
+              ? {
+                  ...p,
+                  budgetReviews: (p.budgetReviews ?? []).map((r) =>
+                    r.id === reviewId
+                      ? {
+                          ...r,
+                          status: decision,
+                          decidedBy: currentUser.id,
+                          decidedAt: today(),
+                          comment: text,
+                        }
+                      : r,
+                  ),
+                }
+              : p,
+          ),
+          requests: s.requests.map((r) =>
+            r.id === cur.sourceRequestId
+              ? {
+                  ...r,
+                  ...(approved
+                    ? {
+                        approvedBudgetGross: rv.newGross,
+                        estimatedCost: rv.newGross,
+                        budget: `${rv.newGross.toLocaleString("hu-HU")} Ft`,
+                      }
+                    : {}),
+                  updatedAt: today(),
+                  nextStep: approved
+                    ? `A kerettúllépést a szervezeti jóváhagyó jóváhagyta, az új keret ${rv.newGross.toLocaleString("hu-HU")} Ft – a folyamat folytatódik.`
+                    : `A kerettúllépést a szervezeti jóváhagyó elutasította${text ? `: ${text}` : "."} Olcsóbb modell vagy helyettesítés szükséges.`,
+                  audit: [
+                    ...r.audit,
+                    {
+                      id: `a-${Date.now()}`,
+                      at: today(),
+                      actorId: currentUser.id,
+                      action: approved ? "Kerettúllépés jóváhagyása" : "Kerettúllépés elutasítása",
+                      detail: `${rv.budgetGross.toLocaleString("hu-HU")} Ft → ${rv.newGross.toLocaleString("hu-HU")} Ft (+${rv.deltaPct}%)${text ? ` · ${text}` : ""}`,
+                    },
+                  ],
+                }
+              : r,
+          ),
+          notifications: [
+            {
+              id: `n-${Date.now()}`,
+              at: today(),
+              read: false,
+              requestId: cur.sourceRequestId,
+              text: approved
+                ? `${cur.deviceName ?? standardLabel(cur.standardKey)}: a kerettúllépés jóváhagyva, az új bruttó keret ${rv.newGross.toLocaleString("hu-HU")} Ft.`
+                : `${cur.deviceName ?? standardLabel(cur.standardKey)}: a kerettúllépést elutasították${text ? ` („${text}”)` : ""} – az IT eszközmenedzser / a beszerző olcsóbb megoldást keres.`,
+            },
+            ...s.notifications,
+          ],
+          assetAudit: [
+            {
+              id: `aud-${Date.now()}`,
+              at: today(),
+              actorId: currentUser.id,
+              entity: "beszerzes",
+              entityId: planItemId,
+              action: approved ? "Kerettúllépés jóváhagyva" : "Kerettúllépés elutasítva",
+              detail: `+${rv.deltaPct}%${text ? ` · ${text}` : ""}`,
+            },
+            ...s.assetAudit,
+          ],
+        };
+      });
+      return null;
+    },
+    reportProcurementBlock: (planItemId, input) => {
+      const item = state.planItems.find((p) => p.id === planItemId);
+      if (!item) return "A beszerzési tétel nem található.";
+      const rule = canReportProcurementBlock(
+        item,
+        state.activeRole,
+        input.reason,
+        handoversForItem(item, state.handovers ?? []).length,
+      );
+      if (!rule.allowed) return rule.reason ?? "A művelet jelenleg nem végezhető el.";
+      if (input.substitute && (!input.substitute.deviceName || input.substitute.unitGross <= 0))
+        return "A helyettesítő modell neve és bruttó egységára kötelező.";
+      const reason = input.reason.trim();
+      setState((s) => {
+        const cur = s.planItems.find((p) => p.id === planItemId);
+        if (!cur) return s;
+        const name = cur.deviceName ?? standardLabel(cur.standardKey);
+        const sub = input.substitute;
+        if (!sub) {
+          // Nincs helyettesítő: a beszerzés meghiúsul, az igény lezárul, új igény adható be.
+          return {
+            ...s,
+            planItems: s.planItems.map((p) =>
+              p.id === planItemId
+                ? {
+                    ...p,
+                    status: "meghiusult",
+                    failure: { at: today(), byId: currentUser.id, reason },
+                  }
+                : p,
+            ),
+            requests: s.requests.map((r) =>
+              r.id === cur.sourceRequestId
+                ? {
+                    ...r,
+                    status: "meghiusult",
+                    updatedAt: today(),
+                    nextStep: `A beszerzés meghiúsult: ${reason} Új igény adható be.`,
+                    audit: [
+                      ...r.audit,
+                      {
+                        id: `a-${Date.now()}`,
+                        at: today(),
+                        actorId: currentUser.id,
+                        action: "Beszerzés meghiúsult",
+                        detail: reason,
+                      },
+                    ],
+                  }
+                : r,
+            ),
+            notifications: [
+              {
+                id: `n-${Date.now()}`,
+                at: today(),
+                read: false,
+                requestId: cur.sourceRequestId,
+                text: `${name}: a beszerzés meghiúsult („${reason}”), nincs helyettesítő modell – az ügy lezárult, új igény adható be.`,
+              },
+              ...s.notifications,
+            ],
+            assetAudit: [
+              {
+                id: `aud-${Date.now()}`,
+                at: today(),
+                actorId: currentUser.id,
+                entity: "beszerzes",
+                entityId: planItemId,
+                action: "Beszerzés meghiúsult",
+                detail: `${name} · ${reason}`,
+              },
+              ...s.assetAudit,
+            ],
+          };
+        }
+        const fromUnit = cur.order?.actualUnitGross ?? cur.unitPriceOverride ?? 0;
+        const next: PersistedState = {
+          ...s,
+          planItems: s.planItems.map((p) =>
+            p.id === planItemId
+              ? {
+                  ...p,
+                  deviceName: sub.deviceName,
+                  productId: sub.productId ?? p.productId,
+                  modelKey: sub.modelKey ?? p.modelKey,
+                  unitPriceOverride: sub.unitGross,
+                  order: p.order ? { ...p.order, actualUnitGross: sub.unitGross } : p.order,
+                  substitution: {
+                    at: today(),
+                    byId: currentUser.id,
+                    reason,
+                    fromDeviceName: name,
+                    toDeviceName: sub.deviceName,
+                    fromProductId: p.productId,
+                    toProductId: sub.productId,
+                    fromUnitGross: fromUnit,
+                    toUnitGross: sub.unitGross,
+                  },
+                }
+              : p,
+          ),
+          requests: s.requests.map((r) =>
+            r.id === cur.sourceRequestId
+              ? {
+                  ...r,
+                  updatedAt: today(),
+                  nextStep: `Beszerzési akadály: ${reason} Helyettesítő modell: ${sub.deviceName} (${sub.unitGross.toLocaleString("hu-HU")} Ft/db).`,
+                  audit: [
+                    ...r.audit,
+                    {
+                      id: `a-${Date.now()}`,
+                      at: today(),
+                      actorId: currentUser.id,
+                      action: "Helyettesítő modell",
+                      detail: `${name} → ${sub.deviceName} · ${reason}`,
+                    },
+                  ],
+                }
+              : r,
+          ),
+          notifications: [
+            {
+              id: `n-${Date.now()}`,
+              at: today(),
+              read: false,
+              requestId: cur.sourceRequestId,
+              text: `${name}: beszerzési akadály („${reason}”) – helyettesítő modell: ${sub.deviceName}, bruttó ${sub.unitGross.toLocaleString("hu-HU")} Ft/db.`,
+            },
+            ...s.notifications,
+          ],
+          assetAudit: [
+            {
+              id: `aud-${Date.now()}`,
+              at: today(),
+              actorId: currentUser.id,
+              entity: "beszerzes",
+              entityId: planItemId,
+              action: "Beszerzési akadály – helyettesítő modell",
+              detail: `${name} → ${sub.deviceName} · ${fromUnit.toLocaleString("hu-HU")} Ft → ${sub.unitGross.toLocaleString("hu-HU")} Ft/db · ${reason}`,
+            },
+            ...s.assetAudit,
+          ],
+        };
+        return applyBudgetCheck(
+          next,
+          planItemId,
+          cur.order ? "beszerzes" : "tervezes",
+          `Helyettesítő modell: ${sub.deviceName}`,
+          currentUser.id,
+        );
+      });
+      return null;
+    },
     objectHandoverReceipt: (id, reason) => {
       const h = (state.handovers ?? []).find((x) => x.id === id);
       const rule = canObjectReceipt(h, state.activeRole, currentUser.id, reason);
@@ -2666,6 +3090,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             label: "Emlékeztető a határidő százalékánál",
             from: prev.reminderPct,
             to: clean.reminderPct,
+          });
+        if (prev.budgetTolerancePct !== clean.budgetTolerancePct)
+          changes.push({
+            label: "Költségkeret-küszöb (%)",
+            from: prev.budgetTolerancePct,
+            to: clean.budgetTolerancePct,
           });
         if (prev.receiptAutoCloseDays !== clean.receiptAutoCloseDays)
           changes.push({

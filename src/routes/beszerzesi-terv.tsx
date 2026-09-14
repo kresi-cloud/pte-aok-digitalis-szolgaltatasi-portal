@@ -43,6 +43,8 @@ import { ProcurementBadge, PriorityBadge, StatTile } from "@/components/asset-bi
 import { planItemStage } from "@/lib/plan-stage";
 import { planApprovalForItem } from "@/lib/withdraw";
 import { handoverForItem } from "@/lib/procurement-rules";
+import { BudgetBadge } from "@/components/budget-badge";
+import { budgetCheck } from "@/lib/budget-rules";
 
 export const Route = createFileRoute("/beszerzesi-terv")({
   head: () => ({
@@ -309,6 +311,9 @@ function ProcurementPage() {
 function PlanItemCard({ item }: { item: ProcurementPlanItem }) {
   const store = useStore();
   const cost = itemCost(item);
+  const sourceRequest = item.sourceRequestId
+    ? store.requests.find((r) => r.id === item.sourceRequestId)
+    : undefined;
   const price = assetLookup.price(item.referencePriceId);
   const [open, setOpen] = useState(false);
   // A tárolt státusz helyett a központi folyamatmodell levezetett lépcsője.
@@ -354,6 +359,11 @@ function PlanItemCard({ item }: { item: ProcurementPlanItem }) {
         <div className="flex flex-wrap items-center gap-2">
           <PriorityBadge priority={item.priority} />
           <ProcurementBadge status={item.status} />
+          {sourceRequest && (
+            <BudgetBadge
+              check={budgetCheck(sourceRequest, item, store.processSettings.budgetTolerancePct)}
+            />
+          )}
           {stage.overdue && (
             <span className="inline-flex rounded-full bg-destructive/10 px-2 py-0.5 text-[11px] font-medium text-destructive">
               Késedelmes
@@ -436,7 +446,7 @@ function PlanItemCard({ item }: { item: ProcurementPlanItem }) {
           />
           <NumField
             id={`up-${item.id}`}
-            label="Egyedi nettó egységár"
+            label="Egyedi bruttó egységár"
             value={item.unitPriceOverride ?? 0}
             onChange={(v) =>
               store.updatePlanItem(item.id, { unitPriceOverride: v > 0 ? v : undefined })

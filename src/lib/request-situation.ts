@@ -13,6 +13,7 @@ import {
   type ProcessSettings,
 } from "./deadlines";
 import { primaryHandover, remainingQuantity } from "./procurement-rules";
+import { pendingBudgetReview } from "./budget-rules";
 
 /**
  * Az ügy jelenlegi helyzetének egységes összefoglalója.
@@ -94,7 +95,10 @@ export function requestSituation(request: ServiceRequest, ctx: SituationContext)
   let nextActorId: string | undefined;
   let derivedStatusLabel: string | undefined;
   let overdue = false;
-  const terminated = request.status === "elutasitva" || request.status === "visszavonva";
+  const terminated =
+    request.status === "elutasitva" ||
+    request.status === "visszavonva" ||
+    request.status === "meghiusult";
   const closed =
     terminated ||
     request.status === "lezarva" ||
@@ -106,7 +110,12 @@ export function requestSituation(request: ServiceRequest, ctx: SituationContext)
     // nincs felelős és nincs következő teendő.
     const decided = request.approvals.find((a) => a.decision === "elutasitva");
     const decidedBy = decided ? userName(users, decided.approverId) : undefined;
-    stageIndex = request.status === "elutasitva" ? STEP.szervezeti_jovahagyas : STEP.igenyles;
+    stageIndex =
+      request.status === "elutasitva"
+        ? STEP.szervezeti_jovahagyas
+        : request.status === "meghiusult"
+          ? STEP.beszerzes
+          : STEP.igenyles;
     owner = "Nincs felelős – a folyamat megszakadt.";
     waitingOn = "Nincs nyitott teendő.";
     nextAction =
@@ -114,11 +123,15 @@ export function requestSituation(request: ServiceRequest, ctx: SituationContext)
         ? `Az igényt elutasították${decidedBy ? ` – ${decidedBy}` : ""}${
             decided?.comment ? `: ${decided.comment}` : "."
           }`
-        : "Az igénylő visszavonta az igényt.";
+        : request.status === "meghiusult"
+          ? `A beszerzés meghiúsult${planItem?.failure?.reason ? `: ${planItem.failure.reason}` : "."} Új igény adható be.`
+          : "Az igénylő visszavonta az igényt.";
     derivedStatusLabel =
       request.status === "elutasitva"
         ? "Elutasítva – a folyamat lezárult"
-        : "Visszavonva az igénylő által";
+        : request.status === "meghiusult"
+          ? "Beszerzés meghiúsult – nincs helyettesítő"
+          : "Visszavonva az igénylő által";
   } else if (pending.length > 0) {
     const next = pending[0]!;
     stageIndex = STEP.szervezeti_jovahagyas;
@@ -149,11 +162,26 @@ export function requestSituation(request: ServiceRequest, ctx: SituationContext)
     overdue = stage.overdue;
   }
 
+  // D1/D5: függő keret-felülvizsgálatnál a szervezeti jóváhagyó dönt, a lépés vár.
+  const review = planItem ? pendingBudgetReview(planItem) : undefined;
+  let reviewSince: string | undefined;
+  if (review && !closed && !terminated) {
+    const approverId = request.approvals.find(
+      (a) => a.role === "jovahagyo" || a.step === 1,
+    )?.approverId;
+    owner = userName(users, approverId);
+    waitingOn = `${owner} – ${ROLE_LABELS.jovahagyo}`;
+    nextAction = `Költségkeret-túllépés jóváhagyása (${review.deltaPct > 0 ? "+" : ""}${review.deltaPct}%)`;
+    nextActorId = approverId;
+    derivedStatusLabel = "Kerettúllépés – szervezeti jóváhagyásra vár";
+    reviewSince = review.at;
+  }
+
   // Lépésenkénti határidő (D3/D6): csak nyitott, várakozó lépésnél.
   let deadline: DeadlineInfo | undefined;
   if (!closed && !terminated && request.status !== "piszkozat") {
-    const key = deadlineKeyForStage(stageIndex);
-    const since = stepSince(request, stageIndex, { planItem, approval, handover });
+    const key = review ? "szervezeti_jovahagyas" : deadlineKeyForStage(stageIndex);
+    const since = reviewSince ?? stepSince(request, stageIndex, { planItem, approval, handover });
     if (key && since) {
       deadline = deadlineInfo(
         key,

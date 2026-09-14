@@ -38,6 +38,8 @@ export interface ProcessSettings {
   reminderPct: number;
   /** Az átvétel visszaigazolása ennyi munkanap után automatikusan lezárul. */
   receiptAutoCloseDays: number;
+  /** A jóváhagyott bruttó keret ennyi százalékig léphető túl újra-jóváhagyás nélkül (D5). */
+  budgetTolerancePct: number;
 }
 
 /** D6 alapértékek – a tesztek ezekkel futnak. */
@@ -52,6 +54,7 @@ export const DEFAULT_PROCESS_SETTINGS: ProcessSettings = {
   },
   reminderPct: 80,
   receiptAutoCloseDays: 10,
+  budgetTolerancePct: 10,
 };
 
 /** Tárolt (részleges vagy hiányzó) beállítás kiegészítése az alapértékekkel. */
@@ -64,8 +67,13 @@ export function normalizeProcessSettings(raw: unknown): ProcessSettings {
   }
   const pct = Number(src.reminderPct);
   const auto = Number(src.receiptAutoCloseDays);
+  const tol = Number(src.budgetTolerancePct);
   return {
     deadlines,
+    budgetTolerancePct:
+      Number.isFinite(tol) && tol >= 0 && tol <= 100
+        ? Math.round(tol)
+        : DEFAULT_PROCESS_SETTINGS.budgetTolerancePct,
     reminderPct:
       Number.isFinite(pct) && pct >= 10 && pct <= 100
         ? Math.round(pct)

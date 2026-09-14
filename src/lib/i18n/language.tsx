@@ -78,6 +78,34 @@ const PATTERNS: { re: RegExp; to: (m: RegExpExecArray) => string }[] = [
     to: (m) => `waiting ${m[1]} working days (${m[2]} working days late)`,
   },
   { re: /^átl\. (\d+) mn$/, to: (m) => `avg. ${m[1]} wd` },
+  // költségkeret-küszöb és akadály (D1/D5/D11)
+  {
+    re: /^Kerettúllépés \+(\d+)% – jóváhagyásra vár$/,
+    to: (m) => `Budget exceeded by ${m[1]}% – awaiting approval`,
+  },
+  {
+    re: /^Kerettúllépés \+(\d+)% – elutasítva$/,
+    to: (m) => `Budget exceeded by ${m[1]}% – rejected`,
+  },
+  { re: /^Kerettúllépés \+(\d+)%$/, to: (m) => `Budget exceeded by ${m[1]}%` },
+  { re: /^Kereten belül \(\+(\d+)%\)$/, to: (m) => `Within budget (+${m[1]}%)` },
+  {
+    re: /^Kerettúllépés \(\+(\d+)%\) – szervezeti jóváhagyásra vár$/,
+    to: (m) => `Budget exceeded (+${m[1]}%) – awaiting organisational approval`,
+  },
+  {
+    re: /^Költségkeret-túllépés jóváhagyása \(\+(\d+)%\)$/,
+    to: (m) => `Approval of budget overrun (+${m[1]}%)`,
+  },
+  {
+    re: /^jóváhagyott (.+) Ft · (tervezett|tényleges) (.+) Ft$/,
+    to: (m) => `approved ${m[1]} HUF · ${m[2] === "tervezett" ? "planned" : "actual"} ${m[3]} HUF`,
+  },
+  {
+    re: /^Helyettesítő modell: (.+) → (.+)$/,
+    to: (m) => `Substitute model: ${m[1]} → ${m[2]}`,
+  },
+  { re: /^Beszerzés meghiúsult: (.+)$/, to: (m) => `Procurement failed: ${m[1]}` },
   // rendelés és részteljesítés (D12/D16) – a „ · ” és „ – ” elválasztók mentén darabolt részek
   { re: /^Rendelés: (.+)$/, to: (m) => `Order: ${m[1]}` },
   { re: /^rendelésszám: (.+)$/, to: (m) => `order number: ${m[1]}` },

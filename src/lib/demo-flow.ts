@@ -7,6 +7,7 @@ import {
   oldAssetDecisionComplete,
   primaryHandover,
 } from "./procurement-rules";
+import { pendingBudgetReview } from "./budget-rules";
 import { PROCESS_STEP_COUNT } from "./process-steps";
 import { normalizeLegacyPlanStatus } from "./plan-stage";
 
@@ -79,7 +80,7 @@ export function demoRequest(ctx: DemoFlowContext): ServiceRequest | undefined {
     (r) =>
       r.requesterId === DEMO_REQUESTER_ID &&
       r.domain === "hardver" &&
-      !["visszavonva", "elutasitva", "piszkozat"].includes(r.status),
+      !["visszavonva", "elutasitva", "piszkozat", "meghiusult"].includes(r.status),
   );
 }
 
@@ -143,6 +144,23 @@ export function demoCurrentStep(ctx: DemoFlowContext): DemoStep {
   const handover = primaryHandover(
     (ctx.handovers ?? []).filter((h) => h.planItemId === item.id || h.requestId === request.id),
   );
+
+  const review = pendingBudgetReview(item);
+  if (review && !handover) {
+    const approverId =
+      request.approvals.find((a) => a.role === "jovahagyo" || a.step === 1)?.approverId ??
+      id("jovahagyo", "u-szabo");
+    return {
+      ...base,
+      index: review.stage === "beszerzes" ? 5 : 3,
+      state: `Költségkeret-túllépés (+${review.deltaPct}%) – a szervezeti jóváhagyó újra dönt.`,
+      waitingOn: `${nameOf(users, approverId, "Szervezeti jóváhagyó")} – szervezeti jóváhagyó`,
+      action: "Kerettúllépés jóváhagyása vagy elutasítása",
+      actorId: approverId,
+      role: "jovahagyo",
+      route: "/jovahagyasok",
+    };
+  }
 
   if (handover?.status === "atvetel_igazolva") {
     return {

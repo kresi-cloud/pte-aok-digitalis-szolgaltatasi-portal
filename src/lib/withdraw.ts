@@ -34,6 +34,7 @@ export function withdrawBlockReason(request: ServiceRequest, ctx: WithdrawContex
   if (request.status === "visszavonva") return "Az igény már vissza lett vonva.";
   if (request.status === "lezarva") return "A lezárt igény már nem vonható vissza.";
   if (request.status === "elutasitva") return "Az elutasított igény már nem vonható vissza.";
+  if (request.status === "meghiusult") return "A meghiúsult beszerzés már nem vonható vissza.";
 
   const item = ctx.planItems.find((p) => p.sourceRequestId === request.id);
   if (!item) return null;

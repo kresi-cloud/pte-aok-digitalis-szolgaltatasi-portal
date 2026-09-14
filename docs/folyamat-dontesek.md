@@ -193,3 +193,20 @@ Minden tétel: a kérdés, a döntés, a következmény a prototípusra.
 - Darabonként egy átadási rekord (N/M. darab); az ügy és a tervsor csak akkor zárul, ha minden
   darab beérkezett és átvétele visszaigazolva. A folyamatjelző a legkevésbé előrehaladott darabot
   mutatja.
+
+### 4. csomag – D1, D5, D11 (kész)
+
+- A keret a jóváhagyáskori bruttó becsült költség pillanatképe (`approvedBudgetGross`); a
+  küszöb (alapból 10%) a Folyamat-beállításokban állítható.
+- Küszöbellenőrzés minden árváltozásnál: tervsor-módosítás (ár, darabszám, modell), tényleges
+  ár a rendelésben, helyettesítő modell. Túllépésnél felülvizsgálat nyílik a szervezeti
+  jóváhagyónál, az igénylő értesül; a beszerzés indítása és a beérkezés rögzítése áll, amíg
+  a jóváhagyó nem dönt. Jóváhagyás: az új összeg lesz a keret. Elutasítás (indoklással): a
+  folyamat áll, amíg az ár a keret alá nem kerül vagy új, más összegű kör nem indul.
+- A rendelési rekordban a tényleges ár bruttó egységárként kerül rögzítésre (a keret ugyanezen az
+  alapon készül); a nettó tájékoztató.
+- Beszerzési akadály: a beszerző indoklással helyettesítő modellt rögzít (katalógusból vagy
+  kézzel, bruttó egységárral) – a tervsor és a rendelés az új modellre és árra vált, majd
+  fut a küszöbellenőrzés; helyettesítő nélkül a tétel és az igény „Beszerzés meghiúsult”
+  állapotba kerül (lezárt, megszakadt folyamat), az igénylő új igényt adhat be. Beérkezett
+  darab után akadály már nem jelezhető.

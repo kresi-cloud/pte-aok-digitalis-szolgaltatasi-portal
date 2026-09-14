@@ -13,7 +13,7 @@ export interface ProductLockInfo {
   reason?: string;
 }
 
-const CLOSED_REQUEST_STATUSES = ["lezarva", "elutasitva", "visszavonva", "piszkozat"];
+const CLOSED_REQUEST_STATUSES = ["lezarva", "elutasitva", "visszavonva", "meghiusult", "piszkozat"];
 
 /**
  * Egy katalógustétel akkor zárolt, ha aktív beszerzési folyamat hivatkozik rá:

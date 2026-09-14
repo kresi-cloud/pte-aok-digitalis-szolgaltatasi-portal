@@ -417,6 +417,23 @@ function ProcessSettingsAdmin() {
             />
           </div>
           <div className="space-y-1.5">
+            <Label htmlFor="dl-tolerance">Költségkeret-küszöb (%)</Label>
+            <Input
+              id="dl-tolerance"
+              type="number"
+              inputMode="numeric"
+              min={0}
+              max={100}
+              value={draft.budgetTolerancePct}
+              onChange={(e) =>
+                setDraft((d) => ({ ...d, budgetTolerancePct: Number(e.target.value) }))
+              }
+            />
+            <p className="text-xs text-muted-foreground">
+              Eddig léphető túl a jóváhagyott bruttó keret újra-jóváhagyás nélkül (D5).
+            </p>
+          </div>
+          <div className="space-y-1.5">
             <Label htmlFor="dl-autoclose">Átvétel automatikus lezárása (munkanap)</Label>
             <Input
               id="dl-autoclose"

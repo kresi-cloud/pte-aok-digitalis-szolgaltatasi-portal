@@ -9,6 +9,7 @@ import {
 import { PROCESS_STEPS, STEP } from "./process-steps";
 import { responsibleForRole } from "./process-roles";
 import { todayIso } from "./clock";
+import { pendingBudgetReview } from "./budget-rules";
 
 /**
  * A tervsor levezetett folyamatlépcsője a központi nyolclépcsős modellben.
@@ -85,6 +86,27 @@ export function planItemStage(
   const delivered = (item.quantity || 1) - remaining;
   const pieces = (item.quantity || 1) > 1 ? ` (${delivered}/${item.quantity} db beérkezett)` : "";
 
+  if (item.status === "meghiusult") {
+    return {
+      ...step(STEP.beszerzes),
+      label: "Beszerzés meghiúsult – nincs helyettesítő",
+      nextAction: "Az igény lezárult; új igény adható be.",
+      waitingOn: "Nincs nyitott teendő.",
+      done: true,
+      overdue: false,
+    };
+  }
+  const review = pendingBudgetReview(item);
+  if (review && !handover) {
+    return {
+      ...step(review.stage === "beszerzes" ? STEP.beszerzes : STEP.it_besorolas),
+      label: `Kerettúllépés (+${review.deltaPct}%) – szervezeti jóváhagyásra vár`,
+      nextAction: "Költségkeret-túllépés jóváhagyása vagy elutasítása",
+      ...responsibleForRole(users, "jovahagyo"),
+      done: false,
+      overdue,
+    };
+  }
   if (completed) {
     return {
       ...step(STEP.atvetel),
