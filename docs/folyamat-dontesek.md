@@ -240,3 +240,35 @@ Minden tétel: a kérdés, a döntés, a következmény a prototípusra.
   eszközigényei az adott évben. Ha az igény kimerítené a keretet, a jóváhagyó figyelmeztetést
   lát, jóváhagyás csak indoklással; a túllépés az igényen és a beszerzői munkatéren jelvénnyel
   látszik. Kemény tiltás nincs.
+
+## Záró végigtesztelés (2026-09-14)
+
+Egyetlen ügy, egyetlen állapotban, az összes ág egymás után, a felületen vezérelve
+(41 ellenőrzés, 0 hiba; futás közben nincs böngészőhiba):
+
+1. Igénylés (D2, 1 db személyi eszköz) → a szervezeti jóváhagyó helyettest állít be (D8) →
+   a helyettes egység-keret figyelmeztetéssel, indoklással hagy jóvá (D15); a döntés
+   „helyettesként” naplózódik, a keret pillanatképe rögzül (D1).
+2. IT besorolás: ütemezés-eltérés indoklással, majd visszaállítás (D9); +25% ár →
+   kerettúllépés, a helyettes elutasítja; +15% → új kör, jóváhagyva, új keret (D5).
+3. Gazdasági jóváhagyás egy tétel kiemelésével, átdolgozás, újbóli beküldés, jóváhagyás (D10).
+4. Beszerzés: akadály helyettesítő modellel (D11), rendelés várható érkezéssel és tényleges
+   árral (D12), beérkezés → kataszter-tétel raktáron, leltári számmal (D16).
+5. Átadás a régi eszköz selejtezésre jelölésével (D13) → az igénylő kifogást jelez, a referens
+   kezeli, ismételt átadás (D4) → lejárt határidő jelzése az igényen, értesítés, vezetői
+   irányítópult (D3/D7) → 10 munkanap után automatikus lezárás (D6), leltártétel jóváhagyva.
+6. Az igény auditja az összes ág nyomát tartalmazza; az ügy értesítései címzettekkel, az
+   igénylő mindenhol címzett (D14); a helyettesítést az admin törli, a beállítás-napló rögzíti.
+
+Regresszió ugyanezen a buildön: fő ág 8/8, kifogás 50/50, határidők 38/38, visszaküldés
+17/17, elutasítás/visszavonás 38/38, rendelés/részteljesítés 57/57, keret/akadály 53/53,
+ütemezés/kiemelés 43/43, helyettesítés/értesítés/egység-keret 35/35; 107 egységteszt; mobil
+(400 px) túlcsordulás és axe-hiba nélkül az érintett oldalakon.
+
+## Nyitott tételek
+
+- Az org-egységek angol nevei az aok.pte.hu alapján ellenőrzendők (a domain a fejlesztői
+  környezetből nem érhető el; a jelenlegi nevek fordítások).
+- Ünnepnapokat a munkanap-számítás nem ismer (csak a hétvégét hagyja ki).
+- A helyettesítés a személyhez kötött lépéseknél működik (szervezeti jóváhagyás,
+  kerettúllépés); a szerepkör-alapú lépéseknél nem személyhez kötött.
