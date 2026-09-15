@@ -27,7 +27,7 @@ const SKIP = [
 ];
 const HU = /[áéíóöőúüűÁÉÍÓÖŐÚÜŰ]/;
 const HU_WORD =
-  /\b(és|vagy|nem|igen|nincs|van|hogy|csak|még|már|minden|szerint|alatt|után|kérjük|adja|válasszon|igény|eszköz|beszerzés|tétel|lépés|felelős|jóváhagy\w*|átadás|átvétel|keret|határidő|napló|egység|kezelés|vissza|folyamat\w*|azonnali|magyar|keresés|mentés|törlés|szerkesztés|megjegyzés|indoklás|helyettes\w*|beküld\w*|elutasít\w*|lezár\w*|leltár\w*|selejt\w*|rendelés|szállító|raktár|tervsor|besorolás|ütemezés|kifogás|akadály|munkanap\w*|db|Ft|eFt)\b/i;
+  /\b(és|vagy|nem|igen|nincs|van|hogy|csak|még|már|minden|szerint|alatt|után|kérjük|adja|válasszon|igény|eszköz|beszerzés|tétel|lépés|felelős|jóváhagy\w*|átadás|átvétel|keret|határidő|napló|egység|kezelés|vissza|folyamat\w*|azonnali|magyar|keresés|mentés|törlés|szerkesztés|megjegyzés|indoklás|helyettes\w*|beküld\w*|elutasít\w*|lezár\w*|leltár\w*|selejt\w*|rendelés|szállító|raktár|tervsor|besorolás|ütemezés|kifogás|akadály|munkanap\w*|db|Ft|eFt|piszkozat\w*|visszavont)\b/i;
 const isHu = (t: string) => HU.test(t) || HU_WORD.test(t);
 
 function walkDir(dir: string, out: string[]) {

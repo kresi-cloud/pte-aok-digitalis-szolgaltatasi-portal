@@ -1713,4 +1713,6 @@ export const EN_TEMPLATES: [string, string][] = [
   ["eszközök átadva", "devices handed over"],
   ["tényleges {0}", "actual {0}"],
   ["tervezett {0}", "planned {0}"],
+  ["Piszkozatok", "Drafts"],
+  ["Visszavont", "Withdrawn"],
 ];
