@@ -265,6 +265,24 @@ Regresszió ugyanezen a buildön: fő ág 8/8, kifogás 50/50, határidők 38/38
 ütemezés/kiemelés 43/43, helyettesítés/értesítés/egység-keret 35/35; 107 egységteszt; mobil
 (400 px) túlcsordulás és axe-hiba nélkül az érintett oldalakon.
 
+## Angol nyelvi átfésülés (2026-09-15)
+
+Szabály: a felületi, taxonómiai és rendszerszövegek angolul jelennek meg, az adatok (igénycímek,
+nevek, terméknevek, felhasználói szabad szöveg, demó-tartalom) magyarul maradnak.
+
+- Forrás-audit: `bun scripts/i18n-audit.ts` – a `src` alatti JSX-szövegek, sztringliterálok és
+  sablonok átmennek a fordítón; ami magyar marad (részben is), a jelentésbe kerül. Kiindulás:
+  1996 egyedi magyar szöveg, 618 fordítatlan; a végén csak adat- és azonosító jellegű tételek
+  maradnak (CSV-oszlopnevek, kulcsszavak, fájlnevek).
+- Új sablonréteg (`src/lib/i18n/templates.ts`): `{n}` helyőrzős minták; a fordító előbb az egész
+  szövegre próbálja a sablonokat, majd mondatonként, elválasztónként (·, –, |, /, →, vessző),
+  bevezető jel, zárójel, „címke: érték" és záró írásjel szerint bontva, rekurzívan fordít; a
+  befogott részek (dátum, összeg, állapotnév) tovább fordulnak. Csak számmal álló minták kezelik a
+  pénznemet és mennyiséget (Ft → HUF, db → pc/pcs, munkanap).
+- Futásidejű ellenőrzés: a záró forgatókönyv állapotával 11 szerepkör × 21 útvonal + minden
+  igényoldal DOM-szintű átfésülése angolul (menük, fülek, lenyílók kinyitva); a maradék
+  kizárólag adat (nevek, terméknevek, szabad szöveg).
+
 ## Nyitott tételek
 
 - Az org-egységek angol nevei az aok.pte.hu alapján ellenőrzendők (a domain a fejlesztői

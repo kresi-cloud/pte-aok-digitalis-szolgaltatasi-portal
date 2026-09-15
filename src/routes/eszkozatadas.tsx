@@ -49,6 +49,7 @@ import { ViewOnlyNotice } from "@/components/view-only-notice";
 import { StatTile } from "@/components/asset-bits";
 import { DeadlineBadge } from "@/components/deadline-badge";
 import { useSituation } from "@/lib/use-situation";
+import { useLanguage } from "@/lib/i18n/language";
 
 const MAX_FILE_BYTES = 5 * 1024 * 1024;
 
@@ -107,15 +108,20 @@ export const Route = createFileRoute("/eszkozatadas")({
 });
 
 /** Semleges, kis méretű helyi demókép (nem tartalmaz valós adatot). */
-const DEMO_PHOTO_DATA_URL =
-  "data:image/svg+xml;utf8," +
-  encodeURIComponent(
-    '<svg xmlns="http://www.w3.org/2000/svg" width="320" height="200"><rect width="320" height="200" fill="#eef2f7"/><rect x="60" y="60" width="200" height="110" rx="8" fill="#c9d6e5"/><rect x="40" y="170" width="240" height="10" rx="5" fill="#a9bccf"/><text x="160" y="40" font-family="sans-serif" font-size="14" text-anchor="middle" fill="#40566d">Fiktív átadási fotó</text></svg>',
+function demoPhotoDataUrl(label: string): string {
+  return (
+    "data:image/svg+xml;utf8," +
+    encodeURIComponent(
+      `<svg xmlns="http://www.w3.org/2000/svg" width="320" height="200"><rect width="320" height="200" fill="#eef2f7"/><rect x="60" y="60" width="200" height="110" rx="8" fill="#c9d6e5"/><rect x="40" y="170" width="240" height="10" rx="5" fill="#a9bccf"/><text x="160" y="40" font-family="sans-serif" font-size="14" text-anchor="middle" fill="#40566d">${label}</text></svg>`,
+    )
   );
+}
 
 function HandoverCard({ handover, canAct }: { handover: AssetHandover; canAct: boolean }) {
   const store = useStore();
   const { demo } = useDemoMode();
+  const { t } = useLanguage();
+  const demoPhoto = demoPhotoDataUrl(t("Fiktív átadási fotó"));
   const [serial, setSerial] = useState(handover.serial ?? "");
   const [inventoryNo, setInventoryNo] = useState(handover.inventoryNo ?? "");
   const catalogCtx = {
@@ -210,8 +216,8 @@ function HandoverCard({ handover, canAct }: { handover: AssetHandover; canAct: b
             kind: "fenykep" as HandoverAttachmentKind,
             name: "atadas-demo.svg",
             mimeType: "image/svg+xml",
-            sizeBytes: DEMO_PHOTO_DATA_URL.length,
-            dataUrl: DEMO_PHOTO_DATA_URL,
+            sizeBytes: demoPhoto.length,
+            dataUrl: demoPhoto,
             uploadedBy: store.currentUser.id,
             uploadedAt: todayIso(),
           },

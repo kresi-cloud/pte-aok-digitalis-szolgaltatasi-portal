@@ -2613,7 +2613,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
                     at: today(),
                     read: false,
                     requestId: item.sourceRequestId,
-                    text: `${item.deviceName ?? standardLabel(item.standardKey)}: a beszerzés elindult – szállító: ${order.supplier}, rendelésszám: ${order.orderNumber}, várható érkezés: ${formatHuDate(order.expectedArrival)}.`,
+                    text: `${item.deviceName ?? standardLabel(item.standardKey)}: a beszerzés elindult – szállító: ${order.supplier}, rendelésszám: ${order.orderNumber}, várható érkezés: ${formatHuDate(order.expectedArrival)}`,
                   },
                   ...s.notifications,
                 ]
